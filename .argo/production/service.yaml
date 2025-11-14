@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: main-website
+spec:
+  clusterIP: None
+  clusterIPs:
+    - None
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: default
+      port: 3000
+      protocol: TCP
+      targetPort: 3000
+  selector:
+    workload.user.cattle.io/workloadselector: apps.deployment-main-website-frontend
+  type: ClusterIP

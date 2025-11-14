@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    workload.user.cattle.io/workloadselector: apps.deployment-main-website-frontend
+  name: frontend
+  namespace: main-website
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      workload.user.cattle.io/workloadselector: apps.deployment-main-website-frontend
+  template:
+    metadata:
+      labels:
+        workload.user.cattle.io/workloadselector: apps.deployment-main-website-frontend
+    spec:
+      containers:
+        - image: registry.robocup.de/website/frontend:v1.0.0
+          name: website-frontend
+          imagePullPolicy: Always
+      imagePullSecrets:
+        - name: registry
