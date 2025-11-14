@@ -1,0 +1,155 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+	--font-display: IBM Plex Mono, times, "Degular", ui-sans-serif, system-ui, -apple-system, Arial;
+	--font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, Arial;
+	
+	/* Spacing */
+	--spacing: 5px;
+	
+	/* Nur variaben definieren die von Tailwind kommen */
+	--color-white: #ffffff;
+	--color-black: #111111;
+    --color-junior: #ff9900;
+    --color-major: #018d2e;
+
+    /* Line-heights */
+	--leading-tight: 0.95;
+	--leading-snug: 1.2;
+	--leading-normal: 1.35;
+	--leading-relaxed: 1.5;
+	--leading-loose: 2;
+	
+	/* Tracking / letter-spacing */
+	--tracking-0: 0;
+	--tracking-1p: .01em;
+	--tracking-3p: .03em;
+	
+	/* Spacing token (Absatzabstand) */
+	--spacing-para: 20px;
+	
+	/* Font-size */
+	--text-*: initial;
+	--text-xs: 20px;
+	--text-xs--line-height: var(--leading-snug);
+	--text-sm: 25px;
+	--text-sm--line-height: var(--leading-normal);
+	--text-base: 30px;
+	--text-base--line-height: var(--leading-normal);
+	--text-lg: 35px;
+	--text-lg--line-height: var(--leading-normal);
+	--text-xl: 45px;
+	--text-xl--line-height: var(--leading-normal);
+	
+	/* Breakpoints */
+	--breakpoint-*: initial;
+	--breakpoint-sm: 576px; /* 30px */
+	--breakpoint-md: 768px; /* 30px */
+	--breakpoint-lg: 992px; /* 30px */
+	--breakpoint-xl: 1320px; /* 70px */
+	--breakpoint-2xl: 1504px; /* 70px */
+	--breakpoint-3xl: 1760px; /* 70px */
+	
+	/* Container */
+	/*--container-xs: 330px;*/
+	/*--container-sm: 516px;*/
+	/*--container-md: 708px;*/
+	/*--container-lg: 932px;*/
+	/*--container-xl: 1180px;*/
+	/*--container-2xl: 1364px;*/
+	/*--container-3xl: 1620px;*/
+}
+
+:root {
+	--ui-primary: #0060ff;
+    --ui-junior: #ff9900;
+    --ui-major: #018d2e;
+	--ui-bg: var(--color-white);
+	--ui-text: var(--color-black);
+}
+
+/* =========================================
+   Base defaults
+   ========================================= */
+@layer base {
+	
+	/* Headings H1–H6 (Degular Display) */
+	h1, h2, h3, h4, h5, h6 {
+		@apply font-display tracking-0;
+	}
+	
+	h1 {
+		font-size: 50px;
+	}
+	
+	h2 {
+		font-size: 40px;
+	}
+	
+	h3 {
+		font-size: 30px;
+		line-height: var(--leading-tight);
+		letter-spacing: 0.03em;
+	}
+	
+	h4 {
+		font-size: 45px;
+		line-height: var(--leading-tight);
+		letter-spacing: 0.03em;
+	}
+	
+	h5 {
+		font-size: 40px;
+		line-height: var(--leading-tight);
+		letter-spacing: 0.03em;
+	}
+	
+	h6 {
+		font-size: 40px;
+		line-height: 1;
+		letter-spacing: 0.03em;
+	}
+	
+	@media (width >= theme(--breakpoint-md)) {
+		h1 {
+			font-size: 120px;
+		}
+	
+		h2 {
+			font-size: 80px;
+		}
+		
+		h3 {
+			font-size: 65px;
+		}
+	}
+	
+	b {
+		font-weight: var(--font-weight-bold);
+	}
+	
+	p {
+		font-size: var(--text-base);
+		line-height: var(--leading-normal);
+	}
+	
+	.container {
+		padding-left: 30px;
+		padding-right: 30px;
+	}
+	
+	@media (width >= theme(--breakpoint-lg)) {
+		.container {
+			padding-left: 70px;
+			padding-right: 70px;
+		}
+	}
+	
+	@media (width >= 1920px) {
+		.container {
+			padding-left: 150px ;
+			padding-right: 150px;
+		}
+	}
+}
