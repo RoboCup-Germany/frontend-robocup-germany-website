@@ -1,0 +1,105 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI-MAIN
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "master" branch
+  push:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  change-version:
+    runs-on: ubuntu-latest
+    outputs:
+      currentVersion: ${{ steps.get_version.outputs.currentVersion }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: "Bump package version frontend"
+        id: bumpVersion
+        uses: "phips28/gh-action-bump-version@v11.0.7"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGEJSON_DIR: "./src"
+          major-wording: "BREAKING CHANGE"
+          minor-wording: "feat, feature"
+          patch-wording: "patch,fix,bugfix,chore"
+        with:
+          skip-commit: true
+          skip-push: true
+          skip-tag: true
+
+      - name: Get Version
+        id: get_version
+        run: |
+          git config --local user.email "161652136165+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git pull
+          cd src
+          echo "Reading version from package.json frontend"
+          PACKAGE_VERSION=$(cat ./package.json | jq '.version' | tr -d '"')
+          echo "currentVersion=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $PACKAGE_VERSION"
+  build-frontend:
+    needs: change-version
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'main'
+    outputs:
+      currentVersion: ${{ needs.change-version.outputs.currentVersion }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+      - name: Change Version in frontend package.json for show version in frontend
+        run: |
+          cd src
+          npm version ${{ needs.change-version.outputs.currentVersion }}
+      - name: Build the Docker Frontend Image
+        run: |
+          docker login ${{ secrets.DOCKER_URL }} -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker build -t ${{ secrets.DOCKER_URL }}/website/frontend:${{ needs.change-version.outputs.currentVersion }} .
+          docker push ${{ secrets.DOCKER_URL }}/website/frontend:${{ needs.change-version.outputs.currentVersion }}
+
+  post-publish-main:
+    runs-on: ubuntu-latest
+    needs: [build-frontend]
+    if: github.ref_name == 'main'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.ACTIONS_DEPLOY_TOKEN  }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+      - name: Change Version in package.json
+        run: |
+          cd src
+          npm version ${{ needs.build-frontend.outputs.currentVersion }}
+          git config --local user.email "161652136165+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Update Kubernetes manifest for production environment
+        id: update-image-production-frontend
+        uses: Charlyzzz/update-k8s-image@v1.7.1
+        with:
+          manifest-path: .argo/production/deployment.yaml
+          new-image-tag: ${{ needs.build-frontend.outputs.currentVersion }}
+          container-name: website-frontend
+
+      - name: Commit Changes
+        run: |
+          git config --local user.email "161652136165+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git pull
+          git tag -a v${{ needs.build-frontend.outputs.currentVersion }} -m "Version ${{ needs.build-frontend.outputs.currentVersion }}"
+          git commit -m "Update kubernetes manifest production [skip ci]" -a
+          git push
+          git push --tags
