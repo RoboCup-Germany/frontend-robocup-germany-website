@@ -2,6 +2,7 @@
 .DS_Store
 .env
 perms*.set
+.pnpm-store/
 
 src/node_modules
 
