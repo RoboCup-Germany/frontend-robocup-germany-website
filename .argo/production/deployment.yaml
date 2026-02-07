@@ -19,6 +19,10 @@ spec:
       containers:
         - image: registry.robocup.de/website/frontend:1.1.0
           name: website-frontend
+          envFrom:
+            - secretRef:
+                name: website-frontend
+                optional: false
           imagePullPolicy: Always
       imagePullSecrets:
         - name: registry
