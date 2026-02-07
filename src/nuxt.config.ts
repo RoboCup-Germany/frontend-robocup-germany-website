@@ -1,3 +1,4 @@
+import {process} from 'std-env';
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
     compatibilityDate: '2025-11-14',
@@ -22,7 +23,7 @@ export default defineNuxtConfig({
         public: {
             typo3: {
                 api: {
-                    baseUrl: 'https://testwebsite.robocup.de/',
+                    baseUrl: process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site',
                 },
                 features: {
                     i18nMiddleware: true,
