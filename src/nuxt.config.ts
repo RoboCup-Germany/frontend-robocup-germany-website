@@ -1,7 +1,9 @@
+import {process} from 'std-env';
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
     compatibilityDate: '2025-11-14',
     devtools: { enabled: true },
+
     modules: [
         '@nuxt/eslint',
         '@nuxt/image',
@@ -17,14 +19,11 @@ export default defineNuxtConfig({
     },
     css: [
         "~/assets/styles/app/tailwind.css"
-    ], runtimeConfig: {
+    ],runtimeConfig: {
         public: {
             typo3: {
                 api: {
-                    // LOCALHOST ADDRESS
-                    baseUrl: 'https://rc-new-website.ddev.site',
-                    // ONLINE ADDRESS
-                    // baseUrl: 'https://testwebsite.robocup.de/',
+                    baseUrl: process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site',
                 },
                 features: {
                     i18nMiddleware: true,
