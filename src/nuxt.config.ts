@@ -23,7 +23,7 @@ export default defineNuxtConfig({
         public: {
             typo3: {
                 api: {
-                    baseUrl: process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site',
+                    baseUrl: 'http://rc-new-website.ddev.site/',
                 },
                 features: {
                     i18nMiddleware: true,
