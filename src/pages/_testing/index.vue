@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import T3CeThemeHeader from "~/components/global/T3CeThemeHeader.vue";
+import T3CeRcgHeader from "~/components/global/T3CeRcgHeader.vue";
 
 definePageMeta({
   layout: 'test'
@@ -12,7 +12,7 @@ definePageMeta({
     <div class="mb-8">
       <div class="border ">
         <div class="text-muted">Typo3 Test-Compontents mit Dummy Inhalten:</div>
-        <T3CeThemeHeader header="Test Header" header_layout="2"/>
+        <T3CeRcgHeader header="Test Header" header_layout="2"/>
       </div>
 
 <!-- Base-Elements -->

@@ -15,12 +15,12 @@ defineOptions({
   inheritAttrs: false
 })
 
-interface T3CeThemeHeader extends T3CeBaseProps {
+interface T3CeRcgHeader extends T3CeBaseProps {
   header: string,
   header_layout: number | string,
   headingClass?: string
 }
-const props = withDefaults(defineProps<T3CeThemeHeader>(), {
+const props = withDefaults(defineProps<T3CeRcgHeader>(), {
   header: '',
   header_layout: 1,
   headingClass: ''

@@ -1,20 +1,20 @@
 <script setup lang="ts">
-const { initialData } = useT3Api()
+
+import Button from '~/components/basic/Button.vue';
+
+const {initialData} = useT3Api();
 const navigation = computed(
     () => initialData.value?.navigation?.[0]?.children ?? []
-)
+);
 </script>
 
 <template>
-  <header v-if="navigation">
-    <NuxtLink v-for="{ link, title } in navigation" :key="link" :to="link">
-      {{ title }}
-    </NuxtLink>
-  </header>
-
-  <slot />
-
-  <footer>FOOTER</footer>
+  <UHeader>
+    <template #right>
+      <Button :to="{url: '/'}" label="Contact" size="small" color="secondary"></Button>
+    </template>
+  </UHeader>
+  <slot/>
 </template>
 
 <style scoped>

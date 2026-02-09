@@ -11,6 +11,7 @@
 	/* Nur variaben definieren die von Tailwind kommen */
 	--color-white: #ffffff;
 	--color-black: #111111;
+    --color-primary: #0060ff;
     --color-junior: #ff9900;
     --color-major: #018d2e;
 
@@ -31,11 +32,11 @@
 	
 	/* Font-size */
 	--text-*: initial;
-	--text-xs: 20px;
+	--text-xs: 14px;
 	--text-xs--line-height: var(--leading-snug);
-	--text-sm: 25px;
+	--text-sm: 18px;
 	--text-sm--line-height: var(--leading-normal);
-	--text-base: 30px;
+	--text-base: 22px;
 	--text-base--line-height: var(--leading-normal);
 	--text-lg: 35px;
 	--text-lg--line-height: var(--leading-normal);
@@ -76,7 +77,8 @@
 	
 	/* Headings H1–H6 (Degular Display) */
 	h1, h2, h3, h4, h5, h6 {
-		@apply font-display tracking-0;
+		@apply font-sans tracking-0;
+        color: var(--color-primary);
 	}
 	
 	h1 {
