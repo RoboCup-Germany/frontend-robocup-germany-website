@@ -3,17 +3,21 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
+ENV CI=true
 RUN corepack enable
 
 # Copy package.json and your lockfile, here we add pnpm-lock.yaml for illustration
 #COPY src/package.json pnpm-lock.yaml .npmrc ./
-COPY src/package.json src/.npmrc ./
+COPY src/package.json src/.npmrc src/pnpm-lock.yaml ./
 
-# Install dependencies
-RUN npm i
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm fetch
 
 # Copy the entire project
 COPY /src ./
+
+# Install dependencies
+RUN pnpm install --offline
 
 # Build the project
 RUN npm run build

@@ -1,4 +1,7 @@
-import {process} from 'std-env';
+import { createResolver } from 'nuxt/kit'
+
+const { resolve } = createResolver(import.meta.url)
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
     compatibilityDate: '2025-11-14',
@@ -18,8 +21,9 @@ export default defineNuxtConfig({
         }
     },
     css: [
-        "~/assets/styles/app/tailwind.css"
-    ],runtimeConfig: {
+        resolve("assets/styles/app/tailwind.css")
+    ],
+    runtimeConfig: {
         public: {
             typo3: {
                 api: {
