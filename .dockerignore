@@ -1,0 +1,23 @@
+.settings/
+.DS_Store
+.env
+perms*.set
+
+src/node_modules
+
+# IDEA Code Style
+.idea/*
+!.idea/copyright
+!.idea/codeStyles
+!.idea/inspectionProfiles
+!.idea/php-inspections-ea-ultimate.xml
+!.idea/saveactions_settings.xml
+!.idea/dataSources*.xml
+
+# Nuxt dev/build outputs
+src/.output
+src/.data
+src/.nuxt
+src/.nitro
+src/.cache
+src/dist

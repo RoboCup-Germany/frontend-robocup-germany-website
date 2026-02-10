@@ -10,13 +10,13 @@ RUN corepack enable
 COPY src/package.json src/.npmrc ./
 
 # Install dependencies
-RUN pnpm i
+RUN npm i
 
 # Copy the entire project
-COPY .. ./
+COPY /src ./
 
 # Build the project
-RUN pnpm run build
+RUN npm run build
 
 # Build Stage 2
 
