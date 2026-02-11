@@ -11,7 +11,7 @@ defineOptions({
 interface T3CeRcgTextButton extends T3CeBaseProps
 {
   header: string;
-  header_layout: number | string;
+  header_layout?: number | string;
   subheader?: string;
   bodytext: string;
   button_text: string;
