@@ -1,23 +1,24 @@
 <script setup lang="ts">
 import type {T3CeBaseProps} from '@t3headless/nuxt-typo3';
 import Headline from '~/components/basic/Headline.vue';
+import Image from "~/components/basic/Image.vue";
 
 defineOptions({
   inheritAttrs: false
 });
 
-interface T3CeRcgTestimonial extends T3CeBaseProps
+interface T3CeRcgGallery extends T3CeBaseProps
 {
-  testimonials: TestimonialRef[];
+  images: MediaRef[];
 }
 
-const props = withDefaults(defineProps<T3CeRcgTestimonial>(), {});
+const props = withDefaults(defineProps<T3CeRcgGallery>(), {});
 
 const carouselUi = computed(() => ({
   dot: 'bg-black',
   item: 'basis-full',
   container: 'justify-around',
-  dots: props.testimonials.length <= 1 ? 'hidden' : ''
+  dots: props.images.length <= 1 ? 'hidden' : ''
 }));
 </script>
 
@@ -26,7 +27,7 @@ const carouselUi = computed(() => ({
     <UContainer>
       <UCarousel
           v-slot="{ item }"
-          :items="testimonials"
+          :items="images"
           :ui="carouselUi"
           align="start"
           dots
@@ -34,10 +35,8 @@ const carouselUi = computed(() => ({
       >
         <div class="mx-6 mt-10 mb-20 md:m-23">
           <p class="copy2">
-            <b>{{ item.name }}&nbsp;</b>
-            <span class="max-md:block">{{ item.position }}, {{ item.organization }}</span>
+            <Image :desktop="item"/>
           </p>
-          <Headline class="h2 mt-2 md:mt-4" :raw-html="item.text"/>
         </div>
       </UCarousel>
     </UContainer>

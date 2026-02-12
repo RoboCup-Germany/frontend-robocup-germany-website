@@ -27,15 +27,7 @@ declare global
         config?: { parameter?: string | null } | null;
         attr?: { href?: string | null } | null;
     }
-    
-    interface TestimonialRef
-    {
-        link: LinkRef;
-        name: string;
-        organization: string;
-        position: string;
-        text: string;
-    }
+
     
     interface FooterItem { label: string; url?: string }
 }
