@@ -20,7 +20,17 @@ interface T3CeRcgTextimage extends T3CeBaseProps
   media: MediaRef[];
 }
 
-const props = withDefaults(defineProps<T3CeRcgTextimage>(), {});
+const props = withDefaults(defineProps<T3CeRcgTextimage>(), {
+  header: '',
+  header_layout: 2,
+  bodytext: '',
+  button_text: '',
+  color_select: 'primary',
+  button_link: null,
+  button_size: 'medium',
+  orientation: 'left',
+  media: () => [] as MediaRef[]
+});
 
 </script>
 

@@ -8,14 +8,20 @@ defineOptions({
 
 interface T3CeRcgImage extends T3CeBaseProps
 {
-  customimage_mobile?: ImageRef[];
+  header_layout?: number | string;
   customimage_desktop?: ImageRef[];
-  customimage_wideDesktop?: ImageRef[];
 }
 
-const props = withDefaults(defineProps<T3CeRcgImage>(), {});
+const _props = withDefaults(defineProps<T3CeRcgImage>(), {
+  header_layout: 2,
+  customimage_desktop: null
+});
 </script>
 
 <template>
-  <Image :mobile="customimage_mobile" :desktop="customimage_desktop" :wideDesktop="customimage_wideDesktop"/>
+  <UContainer>
+    <div class="flex flex-col xl:flex-row xl:justify-between xl:items-baseline">
+      <Image :desktop="customimage_desktop"/>
+    </div>
+  </UContainer>
 </template>

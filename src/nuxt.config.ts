@@ -28,6 +28,8 @@ export default defineNuxtConfig({
             typo3: {
                 api: {
                     baseUrl: process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site',
+                    proxyHeaders: false,
+                    proxyReqHeaders: false,
                 },
                 features: {
                     i18nMiddleware: true,
