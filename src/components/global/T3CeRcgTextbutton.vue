@@ -10,17 +10,26 @@ defineOptions({
 
 interface T3CeRcgTextButton extends T3CeBaseProps
 {
-  header: string;
+  header?: string;
   header_layout?: number | string;
   subheader?: string;
-  bodytext: string;
-  button_text: string;
-  color_select: 'primary' | 'secondary' | 'outline';
-  button_link: LinkRef | null;
-  button_size: 'small' | 'medium' | 'large';
+  bodytext?: string;
+  button_text?: string;
+  color_select?: 'primary' | 'secondary' | 'outline';
+  button_link?: LinkRef | null;
+  button_size?: 'small' | 'medium' | 'large';
 }
 
-const props = withDefaults(defineProps<T3CeRcgTextButton>(), {});
+const props = withDefaults(defineProps<T3CeRcgTextButton>(), {
+  header: '',
+  header_layout: 2,
+  subheader: undefined,
+  bodytext: '',
+  button_text: '',
+  color_select: 'primary',
+  button_link: null,
+  button_size: 'medium'
+});
 
 const hasButton = computed(() => {
   const label = props.button_text?.trim();
@@ -35,7 +44,7 @@ const hasButton = computed(() => {
   <UContainer>
     <div class="flex flex-col xl:flex-row xl:justify-between xl:items-baseline">
       <div class="">
-        <Headline :raw-html="header"/>
+        <Headline v-if="header" :raw-html="header"/>
         <div v-if="subheader" class="mb-7 text-base italic uppercase tracking-wide text-black font-semibold">
           <T3HtmlParser :content="subheader" />
         </div>
