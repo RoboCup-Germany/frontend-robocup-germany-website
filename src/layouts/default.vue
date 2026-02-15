@@ -1,11 +1,5 @@
 <script setup lang="ts">
-
 import Button from '~/components/basic/Button.vue';
-
-const {initialData} = useT3Api();
-const navigation = computed(
-    () => initialData.value?.navigation?.[0]?.children ?? []
-);
 </script>
 
 <template>
@@ -15,6 +9,7 @@ const navigation = computed(
     </template>
   </UHeader>
   <slot/>
+  <SiteFooter />
 </template>
 
 <style scoped>
