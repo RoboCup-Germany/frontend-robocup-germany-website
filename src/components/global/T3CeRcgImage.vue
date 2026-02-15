@@ -8,11 +8,11 @@ defineOptions({
 
 interface T3CeRcgImage extends T3CeBaseProps
 {
-  header_layout: number | string;
+  header_layout?: number | string;
   customimage_desktop?: ImageRef[];
 }
 
-const props = withDefaults(defineProps<T3CeRcgImage>(), {
+const _props = withDefaults(defineProps<T3CeRcgImage>(), {
   header_layout: 2,
   customimage_desktop: null
 });
