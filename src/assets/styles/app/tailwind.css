@@ -157,14 +157,14 @@
 }
 
 @layer utilities {
-	.space-before-extra-small { @apply mt-6; }
+	.space-before-extra-small { @apply mt-0; }
 	.space-before-small { @apply mt-10; }
 	.space-before-medium { @apply mt-14; }
 	.space-before-large { @apply mt-18; }
 	.space-before-extra-large { @apply mt-24; }
 	.space-before-default { @apply mt-14; }
 
-	.space-after-extra-small { @apply mb-6; }
+	.space-after-extra-small { @apply mb-0; }
 	.space-after-small { @apply mb-10; }
 	.space-after-medium { @apply mb-14; }
 	.space-after-large { @apply mb-18; }
