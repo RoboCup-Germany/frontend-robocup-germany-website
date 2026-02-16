@@ -56,7 +56,7 @@ const closeDesktopMenu = () => {
 </script>
 
 <template>
-  <header class="border-b-2 border-primary bg-white" @keydown.esc="closeDesktopMenu" @mouseleave="closeDesktopMenu">
+  <header class="relative z-40 border-b-2 border-primary bg-white" @keydown.esc="closeDesktopMenu" @mouseleave="closeDesktopMenu">
     <UContainer>
       <div class="flex items-center justify-between gap-6 py-4 lg:items-end lg:py-5">
         <NuxtLink
@@ -145,11 +145,11 @@ const closeDesktopMenu = () => {
       </div>
     </UContainer>
 
-    <div class="hidden lg:block">
+    <div class="absolute left-0 top-full right-0 z-50 hidden lg:block">
       <div
         v-if="desktopActiveItem && hasChildren(desktopActiveItem)"
         :id="`desktop-submenu-${desktopActiveIndex}`"
-        class="border-t border-black/10 bg-black/5"
+        class="border-t border-black/10 bg-white/95"
       >
         <UContainer class="py-8 xl:grid xl:grid-cols-13 xl:gap-8">
           <div class="rounded-md border border-black/10 bg-white p-6 xl:col-start-1 xl:col-end-5">
