@@ -76,10 +76,18 @@
 @layer base {
 	
 	/* Headings H1–H6 (Degular Display) */
-	h1, h2, h3, h4, h5, h6 {
+	h1, h2 {
 		@apply font-sans tracking-0;
+        line-height: var(--leading-snug);
         color: var(--color-primary);
 	}
+
+    h3, h4, h5, h6 {
+        @apply font-sans tracking-0;
+        color: var(--color-black);
+        font-weight: 300;
+        margin-bottom: 1rem;
+    }
 	
 	h1 {
 		font-size: 60px;
@@ -134,6 +142,7 @@
 	p {
 		font-size: var(--text-base);
 		line-height: var(--leading-normal);
+        margin-bottom: var(--spacing-para);
 	}
 	
 	.container {
