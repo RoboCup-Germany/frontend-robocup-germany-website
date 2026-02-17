@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+const { normalize } = useCmsLink();
 
 const sizeMap = {
   small: 'sm',
@@ -36,7 +37,7 @@ const href = computed(() => {
     return undefined;
   }
 
-  return link.url || link.attr?.href || undefined;
+  return normalize(link.url || link.attr?.href || undefined);
 });
 
 const resolvedColor = computed<UiButtonColor>(() => {

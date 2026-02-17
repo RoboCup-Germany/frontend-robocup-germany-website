@@ -64,7 +64,7 @@ const desktopActiveItem = computed(() => {
 })
 
 const hasChildren = (item?: NavItem) => !!item?.children?.length
-const isExternal = (href?: string) => !!href && /^(https?:)?\/\//.test(href)
+const { normalize, isExternal } = useCmsLink()
 
 const closeDesktopMenu = () => {
   openDesktopIndex.value = null
@@ -95,7 +95,7 @@ const closeDesktopMenu = () => {
               <li v-for="locale in localeItems" :key="`${locale.title}-${locale.link}`">
                 <NuxtLink
                   v-if="locale.link"
-                  :to="locale.link"
+                  :to="normalize(locale.link)"
                   class="text-sm font-semibold text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   {{ locale.title }}
@@ -127,7 +127,7 @@ const closeDesktopMenu = () => {
                 </template>
                 <NuxtLink
                   v-else-if="item.link"
-                  :to="item.link"
+                  :to="normalize(item.link)"
                   :target="item.target || undefined"
                   :external="isExternal(item.link)"
                   class="inline-flex items-center border-b-4 px-0 py-3 text-sm font-semibold text-black no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -185,7 +185,7 @@ const closeDesktopMenu = () => {
             >
               <NuxtLink
                 v-if="child.link"
-                :to="child.link"
+                :to="normalize(child.link)"
                 :target="child.target || undefined"
                 :external="isExternal(child.link)"
                 class="text-base font-semibold text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -204,7 +204,7 @@ const closeDesktopMenu = () => {
                 >
                   <NuxtLink
                     v-if="grandChild.link"
-                    :to="grandChild.link"
+                    :to="normalize(grandChild.link)"
                     :target="grandChild.target || undefined"
                     :external="isExternal(grandChild.link)"
                     class="text-sm text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -241,7 +241,7 @@ const closeDesktopMenu = () => {
                     >
                       <NuxtLink
                         v-if="child.link"
-                        :to="child.link"
+                        :to="normalize(child.link)"
                         :target="child.target || undefined"
                         :external="isExternal(child.link)"
                         class="text-sm text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -261,7 +261,7 @@ const closeDesktopMenu = () => {
                         >
                           <NuxtLink
                             v-if="grandChild.link"
-                            :to="grandChild.link"
+                            :to="normalize(grandChild.link)"
                             :target="grandChild.target || undefined"
                             :external="isExternal(grandChild.link)"
                             class="text-xs text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -278,7 +278,7 @@ const closeDesktopMenu = () => {
               </template>
               <NuxtLink
                 v-else-if="item.link"
-                :to="item.link"
+                :to="normalize(item.link)"
                 :target="item.target || undefined"
                 :external="isExternal(item.link)"
                 class="text-sm font-semibold text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"

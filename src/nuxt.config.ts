@@ -1,6 +1,8 @@
 import { createResolver } from 'nuxt/kit'
 
 const { resolve } = createResolver(import.meta.url)
+const typo3ProxyBaseUrl = process.env.NUXT_PUBLIC_TYPO3_PROXY_BASE_URL ?? 'http://localhost:3000/api/typo3'
+const typo3BackendOrigin = process.env.NUXT_TYPO3_API_ORIGIN ?? process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -17,19 +19,29 @@ export default defineNuxtConfig({
     ],
     typo3: {
         api: {
-            baseUrl: 'https://api.t3pwa.com'
-        }
+            baseUrl: typo3ProxyBaseUrl
+        },
+        i18n: {
+            default: 'de',
+            locales: ['de', 'en']
+        },
     },
     css: [
         resolve("assets/styles/app/tailwind.css")
     ],
     runtimeConfig: {
+        typo3ApiOrigin: typo3BackendOrigin,
         public: {
             typo3: {
                 api: {
-                    baseUrl: process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site',
+                    baseUrl: typo3ProxyBaseUrl,
+                    backendBaseUrl: typo3BackendOrigin,
                     proxyHeaders: false,
                     proxyReqHeaders: false,
+                },
+                i18n: {
+                    default: 'de',
+                    locales: ['de', 'en']
                 },
                 features: {
                     i18nMiddleware: true,

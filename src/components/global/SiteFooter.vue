@@ -29,7 +29,7 @@ const siteTitle = computed(
   () => initialData.value?.globalConfig?.title || 'RoboCup Germany'
 )
 
-const isExternal = (href?: string) => !!href && /^(https?:)?\/\//.test(href)
+const { normalize, isExternal } = useCmsLink()
 </script>
 
 <template>
@@ -57,7 +57,7 @@ const isExternal = (href?: string) => !!href && /^(https?:)?\/\//.test(href)
             >
               <NuxtLink
                 v-if="item.link"
-                :to="item.link"
+                :to="normalize(item.link)"
                 :target="item.target || undefined"
                 :external="isExternal(item.link)"
                 class="text-base leading-normal text-black no-underline hover:underline focus-visible:rounded-[2px] focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-primary"
