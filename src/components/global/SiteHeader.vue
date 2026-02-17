@@ -5,6 +5,8 @@ type NavItem = {
   target?: string
   current?: number
   active?: number
+  subtitle?: string
+  media?: unknown
   children?: NavItem[]
 }
 
@@ -66,6 +68,41 @@ const desktopHighlightedIndex = computed(() => {
 const desktopOpenItem = computed(() => {
   if (openDesktopIndex.value === null) return null
   return navItems.value[openDesktopIndex.value] ?? null
+})
+
+type MediaItem = {
+  publicUrl?: string | null
+  url?: string | null
+  originalUrl?: string | null
+  alt?: string | null
+  alternative?: string | null
+  description?: string | null
+  title?: string | null
+  cropVariants?: {
+    default?: {
+      url?: string | null
+    }
+  } | null
+}
+
+const megaMenuPreview = computed(() => {
+  const openItem = desktopOpenItem.value
+  if (!openItem) return null
+
+  const mediaRaw = openItem.media
+  const mediaList = Array.isArray(mediaRaw) ? mediaRaw : mediaRaw ? [mediaRaw] : []
+  const firstMedia = mediaList[0]
+
+  if (!firstMedia || typeof firstMedia !== 'object') return null
+
+  const media = firstMedia as MediaItem
+  const src = media.publicUrl || media.cropVariants?.default?.url || media.url || media.originalUrl
+  if (!src) return null
+
+  const alt = media.alt || media.alternative || media.description || media.title || openItem.title || 'Vorschaubild'
+  const subtitle = openItem.subtitle || ''
+
+  return { src, alt, subtitle }
 })
 
 const hasChildren = (item?: NavItem) => !!item?.children?.length
@@ -183,10 +220,21 @@ watch(
       >
         <UContainer class="py-8 xl:grid xl:grid-cols-13 xl:gap-8">
           <div class="rounded-md border border-black/10 bg-white p-6 xl:col-start-1 xl:col-end-5">
-            <p class="text-lg font-semibold leading-tight text-black">
+            <img
+              v-if="megaMenuPreview"
+              :src="megaMenuPreview.src"
+              :alt="megaMenuPreview.alt"
+              class="h-48 w-full rounded-md object-cover"
+              loading="lazy"
+              decoding="async"
+            >
+            <p v-if="megaMenuPreview?.subtitle" class="mt-4 text-sm text-black/80">
+              {{ megaMenuPreview.subtitle }}
+            </p>
+            <p v-else class="text-lg font-semibold leading-tight text-black">
               {{ desktopOpenItem.title }}
             </p>
-            <p class="mt-3 text-sm text-black/80">
+            <p v-if="!megaMenuPreview" class="mt-3 text-sm text-black/80">
               Wähle einen Bereich aus der Navigation.
             </p>
           </div>
