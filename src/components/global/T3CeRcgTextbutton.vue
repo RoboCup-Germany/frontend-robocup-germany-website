@@ -118,7 +118,7 @@ const hasButtons = computed(() => normalizedButtons.value.length > 0);
       <div v-if="subheader" class="mb-7 text-base italic uppercase tracking-wide text-black font-semibold">
         <T3HtmlParser :content="subheader" />
       </div>
-      <div v-if="bodytext">
+      <div v-if="bodytext" class="mb-4">
         <T3HtmlParser :content="bodytext" />
       </div>
 
