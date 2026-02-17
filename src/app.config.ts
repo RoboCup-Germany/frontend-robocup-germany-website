@@ -16,7 +16,7 @@ export default defineAppConfig({
                 },
                 size: {
                     md: {
-                        base: 'text-[32px] leading-[1em] px-5 py-3 md:px-6 md:pt-[12px] md:pb-[15px]',
+                        base: 'text-[22px] leading-[1em] px-5 py-3 md:px-6 md:pt-[12px] md:pb-[15px]',
                     },
                     lg: {
                         base: 'text-xl leading-[1em] px-6 py-2 md:px-10 md:py-2',
@@ -40,9 +40,19 @@ export default defineAppConfig({
                     class: 'text-white bg-junior hover:bg-junior/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junior'
                 },
                 {
+                    color: 'junior',
+                    variant: 'outline',
+                    class: 'ring ring-inset ring-junior outline-2 text-junior hover:bg-transparent hover:outline-4 disabled:bg-transparent focus:outline-4 focus-visible:ring-3 focus-visible:ring-junior'
+                },
+                {
                     color: 'major',
                     variant: 'solid',
                     class: 'text-white bg-major hover:bg-major/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-major'
+                },
+                {
+                    color: 'major',
+                    variant: 'outline',
+                    class: 'ring ring-inset ring-major outline-2 text-major hover:bg-transparent hover:outline-4 disabled:bg-transparent focus:outline-4 focus-visible:ring-3 focus-visible:ring-major'
                 },
             ],
             defaultVariants: {

@@ -63,9 +63,9 @@
 }
 
 :root {
-	--ui-primary: #0060ff;
-    --ui-junior: #ff9900;
-    --ui-major: #018d2e;
+	--ui-primary: var(--color-primary);
+    --ui-junior: var(--color-junior);
+    --ui-major: var(--color-major);
 	--ui-bg: var(--color-white);
 	--ui-text: var(--color-black);
 }

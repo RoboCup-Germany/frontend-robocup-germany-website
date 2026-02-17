@@ -7,17 +7,22 @@ import Headline from '~/components/basic/Headline.vue'
 defineOptions({ inheritAttrs: false })
 
 interface T3CeRcgOpener extends T3CeBaseProps {
-  button_link: LinkRef | null
-  button_size: 'small' | 'medium' | 'large'
-  button_text: string
-  color_select: 'primary' | 'secondary' | 'outline'
+  button_link?: LinkRef | null
+  button_size?: 'small' | 'medium' | 'large'
+  button_text?: string
+  color_select?: 'primary' | 'secondary' | 'outline'
   header?: string
   media?: MediaRef[]
   media_landscape?: MediaRef[]
   media_portrait?: MediaRef[]
 }
 
-const props = withDefaults(defineProps<T3CeRcgOpener>(), {})
+const props = withDefaults(defineProps<T3CeRcgOpener>(), {
+  button_link: null,
+  button_size: 'medium',
+  button_text: '',
+  color_select: 'primary'
+})
 
 const hasButton = computed(() => {
   const label = props.button_text?.trim()
