@@ -19,22 +19,38 @@ const { initialData, pageData } = useT3Api()
 
 const isMobileMenuOpen = ref(false)
 const openDesktopIndex = ref<number | null>(null)
+const isMounted = ref(false)
+
+onMounted(() => {
+  isMounted.value = true
+})
 
 const siteTitle = computed(() => initialData.value?.globalConfig?.title || 'RoboCup Germany')
 
 const navItems = computed<NavItem[]>(
-  () =>
-    (pageData.value?.headerNavigation as NavItem[] | undefined) ??
-    (initialData.value?.headerNavigation as NavItem[] | undefined) ??
-    []
+  () => {
+    if (!isMounted.value) {
+      return (initialData.value?.headerNavigation as NavItem[] | undefined) ?? []
+    }
+
+    return (
+      (pageData.value?.headerNavigation as NavItem[] | undefined) ??
+      (initialData.value?.headerNavigation as NavItem[] | undefined) ??
+      []
+    )
+  }
 )
 
 const localeItems = computed<LocaleItem[]>(
-  () =>
-    ((pageData.value?.i18n as LocaleItem[] | undefined) ??
-      (initialData.value?.i18n as LocaleItem[] | undefined) ??
-      [])
-      .filter(locale => locale.available === 1 && !!locale.link && locale.active !== 1)
+  () => {
+    const locales = isMounted.value
+      ? ((pageData.value?.i18n as LocaleItem[] | undefined) ??
+        (initialData.value?.i18n as LocaleItem[] | undefined) ??
+        [])
+      : ((initialData.value?.i18n as LocaleItem[] | undefined) ?? [])
+
+    return locales.filter(locale => locale.available === 1 && !!locale.link && locale.active !== 1)
+  }
 )
 
 const desktopActiveIndex = computed(() => {

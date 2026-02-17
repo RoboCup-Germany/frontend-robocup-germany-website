@@ -7,8 +7,17 @@ type FooterNavItem = {
 }
 
 const { initialData, pageData } = useT3Api()
+const isMounted = ref(false)
+
+onMounted(() => {
+  isMounted.value = true
+})
 
 const footerSections = computed<FooterNavItem[]>(() => {
+  if (!isMounted.value) {
+    return (initialData.value?.footerNavigation as FooterNavItem[] | undefined) ?? []
+  }
+
   return (
     (pageData.value?.footerNavigation as FooterNavItem[] | undefined) ??
     (initialData.value?.footerNavigation as FooterNavItem[] | undefined) ??
