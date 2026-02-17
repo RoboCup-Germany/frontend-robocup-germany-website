@@ -20,6 +20,7 @@ const { initialData, pageData } = useT3Api()
 const isMobileMenuOpen = ref(false)
 const openDesktopIndex = ref<number | null>(null)
 const isMounted = ref(false)
+const route = useRoute()
 
 onMounted(() => {
   isMounted.value = true
@@ -53,14 +54,18 @@ const localeItems = computed<LocaleItem[]>(
   }
 )
 
-const desktopActiveIndex = computed(() => {
-  if (openDesktopIndex.value !== null) return openDesktopIndex.value
+const currentDesktopIndex = computed(() => {
   return navItems.value.findIndex(item => item.current === 1 || item.active === 1)
 })
 
-const desktopActiveItem = computed(() => {
-  if (desktopActiveIndex.value < 0) return null
-  return navItems.value[desktopActiveIndex.value] ?? null
+const desktopHighlightedIndex = computed(() => {
+  if (openDesktopIndex.value !== null) return openDesktopIndex.value
+  return currentDesktopIndex.value
+})
+
+const desktopOpenItem = computed(() => {
+  if (openDesktopIndex.value === null) return null
+  return navItems.value[openDesktopIndex.value] ?? null
 })
 
 const hasChildren = (item?: NavItem) => !!item?.children?.length
@@ -69,6 +74,14 @@ const { normalize, isExternal } = useCmsLink()
 const closeDesktopMenu = () => {
   openDesktopIndex.value = null
 }
+
+watch(
+  () => route.fullPath,
+  () => {
+    closeDesktopMenu()
+    isMobileMenuOpen.value = false
+  }
+)
 </script>
 
 <template>
@@ -117,10 +130,10 @@ const closeDesktopMenu = () => {
                   <button
                     type="button"
                     class="inline-flex items-center border-b-4 px-0 py-3 text-sm font-semibold text-black no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    :class="desktopActiveIndex === index ? 'border-primary' : 'border-transparent hover:border-black/30'"
-                    :aria-expanded="desktopActiveIndex === index"
+                    :class="desktopHighlightedIndex === index ? 'border-primary' : 'border-transparent hover:border-black/30'"
+                    :aria-expanded="openDesktopIndex === index"
                     :aria-controls="`desktop-submenu-${index}`"
-                    @click="openDesktopIndex = desktopActiveIndex === index ? null : index"
+                    @click="openDesktopIndex = openDesktopIndex === index ? null : index"
                   >
                     {{ item.title }}
                   </button>
@@ -132,6 +145,7 @@ const closeDesktopMenu = () => {
                   :external="isExternal(item.link)"
                   class="inline-flex items-center border-b-4 px-0 py-3 text-sm font-semibold text-black no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   :class="item.current === 1 || item.active === 1 ? 'border-primary' : 'border-transparent hover:border-black/30'"
+                  @click="closeDesktopMenu"
                 >
                   {{ item.title }}
                 </NuxtLink>
@@ -163,14 +177,14 @@ const closeDesktopMenu = () => {
 
     <div class="absolute left-0 top-full right-0 z-50 hidden h-0 lg:block">
       <div
-        v-if="desktopActiveItem && hasChildren(desktopActiveItem)"
-        :id="`desktop-submenu-${desktopActiveIndex}`"
+        v-if="desktopOpenItem && hasChildren(desktopOpenItem)"
+        :id="`desktop-submenu-${openDesktopIndex}`"
         class="pointer-events-auto border-t border-black/10 bg-white/90 backdrop-blur-sm"
       >
         <UContainer class="py-8 xl:grid xl:grid-cols-13 xl:gap-8">
           <div class="rounded-md border border-black/10 bg-white p-6 xl:col-start-1 xl:col-end-5">
             <p class="text-lg font-semibold leading-tight text-black">
-              {{ desktopActiveItem.title }}
+              {{ desktopOpenItem.title }}
             </p>
             <p class="mt-3 text-sm text-black/80">
               Wähle einen Bereich aus der Navigation.
@@ -179,8 +193,8 @@ const closeDesktopMenu = () => {
 
           <div class="mt-8 grid gap-8 md:grid-cols-2 xl:col-start-5 xl:col-end-14 xl:mt-0 xl:grid-cols-3">
             <div
-              v-for="child in desktopActiveItem.children ?? []"
-              :key="`${desktopActiveItem.title}-${child.title}`"
+              v-for="child in desktopOpenItem.children ?? []"
+              :key="`${desktopOpenItem.title}-${child.title}`"
               class="min-w-0"
             >
               <NuxtLink
@@ -189,6 +203,7 @@ const closeDesktopMenu = () => {
                 :target="child.target || undefined"
                 :external="isExternal(child.link)"
                 class="text-base font-semibold text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                @click="closeDesktopMenu"
               >
                 {{ child.title }}
               </NuxtLink>
@@ -208,6 +223,7 @@ const closeDesktopMenu = () => {
                     :target="grandChild.target || undefined"
                     :external="isExternal(grandChild.link)"
                     class="text-sm text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    @click="closeDesktopMenu"
                   >
                     {{ grandChild.title }}
                   </NuxtLink>
