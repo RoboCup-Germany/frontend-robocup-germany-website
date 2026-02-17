@@ -82,7 +82,7 @@
 	}
 	
 	h1 {
-		font-size: 50px;
+		font-size: 60px;
 	}
 	
 	h2 {
@@ -90,40 +90,40 @@
 	}
 	
 	h3 {
-		font-size: 30px;
+		font-size: 25px;
 		line-height: var(--leading-tight);
 		letter-spacing: 0.03em;
 	}
 	
 	h4 {
-		font-size: 45px;
+		font-size: 20px;
 		line-height: var(--leading-tight);
 		letter-spacing: 0.03em;
 	}
 	
 	h5 {
-		font-size: 40px;
+		font-size: 18px;
 		line-height: var(--leading-tight);
 		letter-spacing: 0.03em;
 	}
 	
 	h6 {
-		font-size: 40px;
+		font-size: 12px;
 		line-height: 1;
 		letter-spacing: 0.03em;
 	}
 	
 	@media (width >= theme(--breakpoint-md)) {
 		h1 {
-			font-size: 120px;
+			font-size: 100px;
 		}
 	
 		h2 {
-			font-size: 80px;
+			font-size: 60px;
 		}
 		
 		h3 {
-			font-size: 65px;
+			font-size: 40px;
 		}
 	}
 	
