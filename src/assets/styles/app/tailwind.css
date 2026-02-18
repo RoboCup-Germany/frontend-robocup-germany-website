@@ -144,6 +144,14 @@
 		line-height: var(--leading-normal);
         margin-bottom: var(--spacing-para);
 	}
+
+	.rte-content a {
+		color: var(--color-primary);
+	}
+
+	.rte-content a:hover {
+		text-decoration: underline;
+	}
 	
 	.container {
 		padding-left: 30px;

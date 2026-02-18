@@ -211,7 +211,7 @@ const textColumnClass = computed(() => {
       </div>
       <div :class="['xl:col-span-6', textColumnClass]">
         <Headline class="mb-5 lg:mb-7" :raw-html="header"/>
-        <T3HtmlParser :content="bodytext"/>
+        <T3HtmlParser class="rte-content" :content="bodytext"/>
         <div v-if="hasButtons" class="mt-10 flex flex-wrap items-center gap-4 lg:mt-15">
           <Button
             v-for="(button, index) in normalizedButtons"

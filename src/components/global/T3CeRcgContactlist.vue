@@ -128,10 +128,10 @@ const contactCards = computed<ContactCard[]>(() => {
         <div class="contactlist-inner">
           <header v-if="header || subheader" class="contactlist-head">
             <div v-if="header" :id="sectionHeadingId" class="contactlist-title">
-              <T3HtmlParser :content="header" />
+              <T3HtmlParser class="rte-content" :content="header" />
             </div>
             <div v-if="subheader" class="contactlist-subtitle">
-              <T3HtmlParser :content="subheader" />
+              <T3HtmlParser class="rte-content" :content="subheader" />
             </div>
           </header>
 

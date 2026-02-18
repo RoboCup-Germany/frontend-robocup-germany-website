@@ -134,12 +134,12 @@ const hasRightContent = computed(() => Boolean(props.text_right) || rightButtons
       <Headline :raw-html="header"/>
     </div>
     <div v-if="subheader" class="mb-6 text-base italic uppercase tracking-wide text-black font-semibold">
-      <T3HtmlParser :content="subheader" />
+      <T3HtmlParser class="rte-content" :content="subheader" />
     </div>
 
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
       <div v-if="hasLeftContent" class="flex flex-col items-start">
-        <T3HtmlParser v-if="leftText" :content="leftText" />
+        <T3HtmlParser class="rte-content" v-if="leftText" :content="leftText" />
         <div v-if="leftButtons.length > 0" class="mt-6 flex flex-wrap items-center gap-4">
           <Button
             v-for="(button, index) in leftButtons"
@@ -154,7 +154,7 @@ const hasRightContent = computed(() => Boolean(props.text_right) || rightButtons
       </div>
 
       <div v-if="hasRightContent" class="flex flex-col items-start">
-        <T3HtmlParser v-if="text_right" :content="text_right" />
+        <T3HtmlParser class="rte-content" v-if="text_right" :content="text_right" />
         <div v-if="rightButtons.length > 0" class="mt-6 flex flex-wrap items-center gap-4">
           <Button
             v-for="(button, index) in rightButtons"

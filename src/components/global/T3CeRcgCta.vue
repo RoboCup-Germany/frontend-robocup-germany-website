@@ -135,7 +135,7 @@ const spacingClasses = computed(() => {
       <UContainer>
         <div class="rcg-cta-grid">
           <div class="rcg-cta-content">
-            <T3HtmlParser v-if="header" :content="header" />
+            <T3HtmlParser class="rte-content" v-if="header" :content="header" />
             <div v-if="normalizedButtons.length > 0" class="rcg-cta-button-row mt-8">
               <Button
                 v-for="(button, index) in normalizedButtons"

@@ -53,7 +53,7 @@ const accordionItems = computed(() =>
           <Headline :raw-html="header" />
         </div>
         <div v-if="subheader" class="mb-7 text-base italic uppercase tracking-wide text-black font-semibold">
-          <T3HtmlParser :content="subheader" />
+          <T3HtmlParser class="rte-content" :content="subheader" />
         </div>
       </div>
 
@@ -99,7 +99,7 @@ const accordionItems = computed(() =>
                   open ? 'opacity-100' : 'opacity-80'
                 ]"
               >
-                <T3HtmlParser v-if="item.bodytext" :content="item.bodytext" />
+                <T3HtmlParser class="rte-content" v-if="item.bodytext" :content="item.bodytext" />
               </div>
             </template>
           </UAccordion>

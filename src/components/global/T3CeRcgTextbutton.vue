@@ -116,10 +116,10 @@ const hasButtons = computed(() => normalizedButtons.value.length > 0);
     <div class="flex flex-col items-start">
       <Headline v-if="header" :raw-html="header"/>
       <div v-if="subheader" class="mb-7 text-base italic uppercase tracking-wide text-black font-semibold">
-        <T3HtmlParser :content="subheader" />
+        <T3HtmlParser class="rte-content" :content="subheader" />
       </div>
       <div v-if="bodytext" class="mb-4">
-        <T3HtmlParser :content="bodytext" />
+        <T3HtmlParser class="rte-content" :content="bodytext" />
       </div>
 
       <div v-if="hasButtons" class="flex flex-wrap items-center gap-4">

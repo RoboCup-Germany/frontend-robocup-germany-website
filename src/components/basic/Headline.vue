@@ -9,5 +9,5 @@ const props = defineProps<Props>()
 </script>
 
 <template>
-  <T3HtmlParser :content="rawHtml" />
+  <T3HtmlParser class="rte-content" :content="rawHtml" />
 </template>
