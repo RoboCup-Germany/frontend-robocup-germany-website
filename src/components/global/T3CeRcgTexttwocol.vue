@@ -24,6 +24,7 @@ interface T3CeRcgTexttwocol extends T3CeBaseProps
   header?: string;
   header_layout?: number | string;
   subheader?: string;
+  background?: 0 | 1;
   text_left?: string;
   text_right?: string;
   buttons_left?: ContentButton[];
@@ -40,6 +41,7 @@ const props = withDefaults(defineProps<T3CeRcgTexttwocol>(), {
   header: '',
   header_layout: 2,
   subheader: '',
+  background: 0,
   text_left: '',
   text_right: '',
   buttons_left: () => [],
@@ -126,47 +128,60 @@ const leftText = computed(() => props.text_left || props.bodytext || '');
 
 const hasLeftContent = computed(() => Boolean(leftText.value) || leftButtons.value.length > 0);
 const hasRightContent = computed(() => Boolean(props.text_right) || rightButtons.value.length > 0);
+const hasBackgroundElement = computed(() => props.background === 1);
 </script>
 
 <template>
-  <UContainer>
-    <div v-if="header">
-      <Headline :raw-html="header"/>
-    </div>
-    <div v-if="subheader" class="mb-6 text-base italic uppercase tracking-wide text-black font-semibold">
-      <T3HtmlParser class="rte-content" :content="subheader" />
-    </div>
+  <div class="relative overflow-visible">
+    <img
+      v-if="hasBackgroundElement"
+      src="/assets/RCgermany_element2.png"
+      alt=""
+      aria-hidden="true"
+      class="pointer-events-none absolute bottom-0 left-1/2 z-0 h-full w-screen -translate-x-1/2 object-cover object-bottom md:object-top"
+    >
 
-    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
-      <div v-if="hasLeftContent" class="flex flex-col items-start">
-        <T3HtmlParser class="rte-content" v-if="leftText" :content="leftText" />
-        <div v-if="leftButtons.length > 0" class="mt-6 flex flex-wrap items-center gap-4">
-          <Button
-            v-for="(button, index) in leftButtons"
-            :key="`left-${button.label}-${index}`"
-            :to="button.to"
-            :size="button.size"
-            :color="button.color"
-            :variant="button.variant"
-            :label="button.label"
-          />
+    <UContainer>
+      <div class="relative z-10">
+        <div v-if="header">
+          <Headline :raw-html="header"/>
+        </div>
+        <div v-if="subheader" class="mb-6 text-base italic uppercase tracking-wide text-black font-semibold">
+          <T3HtmlParser class="rte-content" :content="subheader" />
+        </div>
+
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
+          <div v-if="hasLeftContent" class="flex flex-col items-start">
+            <T3HtmlParser class="rte-content" v-if="leftText" :content="leftText" />
+            <div v-if="leftButtons.length > 0" class="mt-6 mb-6 flex flex-wrap items-center gap-4">
+              <Button
+                v-for="(button, index) in leftButtons"
+                :key="`left-${button.label}-${index}`"
+                :to="button.to"
+                :size="button.size"
+                :color="button.color"
+                :variant="button.variant"
+                :label="button.label"
+              />
+            </div>
+          </div>
+
+          <div v-if="hasRightContent" class="flex flex-col items-start">
+            <T3HtmlParser class="rte-content" v-if="text_right" :content="text_right" />
+            <div v-if="rightButtons.length > 0" class="mt-6 mb-6 flex flex-wrap items-center gap-4">
+              <Button
+                v-for="(button, index) in rightButtons"
+                :key="`right-${button.label}-${index}`"
+                :to="button.to"
+                :size="button.size"
+                :color="button.color"
+                :variant="button.variant"
+                :label="button.label"
+              />
+            </div>
+          </div>
         </div>
       </div>
-
-      <div v-if="hasRightContent" class="flex flex-col items-start">
-        <T3HtmlParser class="rte-content" v-if="text_right" :content="text_right" />
-        <div v-if="rightButtons.length > 0" class="mt-6 flex flex-wrap items-center gap-4">
-          <Button
-            v-for="(button, index) in rightButtons"
-            :key="`right-${button.label}-${index}`"
-            :to="button.to"
-            :size="button.size"
-            :color="button.color"
-            :variant="button.variant"
-            :label="button.label"
-          />
-        </div>
-      </div>
-    </div>
-  </UContainer>
+    </UContainer>
+  </div>
 </template>

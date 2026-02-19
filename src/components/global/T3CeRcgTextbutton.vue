@@ -25,6 +25,7 @@ interface T3CeRcgTextButton extends T3CeBaseProps
   header_layout?: number | string;
   subheader?: string;
   bodytext?: string;
+  background?: 0 | 1;
   button_text?: string;
   color_select?: ContentButton['color_select'];
   button_link?: LinkRef | null;
@@ -38,6 +39,7 @@ const props = withDefaults(defineProps<T3CeRcgTextButton>(), {
   header_layout: 2,
   subheader: undefined,
   bodytext: '',
+  background: 0,
   button_text: '',
   color_select: 'primary',
   button_link: null,
@@ -109,30 +111,42 @@ const normalizedButtons = computed(() => {
 });
 
 const hasButtons = computed(() => normalizedButtons.value.length > 0);
+
+const hasBackgroundElement = computed(() => props.background === 1);
 </script>
 
 <template>
-  <UContainer>
-    <div class="flex flex-col items-start">
-      <Headline v-if="header" :raw-html="header"/>
-      <div v-if="subheader" class="mb-4 text-base italic uppercase tracking-wide text-black font-semibold">
-        <T3HtmlParser class="rte-content" :content="subheader" />
-      </div>
-      <div v-if="bodytext" class="mb-4">
-        <T3HtmlParser class="rte-content" :content="bodytext" />
-      </div>
+  <div class="relative overflow-visible">
+    <img
+      v-if="hasBackgroundElement"
+      src="/assets/RCgermany_element2.png"
+      alt=""
+      aria-hidden="true"
+      class="pointer-events-none absolute bottom-0 left-1/2 z-0 h-full w-screen -translate-x-1/2 object-cover object-bottom md:object-top"
+    >
 
-      <div v-if="hasButtons" class="flex flex-wrap items-center gap-4">
-        <Button
-          v-for="(button, index) in normalizedButtons"
-          :key="`${button.label}-${index}`"
-          :to="button.to"
-          :color="button.color"
-          :variant="button.variant"
-          :size="button.size"
-          :label="button.label"
-        />
+    <UContainer>
+      <div class="relative z-10 flex flex-col items-start">
+        <Headline v-if="header" :raw-html="header"/>
+        <div v-if="subheader" class="mb-4 text-base italic uppercase tracking-wide text-black font-semibold">
+          <T3HtmlParser class="rte-content" :content="subheader" />
+        </div>
+        <div v-if="bodytext" class="mb-4">
+          <T3HtmlParser class="rte-content" :content="bodytext" />
+        </div>
+
+        <div v-if="hasButtons" class="mb-6 flex flex-wrap items-center gap-4">
+          <Button
+            v-for="(button, index) in normalizedButtons"
+            :key="`${button.label}-${index}`"
+            :to="button.to"
+            :color="button.color"
+            :variant="button.variant"
+            :size="button.size"
+            :label="button.label"
+          />
+        </div>
       </div>
-    </div>
-  </UContainer>
+    </UContainer>
+  </div>
 </template>
