@@ -115,7 +115,7 @@ const hasButtons = computed(() => normalizedButtons.value.length > 0);
   <UContainer>
     <div class="flex flex-col items-start">
       <Headline v-if="header" :raw-html="header"/>
-      <div v-if="subheader" class="mb-7 text-base italic uppercase tracking-wide text-black font-semibold">
+      <div v-if="subheader" class="mb-4 text-base italic uppercase tracking-wide text-black font-semibold">
         <T3HtmlParser class="rte-content" :content="subheader" />
       </div>
       <div v-if="bodytext" class="mb-4">

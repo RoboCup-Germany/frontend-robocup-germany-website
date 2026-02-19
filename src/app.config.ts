@@ -16,7 +16,7 @@ export default defineAppConfig({
                 },
                 size: {
                     md: {
-                        base: 'text-[22px] leading-[1em] px-5 py-3 md:px-6 md:pt-[12px] md:pb-[15px]',
+                        base: 'text-[18px] md:text-[22px] leading-[1em] px-5 py-3 md:px-6 md:pt-[12px] md:pb-[15px]',
                     },
                     lg: {
                         base: 'text-xl leading-[1em] px-6 py-2 md:px-10 md:py-2',
