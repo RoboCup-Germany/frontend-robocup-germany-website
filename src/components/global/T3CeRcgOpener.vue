@@ -12,7 +12,25 @@ interface T3CeRcgOpener extends T3CeBaseProps {
   button_text?: string
   color_select?: 'primary' | 'secondary' | 'outline'
   header?: string
-  media?: MediaRef[]
+  use_image?: 0 | 1 | null
+  image?: Array<{
+    publicUrl?: string | null
+    alt?: string | null
+    title?: string | null
+    cropVariants?: {
+      default?: { publicUrl?: string | null; url?: string | null } | null
+      small?: { publicUrl?: string | null; url?: string | null } | null
+    } | null
+  }> | null
+  media?: MediaRef[] | {
+    url?: string | null
+    publicUrl?: string | null
+    originalUrl?: string | null
+    cropVariants?: {
+      default?: { url?: string | null; publicUrl?: string | null } | null
+      small?: { url?: string | null; publicUrl?: string | null } | null
+    } | null
+  } | null
   media_landscape?: MediaRef[]
   media_portrait?: MediaRef[]
 }
@@ -32,9 +50,63 @@ const hasButton = computed(() => {
 })
 
 const firstUrl = (arr?: MediaRef[]) => arr?.[0]?.publicUrl?.trim() || ''
-const legacyUrl = computed(() => firstUrl(props.media))
-const landscapeUrl = computed(() => firstUrl(props.media_landscape) || firstUrl(props.media))
-const portraitUrl = computed(() => firstUrl(props.media_portrait) || firstUrl(props.media))
+const toUrl = (value?: string | null) => value?.trim() || ''
+const isMediaArray = (value: unknown): value is MediaRef[] => Array.isArray(value)
+
+const legacyUrl = computed(() => {
+  if (isMediaArray(props.media)) {
+    return firstUrl(props.media)
+  }
+  return toUrl(props.media?.publicUrl || props.media?.url || props.media?.originalUrl)
+})
+const landscapeUrl = computed(() => firstUrl(props.media_landscape) || (isMediaArray(props.media) ? firstUrl(props.media) : ''))
+const portraitUrl = computed(() => firstUrl(props.media_portrait) || (isMediaArray(props.media) ? firstUrl(props.media) : ''))
+
+const useImage = computed(() => {
+  return props.use_image === 1
+})
+
+const imageDesktopUrl = computed(() => {
+  const first = props.image?.[0]
+  const fromImage = toUrl(first?.cropVariants?.default?.publicUrl || first?.cropVariants?.default?.url || first?.publicUrl)
+  if (fromImage) return fromImage
+
+  if (!isMediaArray(props.media)) {
+    return toUrl(
+      props.media?.cropVariants?.default?.publicUrl
+      || props.media?.cropVariants?.default?.url
+      || props.media?.publicUrl
+      || props.media?.url
+      || props.media?.originalUrl
+    )
+  }
+  return ''
+})
+
+const imageMobileUrl = computed(() => {
+  const first = props.image?.[0]
+  const fromImage = toUrl(
+    first?.cropVariants?.small?.publicUrl
+    || first?.cropVariants?.small?.url
+    || first?.cropVariants?.default?.publicUrl
+    || first?.cropVariants?.default?.url
+    || first?.publicUrl
+  )
+  if (fromImage) return fromImage
+
+  if (!isMediaArray(props.media)) {
+    return toUrl(
+      props.media?.cropVariants?.small?.publicUrl
+      || props.media?.cropVariants?.small?.url
+      || props.media?.cropVariants?.default?.publicUrl
+      || props.media?.cropVariants?.default?.url
+      || props.media?.publicUrl
+      || props.media?.url
+      || props.media?.originalUrl
+    )
+  }
+  return ''
+})
 
 const isVideo = (url: string) => /\.(mp4|webm|ogg)(\?|$)/i.test(url)
 const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(url)
@@ -42,6 +114,31 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
 
 <template>
   <div class="relative w-full overflow-hidden">
+    <template v-if="useImage">
+      <img
+          v-if="imageMobileUrl"
+          :src="imageMobileUrl"
+          alt=""
+          aria-hidden="true"
+          class="block md:hidden w-full h-auto object-contain"
+      />
+      <img
+          v-if="imageDesktopUrl"
+          :src="imageDesktopUrl"
+          alt=""
+          aria-hidden="true"
+          class="hidden md:block w-full h-[80vh] object-cover"
+      />
+      <img
+          v-if="!imageMobileUrl && !imageDesktopUrl && legacyUrl && isImage(legacyUrl)"
+          :src="legacyUrl"
+          alt=""
+          aria-hidden="true"
+          class="w-full h-auto md:h-[80vh] object-contain md:object-cover"
+      />
+    </template>
+
+    <template v-else>
     <!-- PORTRAIT: shown on small screens -->
     <video
         v-if="portraitUrl && isVideo(portraitUrl)"
@@ -61,7 +158,7 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
         :src="portraitUrl"
         alt=""
         aria-hidden="true"
-        class="block md:hidden w-full h-[80vh] object-cover"
+        class="block md:hidden w-full h-auto object-contain"
     />
 
     <!-- LANDSCAPE: shown on md+ screens -->
@@ -105,8 +202,9 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
         :src="legacyUrl"
         alt=""
         aria-hidden="true"
-        class="w-full h-[55vh] lg:h-screen object-cover"
+        class="w-full h-auto md:h-[80vh] object-contain md:object-cover"
     />
+    </template>
 
     <!-- Subtle top-darkening like the reference (NOT full black overlay) -->
     <div
