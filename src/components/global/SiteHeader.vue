@@ -122,7 +122,7 @@ watch(
 </script>
 
 <template>
-  <header class="relative z-40 overflow-visible border-b-2 border-primary bg-white" @keydown.esc="closeDesktopMenu" @mouseleave="closeDesktopMenu">
+  <header class="relative z-[100] overflow-visible border-b-2 border-primary bg-white" @keydown.esc="closeDesktopMenu" @mouseleave="closeDesktopMenu">
     <UContainer>
       <div class="flex items-center justify-between gap-6 py-4 lg:items-end lg:py-5">
         <NuxtLink
@@ -199,13 +199,13 @@ watch(
 
         <button
           type="button"
-          class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/30 text-primary lg:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          class="inline-flex h-12 w-12 items-center justify-center text-primary lg:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           :aria-expanded="isMobileMenuOpen"
           aria-controls="mobile-main-nav"
           aria-label="Hauptmenü öffnen"
           @click="isMobileMenuOpen = !isMobileMenuOpen"
         >
-          <span class="text-lg leading-none" aria-hidden="true">
+          <span class="text-xl leading-none" aria-hidden="true">
             {{ isMobileMenuOpen ? '✕' : '☰' }}
           </span>
         </button>
@@ -218,8 +218,8 @@ watch(
         :id="`desktop-submenu-${openDesktopIndex}`"
         class="pointer-events-auto border-t border-black/10 bg-white/90 backdrop-blur-sm"
       >
-        <UContainer class="py-8 xl:grid xl:grid-cols-13 xl:gap-8">
-          <div class="rounded-md border border-black/10 bg-white p-6 xl:col-start-1 xl:col-end-5">
+        <UContainer class="py-8 lg:grid lg:grid-cols-12 lg:gap-8">
+          <div class="rounded-md border border-black/10 bg-white p-6 lg:col-span-4">
             <img
               v-if="megaMenuPreview"
               :src="megaMenuPreview.src"
@@ -239,7 +239,7 @@ watch(
             </p>
           </div>
 
-          <div class="mt-8 grid gap-8 md:grid-cols-2 xl:col-start-5 xl:col-end-14 xl:mt-0 xl:grid-cols-3">
+          <div class="mt-8 grid gap-8 md:grid-cols-2 lg:col-span-8 lg:mt-0 xl:grid-cols-3">
             <div
               v-for="child in desktopOpenItem.children ?? []"
               :key="`${desktopOpenItem.title}-${child.title}`"
@@ -250,12 +250,12 @@ watch(
                 :to="normalize(child.link)"
                 :target="child.target || undefined"
                 :external="isExternal(child.link)"
-                class="text-base font-semibold text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                class="text-base font-semibold text-primary no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 @click="closeDesktopMenu"
               >
                 {{ child.title }}
               </NuxtLink>
-              <p v-else class="text-base font-semibold text-black">{{ child.title }}</p>
+              <p v-else class="text-base font-semibold text-primary">{{ child.title }}</p>
 
               <ul
                 v-if="child.children?.length"
@@ -284,77 +284,100 @@ watch(
       </div>
     </div>
 
-    <div v-if="isMobileMenuOpen" id="mobile-main-nav" class="border-t border-black/10 bg-white lg:hidden">
-      <UContainer class="py-5">
-        <nav aria-label="Mobile Hauptnavigation">
-          <ul class="grid gap-3">
-            <li
-              v-for="item in navItems"
-              :key="`mobile-${item.title}-${item.link}`"
-              class="rounded-md border border-black/10 bg-black/5 px-4 py-3"
-            >
-              <template v-if="hasChildren(item)">
-                <details>
-                  <summary class="cursor-pointer text-sm font-semibold text-black marker:text-primary">
-                    {{ item.title }}
-                  </summary>
-                  <ul class="mt-3 grid list-none gap-2 p-0">
-                    <li
-                      v-for="child in item.children ?? []"
-                      :key="`mobile-${item.title}-${child.title}`"
-                    >
-                      <NuxtLink
-                        v-if="child.link"
-                        :to="normalize(child.link)"
-                        :target="child.target || undefined"
-                        :external="isExternal(child.link)"
-                        class="text-sm text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                        @click="isMobileMenuOpen = false"
-                      >
-                        {{ child.title }}
-                      </NuxtLink>
-                      <span v-else class="text-sm text-black">{{ child.title }}</span>
-
-                      <ul
-                        v-if="child.children?.length"
-                        class="mt-2 grid list-none gap-2 border-l-2 border-black/20 pl-3"
-                      >
-                        <li
-                          v-for="grandChild in child.children"
-                          :key="`mobile-${child.title}-${grandChild.title}`"
-                        >
-                          <NuxtLink
-                            v-if="grandChild.link"
-                            :to="normalize(grandChild.link)"
-                            :target="grandChild.target || undefined"
-                            :external="isExternal(grandChild.link)"
-                            class="text-xs text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                            @click="isMobileMenuOpen = false"
-                          >
-                            {{ grandChild.title }}
-                          </NuxtLink>
-                          <span v-else class="text-xs text-black">{{ grandChild.title }}</span>
-                        </li>
-                      </ul>
-                    </li>
-                  </ul>
-                </details>
-              </template>
-              <NuxtLink
-                v-else-if="item.link"
-                :to="normalize(item.link)"
-                :target="item.target || undefined"
-                :external="isExternal(item.link)"
-                class="text-sm font-semibold text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                @click="isMobileMenuOpen = false"
+    <Transition
+      enter-active-class="transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      enter-from-class="-translate-y-4 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition-all duration-300 ease-in-out"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="-translate-y-3 opacity-0"
+    >
+      <div v-if="isMobileMenuOpen" id="mobile-main-nav" class="absolute left-0 top-full right-0 z-50 border-t border-primary/40 bg-white/95 shadow-lg backdrop-blur-sm lg:hidden">
+        <UContainer class="py-2">
+          <nav aria-label="Mobile Hauptnavigation">
+            <ul class="divide-y divide-black/15">
+              <li
+                v-for="item in navItems"
+                :key="`mobile-${item.title}-${item.link}`"
+                class="py-3"
               >
-                {{ item.title }}
-              </NuxtLink>
-              <span v-else class="text-sm font-semibold text-black">{{ item.title }}</span>
-            </li>
-          </ul>
-        </nav>
-      </UContainer>
-    </div>
+                <template v-if="hasChildren(item)">
+                  <details class="group">
+                    <summary class="flex w-full cursor-pointer list-none items-center justify-between text-sm font-semibold uppercase tracking-[0.14em] text-black marker:hidden">
+                      <span>{{ item.title }}</span>
+                      <svg
+                        viewBox="0 0 1080 1080"
+                        class="h-3 w-3 shrink-0 text-primary transition-transform duration-300 group-open:rotate-180"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <polyline
+                          points="841.93 389.03 540 690.97 238.07 389.03"
+                          stroke="currentColor"
+                          stroke-width="110"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </summary>
+                    <ul class="mt-3 grid list-none gap-3 border-l border-primary/50 pl-4">
+                      <li
+                        v-for="child in item.children ?? []"
+                        :key="`mobile-${item.title}-${child.title}`"
+                      >
+                        <NuxtLink
+                          v-if="child.link"
+                          :to="normalize(child.link)"
+                          :target="child.target || undefined"
+                          :external="isExternal(child.link)"
+                          class="inline-flex text-sm text-primary no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          @click="isMobileMenuOpen = false"
+                        >
+                          {{ child.title }}
+                        </NuxtLink>
+                        <span v-else class="text-sm text-primary">{{ child.title }}</span>
+
+                        <ul
+                          v-if="child.children?.length"
+                          class="mt-2 grid list-none gap-2 border-l border-black/35 pl-3"
+                        >
+                          <li
+                            v-for="grandChild in child.children"
+                            :key="`mobile-${child.title}-${grandChild.title}`"
+                          >
+                            <NuxtLink
+                              v-if="grandChild.link"
+                              :to="normalize(grandChild.link)"
+                              :target="grandChild.target || undefined"
+                              :external="isExternal(grandChild.link)"
+                              class="inline-flex text-xs uppercase tracking-[0.12em] text-black/90 no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                              @click="isMobileMenuOpen = false"
+                            >
+                              {{ grandChild.title }}
+                            </NuxtLink>
+                            <span v-else class="text-xs uppercase tracking-[0.12em] text-black/90">{{ grandChild.title }}</span>
+                          </li>
+                        </ul>
+                      </li>
+                    </ul>
+                  </details>
+                </template>
+                <NuxtLink
+                  v-else-if="item.link"
+                  :to="normalize(item.link)"
+                  :target="item.target || undefined"
+                  :external="isExternal(item.link)"
+                  class="inline-flex text-sm font-semibold uppercase tracking-[0.14em] text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  @click="isMobileMenuOpen = false"
+                >
+                  {{ item.title }}
+                </NuxtLink>
+                <span v-else class="text-sm font-semibold uppercase tracking-[0.14em] text-black">{{ item.title }}</span>
+              </li>
+            </ul>
+          </nav>
+        </UContainer>
+      </div>
+    </Transition>
   </header>
 </template>
