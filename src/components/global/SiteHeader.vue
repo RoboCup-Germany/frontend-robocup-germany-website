@@ -219,16 +219,16 @@ watch(
         class="pointer-events-auto border-t border-black/10 bg-white/90 backdrop-blur-sm"
       >
         <UContainer class="py-8 lg:grid lg:grid-cols-12 lg:gap-8">
-          <div class="rounded-md border border-black/10 bg-white p-6 lg:col-span-4">
+          <div class="border-r-4 border-primary pr-6 lg:col-span-4">
             <img
               v-if="megaMenuPreview"
               :src="megaMenuPreview.src"
               :alt="megaMenuPreview.alt"
-              class="h-48 w-full rounded-md object-cover"
+              class="h-48 w-full rounded-sm object-cover shadow-sm"
               loading="lazy"
               decoding="async"
             >
-            <p v-if="megaMenuPreview?.subtitle" class="mt-4 text-sm text-black/80">
+            <p v-if="megaMenuPreview?.subtitle" class="mt-4 text-base italic tracking-wide text-black font-semibold">
               {{ megaMenuPreview.subtitle }}
             </p>
             <p v-else class="text-lg font-semibold leading-tight text-black">
