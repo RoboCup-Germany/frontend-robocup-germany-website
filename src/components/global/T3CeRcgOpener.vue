@@ -151,7 +151,7 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
         aria-hidden="true"
         tabindex="-1"
         role="presentation"
-        class="block md:hidden w-full h-[80vh] object-cover"
+        class="block md:hidden w-full h-auto"
     />
     <img
         v-else-if="portraitUrl && isImage(portraitUrl)"
@@ -173,7 +173,7 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
         aria-hidden="true"
         tabindex="-1"
         role="presentation"
-        class="hidden md:block w-full h-[80vh]  object-cover"
+        class="hidden md:block w-full h-auto"
     />
     <img
         v-else-if="landscapeUrl && isImage(landscapeUrl)"
@@ -195,7 +195,7 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
         aria-hidden="true"
         tabindex="-1"
         role="presentation"
-        class="w-full h-[55vh] lg:h-screen object-cover"
+        class="w-full h-auto"
     />
     <img
         v-else-if="!portraitUrl && !landscapeUrl && legacyUrl && isImage(legacyUrl)"
