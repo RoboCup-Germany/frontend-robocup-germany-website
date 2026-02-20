@@ -85,7 +85,8 @@
     h3, h4, h5, h6 {
         @apply font-sans tracking-0;
         color: var(--color-black);
-        font-weight: 300;
+        font-weight: 700;
+        font-style: italic;
         margin-bottom: 1rem;
     }
 	
