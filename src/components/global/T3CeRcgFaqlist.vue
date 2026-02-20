@@ -49,7 +49,7 @@ const accordionItems = computed(() =>
   <section :class="[space_before_class, space_after_class]" :aria-labelledby="header ? headingId : undefined">
     <UContainer>
       <div class="w-full">
-        <div v-if="header" :id="headingId">
+        <div v-if="header" :id="headingId" :class="{ 'mb-4': !subheader }">
           <Headline :raw-html="header" />
         </div>
         <div v-if="subheader" class="mb-7 text-base italic uppercase tracking-wide text-black font-semibold">
@@ -78,7 +78,7 @@ const accordionItems = computed(() =>
               trigger: 'w-full px-5 py-4 text-left flex items-center justify-between gap-4 hover:bg-black/[0.02] transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
               label: 'text-base font-semibold leading-snug text-black',
               content: 'p-0',
-              body: 'text-sm text-black/90'
+              body: 'p-0 text-sm text-black/90'
             }"
           >
             <template #trailing="{ open }">
@@ -95,7 +95,7 @@ const accordionItems = computed(() =>
             <template #body="{ item, open }">
               <div
                 :class="[
-                  'faq-answer px-5 pb-5 transition-opacity duration-200 ease-out',
+                  'faq-answer px-5 py-5 transition-opacity duration-200 ease-out',
                   open ? 'opacity-100' : 'opacity-80'
                 ]"
               >
