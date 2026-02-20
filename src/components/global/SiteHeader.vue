@@ -22,6 +22,7 @@ const { initialData, pageData } = useT3Api()
 const isMobileMenuOpen = ref(false)
 const openDesktopIndex = ref<number | null>(null)
 const isMounted = ref(false)
+const localeDropdown = ref<HTMLDetailsElement | null>(null)
 const route = useRoute()
 
 onMounted(() => {
@@ -29,6 +30,7 @@ onMounted(() => {
 })
 
 const siteTitle = computed(() => initialData.value?.globalConfig?.title || 'RoboCup Germany')
+const homeLink = computed(() => (/^\/en(\/|$)/.test(route.path.toLowerCase()) ? '/en' : '/'))
 
 const navItems = computed<NavItem[]>(
   () => {
@@ -52,9 +54,67 @@ const localeItems = computed<LocaleItem[]>(
         [])
       : ((initialData.value?.i18n as LocaleItem[] | undefined) ?? [])
 
-    return locales.filter(locale => locale.available === 1 && !!locale.link && locale.active !== 1)
+    return locales.filter(locale => locale.available === 1 && !!locale.link)
   }
 )
+
+const activeLocale = computed<LocaleItem | null>(() => {
+  const explicitActive = localeItems.value.find(locale => locale.active === 1)
+  if (explicitActive) return explicitActive
+
+  const isEnglishPath = /^\/en(\/|$)/.test(route.path.toLowerCase())
+  return {
+    title: isEnglishPath ? 'English' : 'Deutsch',
+    link: route.fullPath,
+    available: 1,
+    active: 1
+  }
+})
+
+const fallbackSwitchLocale = computed<LocaleItem>(() => {
+  const currentPath = route.fullPath || '/'
+  const isEnglishPath = /^\/en(\/|$)/.test(route.path.toLowerCase())
+
+  if (isEnglishPath) {
+    const deLink = currentPath.replace(/^\/en(?=\/|$)/, '') || '/'
+    return { title: 'Deutsch', link: deLink, available: 1, active: 0 }
+  }
+
+  const enLink = currentPath === '/' ? '/en' : `/en${currentPath}`
+  return { title: 'English', link: enLink, available: 1, active: 0 }
+})
+
+const switchableLocales = computed<LocaleItem[]>(() => {
+  if (!localeItems.value.length) {
+    return [fallbackSwitchLocale.value]
+  }
+
+  if (!localeItems.value.some(locale => locale.active === 1)) {
+    return localeItems.value
+  }
+
+  const activeLink = activeLocale.value?.link
+  const alternatives = localeItems.value.filter(locale => locale.link && locale.link !== activeLink)
+  return alternatives.length ? alternatives : [fallbackSwitchLocale.value]
+})
+
+const localeCode = (locale?: LocaleItem | null): 'de' | 'en' => {
+  const normalizedTitle = (locale?.title ?? '').toLowerCase()
+  const normalizedLink = (locale?.link ?? '').toLowerCase()
+
+  if (normalizedTitle.includes('en') || /^\/en(\/|$)/.test(normalizedLink)) return 'en'
+  return 'de'
+}
+
+const localeFlag = (locale?: LocaleItem | null) => {
+  return localeCode(locale) === 'en' ? '🇬🇧' : '🇩🇪'
+}
+
+const closeLocaleDropdown = () => {
+  if (localeDropdown.value) {
+    localeDropdown.value.open = false
+  }
+}
 
 const currentDesktopIndex = computed(() => {
   return navItems.value.findIndex(item => item.current === 1 || item.active === 1)
@@ -126,7 +186,7 @@ watch(
     <UContainer>
       <div class="flex items-center justify-between gap-6 py-4 lg:items-end lg:py-5">
         <NuxtLink
-          to="/"
+          :to="homeLink"
           class="inline-flex items-center gap-4 no-underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           :aria-label="siteTitle"
         >
@@ -140,19 +200,40 @@ watch(
         </NuxtLink>
 
         <div class="hidden flex-1 flex-col items-end gap-2 lg:flex">
-          <nav v-if="localeItems.length" aria-label="Sprachauswahl">
-            <ul class="flex items-center gap-6">
-              <li v-for="locale in localeItems" :key="`${locale.title}-${locale.link}`">
-                <NuxtLink
-                  v-if="locale.link"
-                  :to="normalize(locale.link)"
-                  class="text-sm font-semibold text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          <nav v-if="activeLocale && switchableLocales.length" aria-label="Sprachauswahl">
+            <details ref="localeDropdown" class="group relative z-50">
+              <summary class="flex cursor-pointer list-none items-center gap-2 rounded-sm border border-black/20 bg-white px-3 py-1 text-sm font-semibold text-black marker:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                <span aria-hidden="true" class="text-base leading-none">{{ localeFlag(activeLocale) }}</span>
+                <span class="sr-only">{{ activeLocale.title }}</span>
+                <svg
+                  viewBox="0 0 1080 1080"
+                  class="h-3 w-3 shrink-0 text-primary transition-transform duration-200 group-open:rotate-180"
+                  fill="none"
+                  aria-hidden="true"
                 >
-                  {{ locale.title }}
-                </NuxtLink>
-                <span v-else class="text-sm font-semibold text-black">{{ locale.title }}</span>
-              </li>
-            </ul>
+                  <polyline
+                    points="841.93 389.03 540 690.97 238.07 389.03"
+                    stroke="currentColor"
+                    stroke-width="110"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </summary>
+
+              <ul class="absolute right-0 z-50 mt-2 min-w-32 rounded-sm border border-black/20 bg-white p-1 shadow-md">
+                <li v-for="locale in switchableLocales" :key="`${locale.title}-${locale.link}`">
+                  <a
+                    :href="normalize(locale.link!)"
+                    class="flex items-center gap-2 rounded-sm px-2 py-1 text-sm font-semibold text-black no-underline hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    @click="closeLocaleDropdown"
+                  >
+                    <span aria-hidden="true" class="text-base leading-none">{{ localeFlag(locale) }}</span>
+                    <span>{{ locale.title }}</span>
+                  </a>
+                </li>
+              </ul>
+            </details>
           </nav>
 
           <nav class="w-full" aria-label="Hauptnavigation">

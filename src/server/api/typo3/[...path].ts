@@ -10,7 +10,12 @@ export default defineEventHandler(async (event) => {
   const query = requestUrl.search || ''
 
   const normalizedPath = Array.isArray(path) ? path.join('/') : path
-  const target = `${origin}/${normalizedPath}${query}`
+  const locales = Array.isArray(config.public?.typo3?.i18n?.locales)
+    ? config.public.typo3.i18n.locales
+    : []
+  const isLocaleRoot = locales.includes(normalizedPath)
+  const targetPath = isLocaleRoot ? `${normalizedPath}/` : normalizedPath
+  const target = `${origin}/${targetPath}${query}`
 
   return proxyRequest(event, target)
 })
