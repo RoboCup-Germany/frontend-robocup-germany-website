@@ -120,21 +120,21 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
           :src="imageMobileUrl"
           alt=""
           aria-hidden="true"
-          class="block md:hidden w-full h-auto object-contain"
+          class="block md:hidden w-full aspect-square object-cover"
       />
       <img
           v-if="imageDesktopUrl"
           :src="imageDesktopUrl"
           alt=""
           aria-hidden="true"
-          class="hidden md:block w-full h-[80vh] object-cover"
+          class="hidden md:block w-full h-auto 3xl:h-[65vh] object-cover"
       />
       <img
           v-if="!imageMobileUrl && !imageDesktopUrl && legacyUrl && isImage(legacyUrl)"
           :src="legacyUrl"
           alt=""
           aria-hidden="true"
-          class="w-full h-auto md:h-[80vh] object-contain md:object-cover"
+          class="w-full aspect-square md:aspect-auto md:h-auto 3xl:h-[65vh] object-cover"
       />
     </template>
 
@@ -158,7 +158,7 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
         :src="portraitUrl"
         alt=""
         aria-hidden="true"
-        class="block md:hidden w-full h-auto object-contain"
+        class="block md:hidden w-full aspect-square object-cover"
     />
 
     <!-- LANDSCAPE: shown on md+ screens -->
@@ -180,7 +180,7 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
         :src="landscapeUrl"
         alt=""
         aria-hidden="true"
-        class="hidden md:block w-full h-[80vh] object-cover"
+        class="hidden md:block w-full h-auto 3xl:h-[65vh] object-cover"
     />
 
     <!-- LEGACY FALLBACK -->
@@ -202,7 +202,7 @@ const isImage = (url: string) => /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u
         :src="legacyUrl"
         alt=""
         aria-hidden="true"
-        class="w-full h-auto md:h-[80vh] object-contain md:object-cover"
+        class="w-full aspect-square md:aspect-auto md:h-auto 3xl:h-[65vh] object-cover"
     />
     </template>
 
