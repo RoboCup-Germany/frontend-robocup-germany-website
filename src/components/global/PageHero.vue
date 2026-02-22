@@ -6,6 +6,8 @@ interface MediaItem {
   publicUrl?: string | null;
   url?: string | null;
   originalUrl?: string | null;
+  mimeType?: string | null;
+  type?: string | null;
   alt?: string | null;
   alternative?: string | null;
   description?: string | null;
@@ -15,6 +17,8 @@ interface MediaItem {
     alternative?: string | null;
     description?: string | null;
     originalUrl?: string | null;
+    mimeType?: string | null;
+    type?: string | null;
   } | null;
   cropVariants?: {
     default?: { publicUrl?: string | null; url?: string | null } | null;
@@ -98,6 +102,30 @@ const imageAlt = computed(() => {
 const imageMobileDisplayUrl = computed(() => imageMobileUrl.value || imageDesktopUrl.value);
 const imageDesktopDisplayUrl = computed(() => imageDesktopUrl.value || imageMobileUrl.value);
 
+const mediaMimeType = computed(() => {
+  const media = mediaItem.value;
+  if (!media) return '';
+  return toUrl(media.mimeType || media.properties?.mimeType).toLowerCase();
+});
+
+const isVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url);
+
+const mediaIsVideo = computed(() => {
+  return Boolean(
+    isVideoUrl(imageMobileDisplayUrl.value)
+    || isVideoUrl(imageDesktopDisplayUrl.value)
+    || mediaMimeType.value.startsWith('video/')
+  );
+});
+
+const mediaIsImage = computed(() => {
+  if (mediaIsVideo.value) return false;
+  if (imageMobileDisplayUrl.value || imageDesktopDisplayUrl.value) {
+    return true;
+  }
+  return mediaMimeType.value.startsWith('image/');
+});
+
 const hasImage = computed(() => Boolean(imageMobileUrl.value || imageDesktopUrl.value));
 const hasHeadline = computed(() => Boolean(props.title || props.subtitle));
 const hasHero = computed(() => hasImage.value || hasHeadline.value);
@@ -112,14 +140,40 @@ const hasMediaButton = computed(() => {
   <section v-if="hasHero" class="relative w-full overflow-hidden">
     <template v-if="hasImage">
       <div class="relative">
+        <video
+          v-if="imageMobileDisplayUrl && mediaIsVideo"
+          :src="imageMobileDisplayUrl"
+          autoplay
+          muted
+          playsinline
+          loop
+          preload="metadata"
+          aria-hidden="true"
+          tabindex="-1"
+          role="presentation"
+          class="block w-full aspect-square object-cover md:hidden"
+        />
         <img
-          v-if="imageMobileDisplayUrl"
+          v-else-if="imageMobileDisplayUrl && mediaIsImage"
           :src="imageMobileDisplayUrl"
           :alt="imageAlt"
           class="block w-full aspect-square object-cover md:hidden"
         >
+        <video
+          v-if="imageDesktopDisplayUrl && mediaIsVideo"
+          :src="imageDesktopDisplayUrl"
+          autoplay
+          muted
+          playsinline
+          loop
+          preload="metadata"
+          aria-hidden="true"
+          tabindex="-1"
+          role="presentation"
+          class="hidden w-full h-auto max-h-[68vh] object-cover md:block"
+        />
         <img
-          v-if="imageDesktopDisplayUrl"
+          v-else-if="imageDesktopDisplayUrl && mediaIsImage"
           :src="imageDesktopDisplayUrl"
           :alt="imageAlt"
           class="hidden w-full h-auto max-h-[68vh] object-cover md:block"
@@ -145,14 +199,14 @@ const hasMediaButton = computed(() => {
 
       <UContainer v-if="hasHeadline" class="relative z-40 bg-white py-10 lg:py-14">
         <h1 v-if="title">{{ title }}</h1>
-        <p v-if="subtitle" class="text-base italic tracking-wide text-black/90">{{ subtitle }}</p>
+        <p v-if="subtitle" class="text-lg font-bold italic tracking-wide text-black/90">{{ subtitle }}</p>
       </UContainer>
     </template>
 
     <template v-else>
       <UContainer class="py-10 lg:py-14">
         <h1 v-if="title">{{ title }}</h1>
-        <p v-if="subtitle" class="mt-4 text-base italic tracking-wide text-black/90">{{ subtitle }}</p>
+        <p v-if="subtitle" class="mt-4 text-lg font-bold italic tracking-wide text-black/90">{{ subtitle }}</p>
       </UContainer>
     </template>
   </section>
