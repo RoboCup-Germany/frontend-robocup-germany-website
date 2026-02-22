@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import Button from '~/components/basic/Button.vue';
+import { toDisplayImage } from '~/utils/media-image';
 
 interface MediaItem {
   publicUrl?: string | null;
@@ -56,47 +57,18 @@ const mediaItem = computed<MediaItem | null>(() => {
   return null;
 });
 
+const mediaDisplay = computed(() => toDisplayImage(mediaItem.value));
+
 const imageDesktopUrl = computed(() => {
-  const media = mediaItem.value;
-  if (!media) return '';
-  return toUrl(
-    media.cropVariants?.default?.publicUrl
-    || media.cropVariants?.default?.url
-    || media.publicUrl
-    || media.url
-    || media.originalUrl
-    || media.properties?.originalUrl
-  );
+  return toUrl(mediaDisplay.value?.urlDefault);
 });
 
 const imageMobileUrl = computed(() => {
-  const media = mediaItem.value;
-  if (!media) return '';
-  return toUrl(
-    media.cropVariants?.small?.publicUrl
-    || media.cropVariants?.small?.url
-    || media.cropVariants?.default?.publicUrl
-    || media.cropVariants?.default?.url
-    || media.publicUrl
-    || media.url
-    || media.originalUrl
-    || media.properties?.originalUrl
-  );
+  return toUrl(mediaDisplay.value?.urlSmall || mediaDisplay.value?.urlDefault);
 });
 
 const imageAlt = computed(() => {
-  const media = mediaItem.value;
-  if (!media) return '';
-
-  return media.alt
-    || media.alternative
-    || media.description
-    || media.title
-    || media.properties?.alternative
-    || media.properties?.description
-    || media.properties?.title
-    || props.title
-    || 'Seitenbild';
+  return mediaDisplay.value?.alt || props.title || 'Seitenbild';
 });
 
 const imageMobileDisplayUrl = computed(() => imageMobileUrl.value || imageDesktopUrl.value);

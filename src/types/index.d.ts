@@ -7,6 +7,7 @@ declare global
         id?: number;
         alt?: string;
         title?: string;
+        description?: string;
         publicUrl?: string;
         creator?: string;
     }
@@ -16,6 +17,7 @@ declare global
         id?: number;
         alt?: string;
         title?: string;
+        description?: string;
         publicUrl?: string;
         creator?: string;
     }

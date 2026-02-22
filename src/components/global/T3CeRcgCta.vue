@@ -3,6 +3,7 @@ import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
 import Button from '~/components/basic/Button.vue';
 import Headline from '~/components/basic/Headline.vue';
+import { pickFirstDisplayImage } from '~/utils/media-image';
 
 defineOptions({
   inheritAttrs: false
@@ -19,20 +20,10 @@ type ContentButton = {
   color_select?: 'main' | 'primary' | 'junior' | 'major' | 'secondary';
 };
 
-type MediaObject = {
-  publicUrl?: string | null;
-  url?: string | null;
-  originalUrl?: string | null;
-  alternative?: string | null;
-  alt?: string | null;
-  description?: string | null;
-  title?: string | null;
-};
-
 interface T3CeRcgCta extends T3CeBaseProps {
   header?: string;
   buttons?: ContentButton[];
-  image?: MediaRef[] | MediaObject[] | null;
+  image?: MediaRef[] | Record<string, unknown>[] | null;
   space_before_class?: string;
   space_after_class?: string;
 }
@@ -89,41 +80,9 @@ const normalizedButtons = computed(() => {
     .filter((button): button is NonNullable<typeof button> => Boolean(button));
 });
 
-const logoSrc = computed(() => {
-  const imageItems = Array.isArray(props.image) ? props.image : [];
-  const first = imageItems[0];
-
-  if (first && typeof first === 'object') {
-    const mediaRef = first as MediaRef;
-    const mediaObject = first as MediaObject;
-
-    return mediaRef.publicUrl
-      || mediaObject.url
-      || mediaObject.originalUrl
-      || '/assets/RCgermany_Logo.png';
-  }
-
-  return '/assets/RCgermany_Logo.png';
-});
-
-const logoAlt = computed(() => {
-  const imageItems = Array.isArray(props.image) ? props.image : [];
-  const first = imageItems[0];
-
-  if (first && typeof first === 'object') {
-    const mediaRef = first as MediaRef;
-    const mediaObject = first as MediaObject;
-
-    return mediaRef.alt
-      || mediaObject.alternative
-      || mediaObject.alt
-      || mediaObject.description
-      || mediaObject.title
-      || 'RoboCup Germany';
-  }
-
-  return 'RoboCup Germany';
-});
+const logoImage = computed(() => pickFirstDisplayImage(props.image));
+const logoSrc = computed(() => logoImage.value?.urlDefault || '/assets/RCgermany_Logo.png');
+const logoAlt = computed(() => logoImage.value?.alt || logoImage.value?.title || 'RoboCup Germany');
 
 const spacingClasses = computed(() => {
   return [props.space_before_class, props.space_after_class].filter(Boolean);

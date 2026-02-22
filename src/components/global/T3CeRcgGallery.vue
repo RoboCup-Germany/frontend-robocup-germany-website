@@ -3,6 +3,7 @@ import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
 import { computed, ref, type Ref, useAttrs } from 'vue'
 import CarouselControls from '~/components/basic/CarouselControls.vue'
 import Image from '~/components/basic/Image.vue'
+import { extractArrayFromUnknown, findImageLikeDeep, parseMaybeJson, toDisplayImage, type DisplayImage } from '~/utils/media-image'
 
 defineOptions({ inheritAttrs: false })
 
@@ -35,77 +36,9 @@ interface T3CeRcgGallery extends T3CeBaseProps {
 const props = withDefaults(defineProps<T3CeRcgGallery>(), {})
 const attrs = useAttrs()
 
-// Helpers
-const tryParseJson = (val: unknown): unknown => {
-  if (typeof val !== 'string') return val
-  try { return JSON.parse(val) } catch { return null }
-}
-
-// Extract an array of items from various container shapes or wrap a single item
-const extractArray = (input: unknown): unknown[] => {
-  const val = tryParseJson(input)
-
-  // direct array
-  if (Array.isArray(val)) return val as unknown[]
-
-  // object containers with common keys
-  if (val && typeof val === 'object') {
-    const obj = val as Record<string, unknown>
-    const candidates = ['gallery', 'images', 'media', 'items', 'data']
-    for (const key of candidates) {
-      const maybe = obj[key]
-      if (Array.isArray(maybe)) return maybe as unknown[]
-    }
-
-    // looks like a single image object: has url or cropVariants
-    const hasUrl = typeof (obj.url as unknown) === 'string'
-    const hasCrop = obj.cropVariants && typeof obj.cropVariants === 'object'
-    if (hasUrl || hasCrop) return [obj]
-  }
-
-  // not recognized
-  return []
-}
-
-const isImageLike = (v: unknown): boolean => {
-  if (!v || typeof v !== 'object') return false
-  const obj = v as Record<string, unknown>
-  const hasUrl = typeof obj.url === 'string' || typeof obj.originalUrl === 'string' || typeof obj.publicUrl === 'string'
-  const hasCrop = !!obj.cropVariants && typeof obj.cropVariants === 'object'
-  return hasUrl || hasCrop
-}
-
-const findImageLikeDeep = (input: unknown): unknown[] => {
-  const out: unknown[] = []
-  const seen = new WeakSet<object>()
-
-  const walk = (v: unknown) => {
-    if (!v || typeof v !== 'object') return
-    if (seen.has(v as object)) return
-    seen.add(v as object)
-
-    if (Array.isArray(v)) {
-      for (const item of v) walk(item)
-      return
-    }
-
-    if (isImageLike(v)) {
-      out.push(v)
-      return
-    }
-
-    for (const child of Object.values(v as Record<string, unknown>)) {
-      walk(child)
-    }
-  }
-
-  walk(input)
-  return out
-}
-
 // Extract block (if provided as object or JSON string)
 const blockObj = computed<ThemeGalleryBlock | null>(() => {
-  const maybe = tryParseJson(props.block ?? null)
+  const maybe = parseMaybeJson(props.block ?? null)
   if (maybe && typeof maybe === 'object') return maybe as ThemeGalleryBlock
   return null
 })
@@ -117,22 +50,22 @@ const parsedImages = computed<unknown[]>(() => {
   let out: unknown[] = []
 
   if (props.gallery != null) {
-    out = extractArray(props.gallery)
+    out = extractArrayFromUnknown(props.gallery)
   }
 
   if (out.length === 0 && props.images != null) {
-    out = extractArray(props.images)
+    out = extractArrayFromUnknown(props.images)
   }
 
   if (out.length === 0 && props.media != null) {
-    out = extractArray(props.media)
+    out = extractArrayFromUnknown(props.media)
   }
 
   if (out.length === 0) {
     const b = blockObj.value
     if (b) {
       if (Array.isArray(b.gallery)) out = b.gallery as unknown[]
-      else out = extractArray(b as unknown)
+      else out = extractArrayFromUnknown(b as unknown)
     }
   }
 
@@ -141,12 +74,12 @@ const parsedImages = computed<unknown[]>(() => {
     const candidates = ['gallery', 'images', 'media', 'items', 'data', 'block']
     for (const key of candidates) {
       if (out.length > 0) break
-      out = extractArray(rawAttrs[key])
+      out = extractArrayFromUnknown(rawAttrs[key])
     }
     // Fallback: attributes themselves may already be a single image-like object
     // (e.g. { uid, url, cropVariants, ... } from TYPO3 CE payload)
     if (out.length === 0) {
-      out = extractArray(rawAttrs)
+      out = extractArrayFromUnknown(rawAttrs)
     }
   }
 
@@ -160,99 +93,6 @@ const parsedImages = computed<unknown[]>(() => {
 
   return out
 })
-
-// Display image shape consumed by basic/Image.vue
-type DisplayImage = {
-  urlDefault?: string | null
-  urlSmall?: string | null
-  alt?: string | null
-  title?: string | null
-  creator?: string | null
-}
-
-// Type guards/helpers for crop-based entries
-type CropDim = { width?: number; height?: number }
-type CropVariant = { url?: string | null; dimensions?: CropDim }
-type CropVariants = { default?: CropVariant; small?: CropVariant; [k: string]: CropVariant | undefined }
-type CroppedContent = {
-  url?: string | null
-  originalUrl?: string | null
-  title?: string | null
-  alternative?: string | null
-  description?: string | null
-  alt?: string | null
-  creator?: string | null
-  cropVariants?: CropVariants
-}
-
-const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object'
-
-const toDisplayImage = (item: unknown): DisplayImage | null => {
-  // Case A0: root-level cropped structure as in provided JSON
-  // { url, alternative, title, cropVariants: { default: { url }, small: { url } } }
-  if (isObject(item)) {
-    const root = item as CroppedContent & Record<string, unknown>
-    const hasRootCrop = root.cropVariants && typeof root.cropVariants === 'object'
-    if (hasRootCrop || root.url || root.originalUrl) {
-      const def = (root.cropVariants as CropVariants | undefined)?.default?.url
-        || (root.url as string | null)
-        || (root.originalUrl as string | null)
-        || null
-      const sm = (root.cropVariants as CropVariants | undefined)?.small?.url || null
-      if (def || sm) {
-        return {
-          urlDefault: def || null,
-          urlSmall: sm || def || null,
-          alt: (root.alternative as string | null | undefined)
-            ?? (root.alt as string | null | undefined)
-            ?? (root.description as string | null | undefined)
-            ?? null,
-          title: (root.title as string | null | undefined)
-            ?? (root.description as string | null | undefined)
-            ?? null,
-          creator: (root.creator as string | null | undefined) ?? null
-        }
-      }
-    }
-  }
-
-  // Case A1: nested under content: { content: { cropVariants..., url, alternative, title } }
-  if (isObject(item) && isObject(item.content)) {
-    const c = item.content as CroppedContent
-    const def = c.cropVariants?.default?.url || c.url || c.originalUrl || null
-    const sm = c.cropVariants?.small?.url || null
-    if (def || sm) {
-      return {
-        urlDefault: def || null,
-        urlSmall: sm || def || null,
-        alt: c.alternative ?? c.alt ?? c.description ?? null,
-        title: c.title ?? c.description ?? null,
-        creator: c.creator ?? null
-      }
-    }
-  }
-
-  // Case B: legacy MediaRef-like with publicUrl/alt/title
-  if (isObject(item)) {
-    const url = (item.publicUrl as string | undefined)
-      || (item.url as string | undefined)
-      || (item.originalUrl as string | undefined)
-      || null
-    const alt = (item.alt as string | undefined)
-      ?? (item.alternative as string | undefined)
-      ?? (item.description as string | undefined)
-      ?? null
-    const title = (item.title as string | undefined)
-      ?? (item.description as string | undefined)
-      ?? null
-    const creator = (item.creator as string | undefined) ?? null
-    if (url) {
-      return { urlDefault: url, urlSmall: url, alt, title, creator }
-    }
-  }
-  // Unknown - skip
-  return null
-}
 
 const normalizedImages = computed<DisplayImage[]>(() => parsedImages.value
   .map(toDisplayImage)

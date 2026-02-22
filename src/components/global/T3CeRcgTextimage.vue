@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import Button from '~/components/basic/Button.vue';
 import Headline from '~/components/basic/Headline.vue';
 import Image from '~/components/basic/Image.vue';
+import { pickFirstDisplayImage, toDisplayImage, type DisplayImage } from '~/utils/media-image';
 
 defineOptions({
   inheritAttrs: false
@@ -20,31 +21,6 @@ type ContentButton = {
   color_select?: 'main' | 'primary' | 'junior' | 'major' | 'secondary';
 };
 
-type CropVariant = {
-  url?: string | null;
-};
-
-type MediaObject = {
-  url?: string | null;
-  originalUrl?: string | null;
-  title?: string | null;
-  alternative?: string | null;
-  description?: string | null;
-  alt?: string | null;
-  cropVariants?: {
-    default?: CropVariant;
-    small?: CropVariant;
-    [key: string]: CropVariant | undefined;
-  };
-};
-
-type DisplayImage = {
-  urlDefault?: string | null;
-  urlSmall?: string | null;
-  alt?: string | null;
-  title?: string | null;
-};
-
 interface T3CeRcgTextimage extends T3CeBaseProps
 {
   header?: string;
@@ -58,7 +34,7 @@ interface T3CeRcgTextimage extends T3CeBaseProps
   buttons?: ContentButton[];
   orientation?: 'left' | 'right';
   image?: MediaRef[] | null;
-  media?: MediaRef[] | MediaObject | null;
+  media?: MediaRef[] | Record<string, unknown> | null;
 }
 
 const props = withDefaults(defineProps<T3CeRcgTextimage>(), {
@@ -140,53 +116,19 @@ const normalizedButtons = computed(() => {
 
 const hasButtons = computed(() => normalizedButtons.value.length > 0);
 
-const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-
-const fromMediaObject = (media: MediaObject): DisplayImage | null => {
-  const urlDefault = media.cropVariants?.default?.url || media.url || media.originalUrl || null;
-  const urlSmall = media.cropVariants?.small?.url || urlDefault || null;
-
-  if (!urlDefault && !urlSmall) {
-    return null;
-  }
-
-  return {
-    urlDefault,
-    urlSmall,
-    alt: media.alternative || media.alt || media.description || null,
-    title: media.title || media.description || null
-  };
-};
-
-const fromMediaRefArray = (media: MediaRef[] | null | undefined): DisplayImage | null => {
-  const first = media?.find((item) => item?.publicUrl) || media?.[0];
-  const url = first?.publicUrl || null;
-
-  if (!url) {
-    return null;
-  }
-
-  return {
-    urlDefault: url,
-    urlSmall: url,
-    alt: first?.alt || null,
-    title: first?.title || null
-  };
-};
-
 const displayImage = computed<DisplayImage | null>(() => {
   if (Array.isArray(props.media)) {
-    return fromMediaRefArray(props.media) || fromMediaRefArray(props.image);
+    return pickFirstDisplayImage(props.media) || pickFirstDisplayImage(props.image);
   }
 
-  if (isObject(props.media)) {
-    const parsed = fromMediaObject(props.media as MediaObject);
+  if (props.media && typeof props.media === 'object') {
+    const parsed = toDisplayImage(props.media);
     if (parsed) {
       return parsed;
     }
   }
 
-  return fromMediaRefArray(props.image);
+  return pickFirstDisplayImage(props.image);
 });
 
 const imageColumnClass = computed(() => {
