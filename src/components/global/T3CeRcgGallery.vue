@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
 import { computed, ref, type Ref, useAttrs } from 'vue'
+import CarouselControls from '~/components/basic/CarouselControls.vue'
 import Image from '~/components/basic/Image.vue'
 
 defineOptions({ inheritAttrs: false })
@@ -254,17 +255,46 @@ const normalizedImages = computed<DisplayImage[]>(() => parsedImages.value
 
 
 // --- Carousel control / active index (für Custom-Dots) ---
-interface EmblaLike { emblaApi?: { scrollTo: (index: number) => void } }
+interface EmblaLike {
+  emblaApi?: {
+    scrollTo: (index: number) => void
+    scrollPrev?: () => void
+    scrollNext?: () => void
+  }
+}
 const carousel: Ref<EmblaLike | null> = ref(null)
 const activeIndex = ref(0)
+const navigationDirection = ref<1 | -1>(1)
 
 function onSelect(index: number) {
+  const total = normalizedImages.value.length
+  if (index !== activeIndex.value) {
+    if (total > 1 && index === 0 && activeIndex.value === total - 1) {
+      navigationDirection.value = 1
+    } else if (total > 1 && index === total - 1 && activeIndex.value === 0) {
+      navigationDirection.value = -1
+    } else {
+      navigationDirection.value = index > activeIndex.value ? 1 : -1
+    }
+  }
   activeIndex.value = index
 }
 
 function select(index: number) {
+  if (index === activeIndex.value) return
+  navigationDirection.value = index > activeIndex.value ? 1 : -1
   activeIndex.value = index
   carousel.value?.emblaApi?.scrollTo(index)
+}
+
+function prev() {
+  navigationDirection.value = -1
+  carousel.value?.emblaApi?.scrollPrev?.()
+}
+
+function next() {
+  navigationDirection.value = 1
+  carousel.value?.emblaApi?.scrollNext?.()
 }
 
 // --- max. 5 Dots sichtbar, Window um activeIndex zentriert ---
@@ -281,18 +311,9 @@ const visibleDots = computed(() => {
   return Array.from({ length: max }, (_, k) => start + k)
 })
 
-// --- Scaling: active groß, nach außen kleiner ---
-function dotScale(index: number) {
-  const d = Math.abs(index - activeIndex.value)
-  if (d === 0) return 1.0
-  if (d === 1) return 0.75
-  if (d === 2) return 0.55
-  return 0.45
-}
-
-function dotStyle(index: number) {
-  return { transform: `scale(${dotScale(index)})` }
-}
+const dotTransitionName = computed(() => {
+  return navigationDirection.value === 1 ? 'dots-forward' : 'dots-backward'
+})
 
 const carouselUi = computed(() => ({
   item: 'basis-full',
@@ -334,35 +355,16 @@ const sectionClasses = computed(() => {
           <Image :display="item" />
         </UCarousel>
 
-        <!-- White element: liegt AUF den Bildern und bleibt unten -->
-        <div class="pointer-events-none absolute inset-x-0 bottom-0 z-20">
-          <!-- die große weiße "Arc" -->
-          <div
-              aria-hidden="true"
-              role="presentation"
-              class="mx-auto bg-white w-[300px] rounded-[50px] h-[100px] translate-y-[70%] lg:translate-y-[60%]"
-          />
-
-          <!-- Dots/Buttons auf dem weißen Element -->
-          <div
-              v-if="visibleDots.length"
-              class="pointer-events-auto absolute left-1/2 bottom-3 translate-y-2 lg:translate-y-0 -translate-x-1/2 z-30
-                   flex items-center justify-center gap-2"
-          >
-            <button
-                v-for="i in visibleDots"
-                :key="i"
-                type="button"
-                class="h-2.5 w-2.5 rounded-full transition-transform duration-200 ease-out
-                     bg-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
-                     opacity-60"
-                :class="{ '!opacity-100': i === activeIndex }"
-                :style="dotStyle(i)"
-                :aria-label="`Bild ${i + 1}`"
-                @click="select(i)"
-            />
-          </div>
-        </div>
+        <CarouselControls
+          :visible-dots="visibleDots"
+          :active-index="activeIndex"
+          :show-arrows="normalizedImages.length > 1"
+          :animate-dots="true"
+          :transition-name="dotTransitionName"
+          @prev="prev"
+          @next="next"
+          @select="select"
+        />
       </div>
     </UContainer>
   </section>
