@@ -26,7 +26,7 @@ interface T3CeRcgTextimage extends T3CeBaseProps
   header?: string;
   header_layout?: number | string;
   bodytext?: string;
-  button_text?: string;
+  button_text?: string
   color_select?: ContentButton['color_select'];
   button_link?: LinkRef | null;
   button_size?: 'small' | 'medium' | 'large';
