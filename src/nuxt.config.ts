@@ -10,6 +10,18 @@ const flickrUserId = process.env.NUXT_FLICKR_USER_ID ?? '200186101@N05'
 export default defineNuxtConfig({
     compatibilityDate: '2025-11-14',
     devtools: { enabled: true },
+    routeRules: {
+        '/api/typo3': {
+            headers: {
+                'cache-control': 'public, max-age=5, s-maxage=30, stale-while-revalidate=120, stale-if-error=600'
+            }
+        },
+        '/api/typo3/**': {
+            headers: {
+                'cache-control': 'public, max-age=5, s-maxage=30, stale-while-revalidate=120, stale-if-error=600'
+            }
+        }
+    },
 
     modules: [
         '@nuxt/eslint',

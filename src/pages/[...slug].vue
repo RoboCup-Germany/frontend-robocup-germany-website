@@ -5,7 +5,9 @@ const { headData, pageData, backendLayout, getPageData } = await useT3Page()
 const { initialData } = useT3Api()
 const route = useRoute()
 useHead(headData);
-watch(() => route.fullPath, getPageData)
+watch(() => route.fullPath, async () => {
+  await getPageData()
+})
 
 interface AnnouncementButton {
   text?: string;
