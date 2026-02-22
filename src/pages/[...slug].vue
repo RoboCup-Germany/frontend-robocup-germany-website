@@ -48,14 +48,57 @@ const toUidSet = (values: unknown[]): Set<number> => {
   return set;
 };
 
+type NewsDetailRecord = {
+  title?: string;
+  teaser?: string;
+};
+
+const findNewsDetail = (input: unknown): NewsDetailRecord | null => {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const source = input as { content?: Record<string, unknown[]> };
+  const content = source.content;
+  if (!content || typeof content !== 'object') {
+    return null;
+  }
+
+  for (const colElements of Object.values(content)) {
+    if (!Array.isArray(colElements)) continue;
+    const newsDetailElement = colElements.find((item) => {
+      if (!item || typeof item !== 'object') return false;
+      return (item as { type?: string }).type === 'news_newsdetail';
+    });
+
+    if (!newsDetailElement || typeof newsDetailElement !== 'object') {
+      continue;
+    }
+
+    const detail = (newsDetailElement as {
+      content?: { data?: { detail?: NewsDetailRecord } };
+    }).content?.data?.detail;
+
+    if (detail && typeof detail === 'object') {
+      return detail;
+    }
+  }
+
+  return null;
+};
+
+const newsDetail = computed(() => findNewsDetail(pageData.value));
+
 const pageTitle = computed(() => {
-  return pageData.value?.meta?.title?.trim()
+  return newsDetail.value?.title?.trim()
+    || pageData.value?.meta?.title?.trim()
     || (pageData.value as { title?: string } | null)?.title?.trim()
     || '';
 });
 
 const pageSubtitle = computed(() => {
-  return pageData.value?.meta?.subtitle?.trim()
+  return newsDetail.value?.teaser?.trim()
+    || pageData.value?.meta?.subtitle?.trim()
     || (pageData.value as { subtitle?: string } | null)?.subtitle?.trim()
     || '';
 });
