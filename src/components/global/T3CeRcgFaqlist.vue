@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
-import Headline from '~/components/basic/Headline.vue';
+import SectionHeader from '~/components/basic/SectionHeader.vue';
 
 defineOptions({
   inheritAttrs: false
@@ -48,14 +48,14 @@ const accordionItems = computed(() =>
 <template>
   <section :class="[space_before_class, space_after_class]" :aria-labelledby="header ? headingId : undefined">
     <UContainer>
-      <div class="w-full">
-        <div v-if="header" :id="headingId" :class="{ 'mb-4': !subheader }">
-          <Headline :raw-html="header" />
-        </div>
-        <div v-if="subheader" class="mb-7 text-base italic uppercase tracking-wide text-black font-semibold">
-          <T3HtmlParser class="rte-content" :content="subheader" />
-        </div>
-      </div>
+      <SectionHeader
+        :header="header"
+        :subheader="subheader"
+        :heading-id="headingId"
+        container-class="w-full"
+        header-no-subheader-class="mb-4"
+        subheader-class="mb-7 text-base italic uppercase tracking-wide text-black font-semibold"
+      />
 
       <div class="w-full xl:w-2/3">
         <div class="rounded-2xl border border-black/10 bg-white shadow-sm overflow-hidden">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
+import SectionHeader from '~/components/basic/SectionHeader.vue';
 
 defineOptions({
   inheritAttrs: false
@@ -126,14 +127,14 @@ const contactCards = computed<ContactCard[]>(() => {
     <div class="contactlist-surface">
       <UContainer>
         <div class="contactlist-inner">
-          <header v-if="header || subheader" class="contactlist-head">
-            <div v-if="header" :id="sectionHeadingId" class="contactlist-title">
-              <T3HtmlParser class="rte-content" :content="header" />
-            </div>
-            <div v-if="subheader" class="contactlist-subtitle">
-              <T3HtmlParser class="rte-content" :content="subheader" />
-            </div>
-          </header>
+          <SectionHeader
+            :header="header"
+            :subheader="subheader"
+            :heading-id="sectionHeadingId"
+            container-class="contactlist-head"
+            header-class="contactlist-title"
+            subheader-class="contactlist-subtitle"
+          />
 
           <ul class="contactlist-grid" role="list">
             <li

@@ -2,6 +2,7 @@
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
 import Button from '~/components/basic/Button.vue';
+import Headline from '~/components/basic/Headline.vue';
 
 defineOptions({
   inheritAttrs: false
@@ -135,7 +136,7 @@ const spacingClasses = computed(() => {
       <UContainer>
         <div class="rcg-cta-grid">
           <div class="rcg-cta-content">
-            <T3HtmlParser class="rte-content" v-if="header" :content="header" />
+            <Headline v-if="header" :raw-html="header" />
             <div v-if="normalizedButtons.length > 0" class="rcg-cta-button-row mt-8">
               <Button
                 v-for="(button, index) in normalizedButtons"
@@ -201,7 +202,7 @@ const spacingClasses = computed(() => {
   align-items: flex-start;
 }
 
-.rcg-cta-content :deep(p) {
+.rcg-cta-content :deep(h2) {
   margin: 0;
   color: var(--color-primary);
   font-size: clamp(38px, 5.2vw, 66px);

@@ -2,7 +2,7 @@
 import type {T3CeBaseProps} from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
 import Button from '~/components/basic/Button.vue';
-import Headline from '~/components/basic/Headline.vue';
+import SectionHeader from '~/components/basic/SectionHeader.vue';
 
 defineOptions({
   inheritAttrs: false
@@ -127,10 +127,11 @@ const hasBackgroundElement = computed(() => props.background === 1);
 
     <UContainer>
       <div class="relative z-10 flex flex-col items-start">
-        <Headline v-if="header" :raw-html="header"/>
-        <div v-if="subheader" class="mb-4 text-base italic uppercase tracking-wide text-black font-semibold">
-          <T3HtmlParser class="rte-content" :content="subheader" />
-        </div>
+        <SectionHeader
+          :header="header"
+          :subheader="subheader"
+          subheader-class="mb-4 text-base italic uppercase tracking-wide text-black font-semibold"
+        />
         <div v-if="bodytext" class="mb-4">
           <T3HtmlParser class="rte-content" :content="bodytext" />
         </div>

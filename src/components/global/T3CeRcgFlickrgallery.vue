@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
 import { computed, onMounted, onUnmounted, ref, useAttrs, watch } from 'vue'
+import Headline from '~/components/basic/Headline.vue'
 
 defineOptions({ inheritAttrs: false })
 
@@ -354,7 +355,7 @@ onUnmounted(() => {
   <section class="w-full">
     <UContainer>
       <div class="w-full">
-        <T3HtmlParser v-if="header" class="rte-content mb-4" :content="header" />
+        <Headline v-if="header" class="mb-4" :raw-html="header" />
 
         <p v-if="displayTitle" class="mb-4 font-semibold">{{ displayTitle }}</p>
 
