@@ -167,6 +167,7 @@ type DisplayImage = {
   urlSmall?: string | null
   alt?: string | null
   title?: string | null
+  creator?: string | null
 }
 
 // Type guards/helpers for crop-based entries
@@ -180,6 +181,7 @@ type CroppedContent = {
   alternative?: string | null
   description?: string | null
   alt?: string | null
+  creator?: string | null
   cropVariants?: CropVariants
 }
 
@@ -207,7 +209,8 @@ const toDisplayImage = (item: unknown): DisplayImage | null => {
             ?? null,
           title: (root.title as string | null | undefined)
             ?? (root.description as string | null | undefined)
-            ?? null
+            ?? null,
+          creator: (root.creator as string | null | undefined) ?? null
         }
       }
     }
@@ -223,7 +226,8 @@ const toDisplayImage = (item: unknown): DisplayImage | null => {
         urlDefault: def || null,
         urlSmall: sm || def || null,
         alt: c.alternative ?? c.alt ?? c.description ?? null,
-        title: c.title ?? c.description ?? null
+        title: c.title ?? c.description ?? null,
+        creator: c.creator ?? null
       }
     }
   }
@@ -241,8 +245,9 @@ const toDisplayImage = (item: unknown): DisplayImage | null => {
     const title = (item.title as string | undefined)
       ?? (item.description as string | undefined)
       ?? null
+    const creator = (item.creator as string | undefined) ?? null
     if (url) {
-      return { urlDefault: url, urlSmall: url, alt, title }
+      return { urlDefault: url, urlSmall: url, alt, title, creator }
     }
   }
   // Unknown - skip

@@ -8,6 +8,7 @@ declare global
         alt?: string;
         title?: string;
         publicUrl?: string;
+        creator?: string;
     }
     
     interface ImageRef
@@ -16,6 +17,7 @@ declare global
         alt?: string;
         title?: string;
         publicUrl?: string;
+        creator?: string;
     }
     
     interface LinkRef
