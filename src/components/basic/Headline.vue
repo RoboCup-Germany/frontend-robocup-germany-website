@@ -3,21 +3,27 @@ import { computed } from 'vue'
 
 interface Props {
   rawHtml?: string
-  level?: 1 | 2 | 3 | 4 | 5 | 6
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  rawHtml: '',
-  level: 2
+  rawHtml: ''
 })
 
 const normalizedHeadingHtml = computed(() => {
   const html = props.rawHtml || ''
-  const level = props.level
+  if (!html.trim()) return ''
 
-  return html
-    .replace(/<\s*h[1-6](\s[^>]*)?>/gi, (_match, attrs = '') => `<h${level}${attrs}>`)
-    .replace(/<\s*\/\s*h[1-6]\s*>/gi, `</h${level}>`)
+  const normalized = html
+    .replace(/<\s*h[1-6](\s[^>]*)?>/gi, (_match, attrs = '') => `<h2${attrs}>`)
+    .replace(/<\s*\/\s*h[1-6]\s*>/gi, '</h2>')
+    .replace(/<\s*p(\s[^>]*)?>/gi, (_match, attrs = '') => `<h2${attrs}>`)
+    .replace(/<\s*\/\s*p\s*>/gi, '</h2>')
+
+  if (!/<\s*h2(\s|>)/i.test(normalized)) {
+    return `<h2>${normalized}</h2>`
+  }
+
+  return normalized
 })
 </script>
 
