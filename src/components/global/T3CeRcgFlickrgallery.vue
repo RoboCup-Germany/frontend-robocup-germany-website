@@ -9,6 +9,8 @@ interface FlickrGalleryContent {
   album_id?: string | null
   album_name?: string | null
   header?: string | null
+  subheader?: string | null
+  bodytext?: string | null
   user_id?: string | null
   flickr_user_id?: string | null
   per_page?: number | string | null
@@ -21,6 +23,8 @@ interface T3CeRcgFlickrgallery extends T3CeBaseProps {
   album_id?: string | null
   album_name?: string | null
   header?: string | null
+  subheader?: string | null
+  bodytext?: string | null
   user_id?: string | null
   flickr_user_id?: string | null
   per_page?: number | string | null
@@ -158,11 +162,27 @@ const header = computed(() => pickString(
   attrs.header
 ))
 
+const subheader = computed(() => pickString(
+  contentData.value.subheader,
+  props.subheader,
+  attrs.subheader
+))
+
+const bodytext = computed(() => pickString(
+  contentData.value.bodytext,
+  props.bodytext,
+  attrs.bodytext
+))
+
 const albumName = computed(() => pickString(
   contentData.value.album_name,
   props.album_name,
   attrs.album_name
 ))
+
+const photoLinkTitle = (photo: FlickrSlide): string => {
+  return photo.title || albumName.value || photosetTitle.value || 'Öffnen auf flickr.de'
+}
 
 const currentIndex = ref(0)
 const navigationDirection = ref<1 | -1>(1)
@@ -181,21 +201,12 @@ const hasMultiplePhotos = computed(() => photos.value.length > 1)
 const loadMoreLabel = computed(() => `${perPage.value} weitere Bilder laden`)
 
 const displayTitle = computed(() => {
-  return albumName.value || photosetTitle.value
+  return photosetTitle.value
 })
 
 const activePhoto = computed(() => {
   if (!photos.value.length) return null
   return photos.value[currentIndex.value] || photos.value[0]
-})
-
-const frameStyle = computed(() => {
-  const width = activePhoto.value?.width
-  const height = activePhoto.value?.height
-  if (width && height && width > 0 && height > 0) {
-    return { aspectRatio: `${width} / ${height}` }
-  }
-  return { aspectRatio: '4 / 3' }
 })
 
 const nextSlide = () => {
@@ -355,12 +366,15 @@ onUnmounted(() => {
   <section class="w-full">
     <UContainer>
       <div class="w-full">
-        <Headline v-if="header" class="mb-4" :raw-html="header" />
+        <Headline v-if="header":raw-html="header" />
+        <div v-if="subheader" class="mb-4 text-base italic uppercase tracking-wide text-black font-semibold">
+          <T3HtmlParser class="rte-content" :content="subheader" />
+        </div>
 
-        <p v-if="displayTitle" class="mb-4 font-semibold">{{ displayTitle }}</p>
+        <p v-if="!header && !subheader && displayTitle" class="mb-4 font-semibold">{{ displayTitle }}</p>
 
         <div
-          class="relative w-full overflow-hidden rounded-md bg-neutral-100"
+          class="relative w-full overflow-visible rounded-md bg-neutral-100"
           @mouseenter="paused = true"
           @mouseleave="paused = false"
         >
@@ -369,6 +383,7 @@ onUnmounted(() => {
               v-for="photo in photos"
               :key="photo.id"
               :href="photoLink(photo.id)"
+              :title="photoLinkTitle(photo)"
               target="_blank"
               rel="noopener noreferrer"
               class="group relative mb-4 block w-full break-inside-avoid overflow-hidden rounded bg-white"
@@ -387,7 +402,7 @@ onUnmounted(() => {
             </a>
           </div>
 
-          <div v-else class="relative w-full max-h-[75vh]" :style="frameStyle">
+          <div v-else class="relative h-[clamp(300px,52vw,640px)] w-full">
             <transition name="flickr-fade" mode="out-in">
               <img
                 v-if="activePhoto"
@@ -402,9 +417,10 @@ onUnmounted(() => {
             <a
               v-if="activePhoto"
               :href="photoLink(activePhoto.id)"
+              :title="photoLinkTitle(activePhoto)"
               target="_blank"
               rel="noopener noreferrer"
-              class="absolute bottom-3 right-3 z-10 rounded bg-primary/80 px-3 py-1.5 text-xs text-white"
+              class="absolute bottom-3 right-3 z-10 rounded bg-primary/80 px-3 py-1.5 text-xs text-white transition-all duration-200 ease-out hover:bg-primary hover:scale-[1.04]"
             >
               Öffnen auf flickr.de
             </a>
@@ -432,7 +448,7 @@ onUnmounted(() => {
               >
                 <button
                   type="button"
-                  class="absolute left-0 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary"
+                  class="absolute left-0 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary transition-all duration-200 ease-out hover:scale-[1.06] hover:bg-primary hover:text-white"
                   aria-label="Vorheriges Bild"
                   @click="prevSlide"
                 >
@@ -462,7 +478,7 @@ onUnmounted(() => {
 
                 <button
                   type="button"
-                  class="absolute right-0 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary"
+                  class="absolute right-0 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary transition-all duration-200 ease-out hover:scale-[1.06] hover:bg-primary hover:text-white"
                   aria-label="Nächstes Bild"
                   @click="nextSlide"
                 >
