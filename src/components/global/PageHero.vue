@@ -169,16 +169,18 @@ const hasMediaButton = computed(() => {
         </div>
       </div>
 
-      <UContainer v-if="hasHeadline" class="relative z-40 bg-white py-10 lg:py-14">
-        <h1 v-if="title">{{ title }}</h1>
-        <p v-if="subtitle" class="text-lg font-bold italic tracking-wide text-black/90">{{ subtitle }}</p>
+      <UContainer v-if="hasHeadline" class="relative z-40 bg-white py-5 lg:py-8">
+        <PageBreadcrumb />
+        <h1 v-if="title" class="mb-1">{{ title }}</h1>
+        <p v-if="subtitle" class="mt-0 text-lg font-bold italic tracking-wide text-black/90">{{ subtitle }}</p>
       </UContainer>
     </template>
 
     <template v-else>
-      <UContainer class="py-10 lg:py-14">
-        <h1 v-if="title">{{ title }}</h1>
-        <p v-if="subtitle" class="mt-4 text-lg font-bold italic tracking-wide text-black/90">{{ subtitle }}</p>
+      <UContainer class="py-5 lg:py-8">
+        <PageBreadcrumb />
+        <h1 v-if="title" class="mb-1">{{ title }}</h1>
+        <p v-if="subtitle" class="mt-0 text-lg font-bold italic tracking-wide text-black/90">{{ subtitle }}</p>
       </UContainer>
     </template>
   </section>

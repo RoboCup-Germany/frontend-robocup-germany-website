@@ -48,8 +48,6 @@ const props = withDefaults(defineProps<T3CeNewsNewsdetailProps>(), {
   contentElements: () => []
 });
 
-const t3Page = useT3Page();
-
 const resolvedDetail = computed<NewsDetail | null>(() => {
   if (props.detail && typeof props.detail === 'object') {
     return props.detail;
@@ -133,44 +131,11 @@ const backLinkLabel = computed(() => {
   return resolvedDetail.value?.backLink?.trim() || 'Zurück zur News-Übersicht';
 });
 
-const breadcrumbs = computed(() => {
-  const items = (t3Page as {
-    pageData?: {
-      value?: { breadcrumbs?: Array<{ title?: string; link?: string; current?: number }> } | null;
-    };
-  } | null)?.pageData?.value?.breadcrumbs;
-
-  return Array.isArray(items) ? items : [];
-});
 </script>
 
 <template>
   <section class="pb-12 lg:pb-20">
     <UContainer>
-      <nav
-        v-if="breadcrumbs.length > 0"
-        aria-label="Breadcrumb"
-        class="mb-8 text-sm text-black/70"
-      >
-        <ol class="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <li
-            v-for="(item, index) in breadcrumbs"
-            :key="`${item.link || item.title || index}`"
-            class="inline-flex items-center gap-2"
-          >
-            <NuxtLink
-              v-if="item.current !== 1 && item.link"
-              :to="item.link"
-              class="hover:underline"
-            >
-              {{ item.title }}
-            </NuxtLink>
-            <span v-else class="font-semibold text-black">{{ item.title }}</span>
-            <span v-if="index < breadcrumbs.length - 1" aria-hidden="true">/</span>
-          </li>
-        </ol>
-      </nav>
-
       <p v-if="formattedDate" class="mb-6 text-sm uppercase tracking-wide text-black/70">
         {{ formattedDate }}
       </p>
