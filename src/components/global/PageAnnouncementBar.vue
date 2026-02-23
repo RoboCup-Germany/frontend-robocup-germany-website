@@ -127,8 +127,21 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
 </script>
 
 <template>
-  <section v-if="hasContent" class="relative">
-    <UContainer>
+  <section v-if="hasContent" class="relative overflow-hidden">
+    <img
+      src="/assets/RCgermany_element2.png"
+      alt=""
+      aria-hidden="true"
+      class="pointer-events-none absolute bottom-0 left-1/2 z-0 h-full w-screen -translate-x-1/2 object-cover object-bottom md:object-top md:hidden"
+    >
+    <img
+      src="/assets/RCgermany_element3.png"
+      alt=""
+      aria-hidden="true"
+      class="pointer-events-none absolute right-0 top-1/2 z-0 hidden h-auto w-auto max-w-none -translate-y-1/2 object-contain object-right md:block"
+    >
+
+    <UContainer class="relative z-10">
       <div class="py-6 lg:py-8">
         <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div class="min-w-0">
@@ -141,7 +154,7 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
               {{ announcement.title }}
             </div>
             <div v-if="announcement?.description">
-              <T3HtmlParser class="rte-content" :content="announcement.description" />
+              <T3HtmlParser class="rte-content font-bold italic" :content="announcement.description" />
             </div>
           </div>
 
