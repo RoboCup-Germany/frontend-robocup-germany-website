@@ -129,6 +129,8 @@ const socialLinks = computed(() => {
           :alt="`${siteTitle} Logo`"
           class="h-auto w-full max-w-[340px]"
           loading="lazy"
+          decoding="async"
+          fetchpriority="low"
           width="340"
           height="150"
         >

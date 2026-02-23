@@ -196,6 +196,9 @@ watch(
             class="h-auto w-[210px] md:w-[260px]"
             width="260"
             height="110"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
           >
         </NuxtLink>
 
@@ -308,6 +311,7 @@ watch(
               class="h-48 w-full rounded-sm object-cover shadow-sm"
               loading="lazy"
               decoding="async"
+              fetchpriority="low"
             >
             <p v-if="megaMenuPreview?.subtitle" class="mt-4 text-base italic tracking-wide text-black font-semibold">
               {{ megaMenuPreview.subtitle }}

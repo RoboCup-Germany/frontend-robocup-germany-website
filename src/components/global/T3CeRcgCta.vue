@@ -115,6 +115,7 @@ const spacingClasses = computed(() => {
               :alt="logoAlt"
               loading="lazy"
               decoding="async"
+              fetchpriority="low"
               class="rcg-cta-logo"
             >
           </div>

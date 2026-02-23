@@ -133,12 +133,18 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
       alt=""
       aria-hidden="true"
       class="pointer-events-none absolute bottom-0 left-1/2 z-0 h-full w-screen -translate-x-1/2 object-cover object-bottom md:object-top md:hidden"
+      loading="lazy"
+      decoding="async"
+      fetchpriority="low"
     >
     <img
       src="/assets/RCgermany_element3.png"
       alt=""
       aria-hidden="true"
       class="pointer-events-none absolute right-0 top-1/2 z-0 hidden h-auto w-auto max-w-none -translate-y-1/2 object-contain object-right md:block"
+      loading="lazy"
+      decoding="async"
+      fetchpriority="low"
     >
 
     <UContainer class="relative z-10">

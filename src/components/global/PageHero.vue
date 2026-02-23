@@ -129,6 +129,10 @@ const hasMediaButton = computed(() => {
           v-else-if="imageMobileDisplayUrl && mediaIsImage"
           :src="imageMobileDisplayUrl"
           :alt="imageAlt"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+          sizes="100vw"
           class="block w-full aspect-square object-cover md:hidden"
         >
         <video
@@ -148,6 +152,10 @@ const hasMediaButton = computed(() => {
           v-else-if="imageDesktopDisplayUrl && mediaIsImage"
           :src="imageDesktopDisplayUrl"
           :alt="imageAlt"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+          sizes="100vw"
           class="hidden w-full h-auto max-h-[68vh] object-cover md:block"
         >
 

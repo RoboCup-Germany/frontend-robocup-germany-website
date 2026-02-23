@@ -261,6 +261,8 @@ const resolvePaginationHref = (link?: string | null): string => {
                   class="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] md:h-36"
                   loading="lazy"
                   decoding="async"
+                  fetchpriority="low"
+                  sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 100vw"
                 >
                 <div
                   v-else

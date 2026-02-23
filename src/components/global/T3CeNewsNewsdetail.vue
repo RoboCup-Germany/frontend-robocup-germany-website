@@ -145,8 +145,10 @@ const backLinkLabel = computed(() => {
           :src="imageUrl"
           :alt="imageAlt"
           class="h-auto w-full object-cover"
-          loading="lazy"
+          loading="eager"
           decoding="async"
+          fetchpriority="high"
+          sizes="100vw"
         >
         <figcaption v-if="imageDescription" class="mt-3 text-sm italic text-black/70">
           {{ imageDescription }}

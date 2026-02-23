@@ -4,9 +4,17 @@ import type { DisplayImage } from '~/utils/media-image';
 
 interface Props {
   display?: DisplayImage | null;
+  loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'low' | 'auto';
+  decoding?: 'async' | 'sync' | 'auto';
+  sizes?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {});
+const props = withDefaults(defineProps<Props>(), {
+  loading: 'lazy',
+  decoding: 'async',
+  sizes: '(min-width: 1024px) 1200px, 100vw'
+});
 
 const urlDefault = computed<string | null>(() => {
   return props.display?.urlDefault ?? null;
@@ -22,6 +30,11 @@ const creator = computed(() => {
   const value = props.display?.creator ?? '';
   return value.trim();
 });
+
+const resolvedFetchPriority = computed(() => {
+  if (props.fetchpriority) return props.fetchpriority;
+  return props.loading === 'eager' ? 'high' : 'low';
+});
 </script>
 
 <template>
@@ -33,8 +46,10 @@ const creator = computed(() => {
         :src="urlSmall || urlDefault || ''"
         :alt="alt || ''"
         :title="title || ''"
-        loading="lazy"
-        decoding="async"
+        :loading="props.loading"
+        :decoding="props.decoding"
+        :fetchpriority="resolvedFetchPriority"
+        :sizes="props.sizes"
         class="w-full h-full object-cover"
       />
     </picture>

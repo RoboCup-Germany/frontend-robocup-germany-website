@@ -156,6 +156,23 @@ const albumLayout = computed(() => {
 })
 
 const isGridLayout = computed(() => albumLayout.value === 1)
+const MOBILE_BREAKPOINT = 768
+const viewportWidth = ref(MOBILE_BREAKPOINT)
+
+const updateViewportWidth = () => {
+  if (!import.meta.client) return
+  viewportWidth.value = window.innerWidth || MOBILE_BREAKPOINT
+}
+
+const isMobileViewport = computed(() => {
+  if (!import.meta.client) return false
+  return viewportWidth.value < MOBILE_BREAKPOINT
+})
+
+const effectivePerPage = computed(() => {
+  if (!isGridLayout.value) return perPage.value
+  return isMobileViewport.value ? 5 : 15
+})
 
 const header = computed(() => pickString(
   contentData.value.header,
@@ -199,7 +216,7 @@ let autoTimer: ReturnType<typeof setInterval> | null = null
 
 const hasPhotos = computed(() => photos.value.length > 0)
 const hasMultiplePhotos = computed(() => photos.value.length > 1)
-const loadMoreLabel = computed(() => `${perPage.value} weitere Bilder laden`)
+const loadMoreLabel = computed(() => `${effectivePerPage.value} weitere Bilder laden`)
 
 const displayTitle = computed(() => {
   return photosetTitle.value
@@ -278,7 +295,7 @@ const fetchPhotos = async (pageToLoad: number, append = false) => {
       query: {
         photosetId: albumId.value,
         userId: flickrUserId.value,
-        perPage: perPage.value,
+        perPage: effectivePerPage.value,
         page: pageToLoad
       }
     })
@@ -338,15 +355,20 @@ const loadMorePhotos = async () => {
   await fetchPhotos(currentPage.value + 1, true)
 }
 
-watch([albumId, flickrUserId, perPage], loadPhotos, { immediate: true })
+watch([albumId, flickrUserId, effectivePerPage], loadPhotos, { immediate: true })
 watch(hasMultiplePhotos, () => startAutoplay())
 watch(isGridLayout, () => startAutoplay())
 
 onMounted(() => {
+  updateViewportWidth()
+  window.addEventListener('resize', updateViewportWidth)
   startAutoplay()
 })
 
 onUnmounted(() => {
+  if (import.meta.client) {
+    window.removeEventListener('resize', updateViewportWidth)
+  }
   stopAutoplay()
 })
 </script>
@@ -382,6 +404,8 @@ onUnmounted(() => {
                 :alt="photo.alt"
                 class="block h-auto w-full transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                 loading="lazy"
+                decoding="async"
+                fetchpriority="low"
               >
               <span
                 class="pointer-events-none absolute bottom-2 right-2 rounded bg-primary/80 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
@@ -400,6 +424,8 @@ onUnmounted(() => {
                 :alt="activePhoto.alt"
                 class="h-full w-full bg-white object-contain"
                 loading="lazy"
+                decoding="async"
+                fetchpriority="low"
               >
             </transition>
 
