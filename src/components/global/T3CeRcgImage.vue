@@ -31,7 +31,7 @@ const imageDescription = computed(() => {
 
 <template>
   <UContainer>
-    <div class="flex flex-col gap-3 xl:flex-row xl:justify-between xl:items-baseline">
+    <div class="flex flex-col gap-3">
       <Image :display="displayImage" />
       <p v-if="imageDescription" class="text-sm leading-relaxed text-gray-700 italic">
         {{ imageDescription }}
