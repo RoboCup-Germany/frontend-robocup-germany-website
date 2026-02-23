@@ -181,6 +181,28 @@ const resolveMoreLabel = (item: NewsItem): string => {
 
   return raw;
 };
+
+const resolvePaginationHref = (link?: string | null): string => {
+  const raw = link?.trim();
+  if (!raw) return route.fullPath;
+
+  // Keep TYPO3-provided query strings intact; only normalize absolute links to local path+query+hash.
+  if (raw.startsWith('?') || raw.startsWith('#') || raw.startsWith('/')) {
+    return raw;
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const url = new URL(raw);
+      return `${url.pathname}${url.search}${url.hash}`;
+    }
+    catch {
+      return raw;
+    }
+  }
+
+  return raw;
+};
 </script>
 
 <template>
@@ -308,31 +330,32 @@ const resolveMoreLabel = (item: NewsItem): string => {
         aria-label="Pagination"
         class="mt-8 flex flex-wrap items-center gap-2"
       >
-        <NuxtLink
+        <a
           v-if="pagination.prev"
-          :to="pagination.prev"
+          :href="resolvePaginationHref(pagination.prev)"
           class="rounded-full border border-black/20 px-4 py-2 text-sm font-semibold hover:bg-black/5"
         >
           Zurück
-        </NuxtLink>
+        </a>
 
-        <NuxtLink
+        <a
           v-for="page in pagination.pages"
           :key="`page-${page?.page}`"
-          :to="page?.link || '#'"
+          :href="resolvePaginationHref(page?.link)"
           class="rounded-full border px-4 py-2 text-sm font-semibold"
           :class="page?.current === 1 ? 'border-primary bg-primary text-white' : 'border-black/20 hover:bg-black/5'"
+          :aria-current="page?.current === 1 ? 'page' : undefined"
         >
           {{ page?.page }}
-        </NuxtLink>
+        </a>
 
-        <NuxtLink
+        <a
           v-if="pagination.next"
-          :to="pagination.next"
+          :href="resolvePaginationHref(pagination.next)"
           class="rounded-full border border-black/20 px-4 py-2 text-sm font-semibold hover:bg-black/5"
         >
           Weiter
-        </NuxtLink>
+        </a>
       </nav>
     </UContainer>
   </section>

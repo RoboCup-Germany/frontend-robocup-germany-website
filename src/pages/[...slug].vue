@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const { headData, pageData, backendLayout, getPageData } = await useT3Page()
+const { headData, pageData, backendLayout } = await useT3Page()
 const { initialData } = useT3Api()
 const route = useRoute()
 useHead(headData);
-watch(() => route.fullPath, async () => {
-  await getPageData()
-})
 
 interface AnnouncementButton {
   text?: string;
