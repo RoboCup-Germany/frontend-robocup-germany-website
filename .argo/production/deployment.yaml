@@ -17,7 +17,7 @@ spec:
         workload.user.cattle.io/workloadselector: apps.deployment-main-website-frontend
     spec:
       containers:
-        - image: registry.robocup.de/website/frontend:1.12.3
+        - image: registry.robocup.de/website/frontend:1.13.0
           name: website-frontend
           envFrom:
             - secretRef:
