@@ -238,4 +238,12 @@ onBeforeUnmount(() => {
     transition: none;
   }
 }
+
+@media (max-width: 767px) {
+  .t3-reveal-item {
+    opacity: 1;
+    transform: none !important;
+    transition: none;
+  }
+}
 </style>
