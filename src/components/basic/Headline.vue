@@ -30,3 +30,9 @@ const normalizedHeadingHtml = computed(() => {
 <template>
   <T3HtmlParser class="rte-content" :content="normalizedHeadingHtml" />
 </template>
+
+<style scoped>
+.rte-content :deep(h2) {
+  margin-bottom: 0.6rem;
+}
+</style>
