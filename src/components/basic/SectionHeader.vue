@@ -34,7 +34,7 @@ const hasHeaderContent = computed(() => Boolean(props.header || props.subheader)
     >
       <Headline :raw-html="header" />
     </div>
-    <div v-if="subheader" :class="subheaderClass">
+    <div v-if="subheader" :class="['font-bold italic', subheaderClass]">
       <T3HtmlParser class="rte-content" :content="subheader" />
     </div>
   </div>
