@@ -139,8 +139,8 @@
 	}
 
     p {
-        font-size: var(--text-sm);
-        line-height: var(--leading-normal);
+        font-size: var(--text-base);
+        line-height: 1.42;
         margin-bottom: var(--spacing-para);
     }
 	
@@ -157,8 +157,11 @@
 			font-size: 30px;
 		}
 
+	}
+
+	@media (width < theme(--breakpoint-md)) {
 		p {
-			font-size: var(--text-base);
+			font-size: var(--text-sm);
 		}
 	}
 	
@@ -166,12 +169,6 @@
 		font-weight: var(--font-weight-bold);
 	}
 	
-	p {
-		font-size: var(--text-sm);
-		line-height: var(--leading-normal);
-        margin-bottom: var(--spacing-para);
-	}
-
 	.rte-content a {
 		color: var(--color-primary);
 	}
