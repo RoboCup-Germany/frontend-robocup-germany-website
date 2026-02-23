@@ -117,7 +117,7 @@ const closeLocaleDropdown = () => {
 }
 
 const currentDesktopIndex = computed(() => {
-  return navItems.value.findIndex(item => item.current === 1 || item.active === 1)
+  return navItems.value.findIndex(item => item.current === 1)
 })
 
 const desktopHighlightedIndex = computed(() => {
@@ -265,7 +265,7 @@ watch(
                   :target="item.target || undefined"
                   :external="isExternal(item.link)"
                   class="inline-flex items-center border-b-4 px-0 py-3 text-sm font-semibold text-black no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  :class="item.current === 1 || item.active === 1 ? 'border-primary' : 'border-transparent hover:border-black/30'"
+                  :class="item.current === 1 ? 'border-primary' : 'border-transparent hover:border-black/30'"
                   @click="closeDesktopMenu"
                 >
                   {{ item.title }}
