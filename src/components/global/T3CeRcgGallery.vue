@@ -31,6 +31,8 @@ interface T3CeRcgGallery extends T3CeBaseProps {
   gallery?: MediaRef[] | string | null
   media?: MediaRef[] | string | null
   block?: ThemeGalleryBlock | string | null
+  layout?: number | string | null
+  gallery_layout?: number | string | null
 }
 
 const props = withDefaults(defineProps<T3CeRcgGallery>(), {})
@@ -97,6 +99,25 @@ const parsedImages = computed<unknown[]>(() => {
 const normalizedImages = computed<DisplayImage[]>(() => parsedImages.value
   .map(toDisplayImage)
   .filter((v): v is DisplayImage => !!v))
+
+const toPositiveInt = (value: unknown, fallback: number): number => {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback
+  return parsed
+}
+
+const galleryLayout = computed(() => {
+  const b = blockObj.value
+  const value = props.gallery_layout
+    ?? props.layout
+    ?? attrs.gallery_layout
+    ?? attrs.layout
+    ?? b?.layout
+    ?? b?.appearance?.layout
+  return toPositiveInt(value, 0)
+})
+
+const isGridLayout = computed(() => galleryLayout.value === 1)
 
 
 // --- Carousel control / active index (für Custom-Dots) ---
@@ -185,17 +206,27 @@ const sectionClasses = computed(() => {
 <template>
   <section :class="sectionClasses">
     <UContainer>
+      <div v-if="isGridLayout" class="w-full px-2 py-4 columns-1 md:columns-2 lg:columns-3">
+        <div
+          v-for="(item, index) in normalizedImages"
+          :key="item.urlDefault || item.urlSmall || String(index)"
+          class="mb-4 break-inside-avoid overflow-hidden rounded bg-white"
+        >
+          <Image :display="item" />
+        </div>
+      </div>
+
       <!-- relative => Overlay kann am unteren Rand "kleben" -->
-      <div class="relative w-full">
+      <div v-else class="relative w-full">
         <UCarousel
-            ref="carousel"
-            v-slot="{ item }"
-            :items="normalizedImages"
-            :ui="carouselUi"
-            align="start"
-            autoplay
-            class="relative z-10"
-            @select="onSelect"
+          ref="carousel"
+          v-slot="{ item }"
+          :items="normalizedImages"
+          :ui="carouselUi"
+          align="start"
+          autoplay
+          class="relative z-10"
+          @select="onSelect"
         >
           <Image :display="item" />
         </UCarousel>
