@@ -73,6 +73,7 @@ const imageAlt = computed(() => {
 
 const imageMobileDisplayUrl = computed(() => imageMobileUrl.value || imageDesktopUrl.value);
 const imageDesktopDisplayUrl = computed(() => imageDesktopUrl.value || imageMobileUrl.value);
+const videoDisplayUrl = computed(() => imageDesktopDisplayUrl.value || imageMobileDisplayUrl.value);
 
 const mediaMimeType = computed(() => {
   const media = mediaItem.value;
@@ -113,8 +114,8 @@ const hasMediaButton = computed(() => {
     <template v-if="hasImage">
       <div class="relative">
         <video
-          v-if="imageMobileDisplayUrl && mediaIsVideo"
-          :src="imageMobileDisplayUrl"
+          v-if="videoDisplayUrl && mediaIsVideo"
+          :src="videoDisplayUrl"
           autoplay
           muted
           playsinline
@@ -123,7 +124,7 @@ const hasMediaButton = computed(() => {
           aria-hidden="true"
           tabindex="-1"
           role="presentation"
-          class="block w-full aspect-square object-cover md:hidden"
+          class="block w-full aspect-square min-h-[100vw] object-cover md:hidden"
         />
         <img
           v-else-if="imageMobileDisplayUrl && mediaIsImage"
@@ -136,8 +137,8 @@ const hasMediaButton = computed(() => {
           class="block w-full aspect-square object-cover md:hidden"
         >
         <video
-          v-if="imageDesktopDisplayUrl && mediaIsVideo"
-          :src="imageDesktopDisplayUrl"
+          v-if="videoDisplayUrl && mediaIsVideo"
+          :src="videoDisplayUrl"
           autoplay
           muted
           playsinline
