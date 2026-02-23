@@ -7,12 +7,20 @@ interface Props {
   showArrows?: boolean
   animateDots?: boolean
   transitionName?: string
+  mode?: 'overlay' | 'inline'
+  prevLabel?: string
+  nextLabel?: string
+  dotLabelPrefix?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showArrows: true,
   animateDots: false,
-  transitionName: 'dots-forward'
+  transitionName: 'dots-forward',
+  mode: 'overlay',
+  prevLabel: 'Vorheriges Bild',
+  nextLabel: 'Nächstes Bild',
+  dotLabelPrefix: 'Bild'
 })
 
 const emit = defineEmits<{
@@ -34,24 +42,33 @@ const dotStyle = (index: number) => {
 }
 
 const hasDots = computed(() => props.visibleDots.length > 0)
+const isInlineMode = computed(() => props.mode === 'inline')
 </script>
 
 <template>
-  <div v-if="hasDots || showArrows" class="pointer-events-none absolute inset-x-0 bottom-0 z-20">
+  <div
+    v-if="hasDots || showArrows"
+    :class="isInlineMode ? 'w-full' : 'pointer-events-none absolute inset-x-0 bottom-0 z-20'"
+  >
     <div
+      v-if="!isInlineMode"
       aria-hidden="true"
       role="presentation"
       class="mx-auto h-[100px] w-[300px] translate-y-[64%] rounded-[50px] bg-white"
     />
 
     <div
-      class="pointer-events-auto absolute bottom-2 left-1/2 z-30 h-8 w-[220px] -translate-x-1/2 translate-y-3"
+      class="pointer-events-auto z-30 h-8 w-[220px]"
+      :class="isInlineMode
+        ? 'mx-auto flex items-center justify-between'
+        : 'absolute bottom-2 left-1/2 -translate-x-1/2 translate-y-3'"
     >
       <button
         v-if="showArrows"
         type="button"
-        class="absolute left-0 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary transition-all duration-200 ease-out hover:scale-[1.06] hover:bg-primary hover:text-white"
-        aria-label="Vorheriges Bild"
+        class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-primary transition-all duration-200 ease-out hover:scale-[1.06] hover:bg-primary hover:text-white"
+        :class="isInlineMode ? '' : 'absolute left-0 top-1/2 -translate-y-1/2'"
+        :aria-label="prevLabel"
         @click="emit('prev')"
       >
         <svg viewBox="0 0 1080 1080" class="h-3 w-3 rotate-90" fill="none" aria-hidden="true">
@@ -69,7 +86,8 @@ const hasDots = computed(() => props.visibleDots.length > 0)
         v-if="animateDots"
         :name="transitionName"
         tag="div"
-        class="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2"
+        class="flex items-center justify-center gap-2"
+        :class="isInlineMode ? '' : 'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'"
       >
         <span v-for="i in visibleDots" :key="i" class="dot-item">
           <button
@@ -77,7 +95,7 @@ const hasDots = computed(() => props.visibleDots.length > 0)
             class="h-2.5 w-2.5 rounded-full bg-primary opacity-60 transition-transform duration-200 ease-out"
             :class="{ '!opacity-100': i === activeIndex }"
             :style="dotStyle(i)"
-            :aria-label="`Bild ${i + 1}`"
+            :aria-label="`${dotLabelPrefix} ${i + 1}`"
             @click="emit('select', i)"
           />
         </span>
@@ -85,7 +103,8 @@ const hasDots = computed(() => props.visibleDots.length > 0)
 
       <div
         v-else
-        class="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2"
+        class="flex items-center justify-center gap-2"
+        :class="isInlineMode ? '' : 'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2'"
       >
         <button
           v-for="i in visibleDots"
@@ -94,7 +113,7 @@ const hasDots = computed(() => props.visibleDots.length > 0)
           class="h-2.5 w-2.5 rounded-full bg-primary opacity-60 transition-transform duration-200 ease-out"
           :class="{ '!opacity-100': i === activeIndex }"
           :style="dotStyle(i)"
-          :aria-label="`Bild ${i + 1}`"
+          :aria-label="`${dotLabelPrefix} ${i + 1}`"
           @click="emit('select', i)"
         />
       </div>
@@ -102,8 +121,9 @@ const hasDots = computed(() => props.visibleDots.length > 0)
       <button
         v-if="showArrows"
         type="button"
-        class="absolute right-0 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-primary transition-all duration-200 ease-out hover:scale-[1.06] hover:bg-primary hover:text-white"
-        aria-label="Nächstes Bild"
+        class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/90 text-primary transition-all duration-200 ease-out hover:scale-[1.06] hover:bg-primary hover:text-white"
+        :class="isInlineMode ? '' : 'absolute right-0 top-1/2 -translate-y-1/2'"
+        :aria-label="nextLabel"
         @click="emit('next')"
       >
         <svg viewBox="0 0 1080 1080" class="h-3 w-3 -rotate-90" fill="none" aria-hidden="true">
