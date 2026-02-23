@@ -2,7 +2,7 @@
   "name": "frontend-robocup-germany-website",
   "type": "module",
   "private": true,
-  "version": "1.13.2",
+  "version": "1.13.3",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
