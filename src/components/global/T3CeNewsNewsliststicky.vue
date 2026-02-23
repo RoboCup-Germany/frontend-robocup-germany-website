@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import SectionHeader from '~/components/basic/SectionHeader.vue'
 
 defineOptions({ inheritAttrs: false })
 
@@ -55,6 +56,20 @@ interface T3CeNewsNewsliststickyProps extends T3CeBaseProps {
   data?: NewsListData
 }
 
+interface EmblaApiLike {
+  scrollPrev?: () => void
+  scrollNext?: () => void
+  canScrollPrev?: () => boolean
+  canScrollNext?: () => boolean
+  scrollTo: (index: number) => void
+  selectedScrollSnap?: () => number
+  scrollSnapList?: () => number[]
+}
+
+interface CarouselRefLike {
+  emblaApi?: EmblaApiLike
+}
+
 const props = withDefaults(defineProps<T3CeNewsNewsliststickyProps>(), {
   header: '',
   subheader: '',
@@ -62,12 +77,19 @@ const props = withDefaults(defineProps<T3CeNewsNewsliststickyProps>(), {
 })
 
 const route = useRoute()
-const navigationDirection = ref<1 | -1>(1)
 const isLoadingPage = ref(false)
 const fetchError = ref('')
 const renderedData = ref<NewsListData>(props.data || null)
-const currentSlideIndex = ref(0)
-const viewportWidth = ref(0)
+const carousel = ref<CarouselRefLike | null>(null)
+const canScrollPrev = ref(false)
+const canScrollNext = ref(false)
+const pendingEdge = ref<'start' | 'end' | null>('start')
+const DESKTOP_BREAKPOINT = 992
+const viewportWidth = ref(
+  import.meta.client ? (window.innerWidth || DESKTOP_BREAKPOINT) : DESKTOP_BREAKPOINT
+)
+const selectedChunkIndex = ref(0)
+
 const initialPages = Array.isArray(props.data?.pagination?.pages)
   ? props.data.pagination.pages.filter((page): page is NonNullable<PaginationItem> => Boolean(page))
   : []
@@ -76,74 +98,35 @@ const persistedPages = ref<Array<NonNullable<PaginationItem>>>(initialPages)
 const activePageIndexState = ref(initialCurrentIndex >= 0 ? initialCurrentIndex : 0)
 let lastRequestId = 0
 
-const DESKTOP_BREAKPOINT = 992
-
 const updateViewportWidth = () => {
   if (!import.meta.client) return
   viewportWidth.value = window.innerWidth || 0
 }
 
-onMounted(() => {
-  updateViewportWidth()
-  window.addEventListener('resize', updateViewportWidth, { passive: true })
-})
+const cardsPerView = computed(() => (viewportWidth.value >= DESKTOP_BREAKPOINT ? 3 : 1))
 
-onBeforeUnmount(() => {
-  if (!import.meta.client) return
-  window.removeEventListener('resize', updateViewportWidth)
-})
-
-watch(
-  () => props.data,
-  (next) => {
-    if (!isLoadingPage.value) {
-      renderedData.value = next || null
-      currentSlideIndex.value = 0
-      const pages = next?.pagination?.pages
-      if (Array.isArray(pages) && pages.length > 0) {
-        const normalized = pages.filter((page): page is NonNullable<PaginationItem> => Boolean(page))
-        if (normalized.length >= persistedPages.value.length) {
-          persistedPages.value = normalized
-        }
-        const currentIndex = normalized.findIndex((entry) => Number(entry.current) === 1)
-        activePageIndexState.value = currentIndex >= 0 ? currentIndex : 0
-      }
-    }
-  },
-  { immediate: true }
-)
+const carouselUi = computed(() => ({
+  item: 'basis-full',
+  container: ''
+}))
 
 const newsItems = computed(() => {
   const list = renderedData.value?.list
   return Array.isArray(list) ? list.filter(Boolean) : []
 })
 
+const newsChunks = computed<NewsItem[][]>(() => {
+  const size = cardsPerView.value
+  if (size < 1 || newsItems.value.length === 0) return []
+
+  const chunks: NewsItem[][] = []
+  for (let i = 0; i < newsItems.value.length; i += size) {
+    chunks.push(newsItems.value.slice(i, i + size))
+  }
+  return chunks
+})
+
 const pagination = computed(() => renderedData.value?.pagination || null)
-
-const cardsPerView = computed(() => {
-  return viewportWidth.value >= DESKTOP_BREAKPOINT ? 3 : 1
-})
-
-const lastSlideStartIndex = computed(() => {
-  return Math.max(0, newsItems.value.length - cardsPerView.value)
-})
-
-const safeSlideStartIndex = computed(() => {
-  return Math.min(Math.max(currentSlideIndex.value, 0), lastSlideStartIndex.value)
-})
-
-const currentNewsItems = computed(() => {
-  if (!newsItems.value.length) return []
-  const start = safeSlideStartIndex.value
-  const end = start + cardsPerView.value
-  return newsItems.value.slice(start, end)
-})
-
-watch(cardsPerView, () => {
-  const start = safeSlideStartIndex.value
-  const snap = Math.floor(start / cardsPerView.value) * cardsPerView.value
-  currentSlideIndex.value = Math.min(snap, lastSlideStartIndex.value)
-})
 
 const pageEntries = computed(() => {
   const rawPages = pagination.value?.pages
@@ -160,6 +143,96 @@ const activePageIndex = computed(() => {
   const foundIndex = pageEntries.value.findIndex((entry) => Number(entry.current) === 1)
   if (foundIndex >= 0) return foundIndex
   return Math.min(Math.max(activePageIndexState.value, 0), Math.max(0, pageEntries.value.length - 1))
+})
+
+const updateCarouselState = () => {
+  const api = carousel.value?.emblaApi
+  if (!api) {
+    canScrollPrev.value = false
+    canScrollNext.value = false
+    return
+  }
+
+  canScrollPrev.value = Boolean(api.canScrollPrev?.())
+  canScrollNext.value = Boolean(api.canScrollNext?.())
+  selectedChunkIndex.value = api.selectedScrollSnap?.() ?? 0
+}
+
+const onCarouselSelect = () => {
+  updateCarouselState()
+}
+
+const getEmblaApi = async (): Promise<EmblaApiLike | null> => {
+  let api = carousel.value?.emblaApi
+  if (api) return api
+
+  await nextTick()
+  api = carousel.value?.emblaApi
+  if (api) {
+    updateCarouselState()
+    return api
+  }
+
+  return null
+}
+
+onMounted(() => {
+  updateViewportWidth()
+  window.addEventListener('resize', updateViewportWidth, { passive: true })
+  nextTick(() => {
+    updateCarouselState()
+  })
+})
+
+onBeforeUnmount(() => {
+  if (!import.meta.client) return
+  window.removeEventListener('resize', updateViewportWidth)
+})
+
+watch(
+  () => props.data,
+  (next) => {
+    if (!isLoadingPage.value) {
+      renderedData.value = next || null
+      pendingEdge.value = 'start'
+
+      const pages = next?.pagination?.pages
+      if (Array.isArray(pages) && pages.length > 0) {
+        const normalized = pages.filter((page): page is NonNullable<PaginationItem> => Boolean(page))
+        if (normalized.length >= persistedPages.value.length) {
+          persistedPages.value = normalized
+        }
+        const currentIndex = normalized.findIndex((entry) => Number(entry.current) === 1)
+        activePageIndexState.value = currentIndex >= 0 ? currentIndex : 0
+      }
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => [newsChunks.value.length, cardsPerView.value],
+  async () => {
+    await nextTick()
+    const api = carousel.value?.emblaApi
+    if (!api) return
+
+    if (pendingEdge.value === 'end') {
+      const snaps = api.scrollSnapList?.() || []
+      api.scrollTo(Math.max(0, snaps.length - 1))
+    } else {
+      api.scrollTo(0)
+    }
+
+    pendingEdge.value = null
+    updateCarouselState()
+  }
+)
+
+watch(cardsPerView, async () => {
+  pendingEdge.value = 'start'
+  await nextTick()
+  updateCarouselState()
 })
 
 const parseDate = (value?: string): Date | null => {
@@ -243,6 +316,7 @@ const localizedNoImage = computed(() => (isEnglishPage.value ? 'No image' : 'Kei
 const localizedNoNews = computed(() => (isEnglishPage.value ? 'No news found.' : 'Keine News gefunden.'))
 const localizedPreviousPage = computed(() => (isEnglishPage.value ? 'Previous page' : 'Vorherige Seite'))
 const localizedNextPage = computed(() => (isEnglishPage.value ? 'Next page' : 'Nächste Seite'))
+
 const resolveMoreLabel = (item: NewsItem): string => {
   const raw = item?.moreLink?.trim() || ''
   if (!raw) return localizedReadMore.value
@@ -329,10 +403,9 @@ const extractStickyData = (payload: unknown): NewsListData | null => {
   return fallback
 }
 
-const goToPaginationLink = async (link?: string | null, mode: 'auto' | 'start' | 'end' = 'auto') => {
+const goToPaginationLink = async (link?: string | null, mode: 'start' | 'end' = 'start') => {
   const href = resolvePaginationHref(link)
-  if (!href) return
-  if (isLoadingPage.value) return
+  if (!href || isLoadingPage.value) return
 
   fetchError.value = ''
   isLoadingPage.value = true
@@ -345,6 +418,7 @@ const goToPaginationLink = async (link?: string | null, mode: 'auto' | 'start' |
     const nextData = extractStickyData(payload)
     if (nextData) {
       renderedData.value = nextData
+
       const nextPages = nextData.pagination?.pages
       if (Array.isArray(nextPages) && nextPages.length > 0) {
         const normalized = nextPages.filter((page): page is NonNullable<PaginationItem> => Boolean(page))
@@ -358,19 +432,7 @@ const goToPaginationLink = async (link?: string | null, mode: 'auto' | 'start' |
         activePageIndexState.value = nextCurrent
       }
 
-      if (mode === 'start') {
-        currentSlideIndex.value = 0
-      } else if (mode === 'end') {
-        const len = Array.isArray(nextData.list) ? nextData.list.length : 0
-        currentSlideIndex.value = Math.max(0, len - cardsPerView.value)
-      } else {
-        if (navigationDirection.value === -1) {
-          const len = Array.isArray(nextData.list) ? nextData.list.length : 0
-          currentSlideIndex.value = Math.max(0, len - cardsPerView.value)
-        } else {
-          currentSlideIndex.value = 0
-        }
-      }
+      pendingEdge.value = mode
       return
     }
 
@@ -389,10 +451,11 @@ const goToPaginationLink = async (link?: string | null, mode: 'auto' | 'start' |
 
 const goToPrevPage = async () => {
   if (isLoadingPage.value || !newsItems.value.length) return
-  navigationDirection.value = -1
 
-  if (safeSlideStartIndex.value > 0) {
-    currentSlideIndex.value = Math.max(0, safeSlideStartIndex.value - cardsPerView.value)
+  const api = await getEmblaApi()
+  if (api && selectedChunkIndex.value > 0) {
+    api.scrollTo(Math.max(0, selectedChunkIndex.value - 1))
+    updateCarouselState()
     return
   }
 
@@ -405,10 +468,11 @@ const goToPrevPage = async () => {
 
 const goToNextPage = async () => {
   if (isLoadingPage.value || !newsItems.value.length) return
-  navigationDirection.value = 1
 
-  if (safeSlideStartIndex.value < lastSlideStartIndex.value) {
-    currentSlideIndex.value = Math.min(lastSlideStartIndex.value, safeSlideStartIndex.value + cardsPerView.value)
+  const api = await getEmblaApi()
+  if (api && selectedChunkIndex.value < Math.max(0, newsChunks.value.length - 1)) {
+    api.scrollTo(Math.min(newsChunks.value.length - 1, selectedChunkIndex.value + 1))
+    updateCarouselState()
     return
   }
 
@@ -421,34 +485,33 @@ const goToNextPage = async () => {
 
 const hasPrevAvailable = computed(() => {
   if (!newsItems.value.length || isLoadingPage.value) return false
-  return safeSlideStartIndex.value > 0 || Boolean(pagination.value?.prev || pageEntries.value[activePageIndex.value - 1]?.link)
+  return selectedChunkIndex.value > 0 || canScrollPrev.value || Boolean(pagination.value?.prev || pageEntries.value[activePageIndex.value - 1]?.link)
 })
 
 const hasNextAvailable = computed(() => {
   if (!newsItems.value.length || isLoadingPage.value) return false
-  return safeSlideStartIndex.value < lastSlideStartIndex.value || Boolean(pagination.value?.next || pageEntries.value[activePageIndex.value + 1]?.link)
+  return selectedChunkIndex.value < Math.max(0, newsChunks.value.length - 1) || canScrollNext.value || Boolean(pagination.value?.next || pageEntries.value[activePageIndex.value + 1]?.link)
 })
 </script>
 
 <template>
   <section>
     <UContainer>
-      <div v-if="header || subheader" class="mb-7 lg:mb-9">
-        <h2 v-if="header" class="mb-2">
-          {{ header }}
-        </h2>
-        <p v-if="subheader" class="mb-0 text-base text-black/80">
-          {{ subheader }}
-        </p>
-      </div>
+      <SectionHeader
+        :header="header"
+        :subheader="subheader"
+        container-class="mb-7 lg:mb-9"
+        subheader-class="mb-0 text-base text-black/80"
+      />
 
-      <div v-if="currentNewsItems.length > 0" class="news-stage relative mx-auto mb-20 w-full max-w-[1200px] overflow-visible px-5 pb-32 lg:px-8 lg:pb-40">
+      <div v-if="newsItems.length > 0" class="news-stage relative mx-auto mb-20 w-full max-w-[1200px] overflow-visible px-5 pb-32 lg:px-8 lg:pb-40">
         <img
           class="news-stage-bg"
           src="/assets/RCgermany_element2.png"
           alt=""
           aria-hidden="true"
         >
+
         <button
           type="button"
           class="absolute top-1/2 left-0 z-20 inline-flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-[0_10px_28px_rgba(0,96,255,0.2)] transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
@@ -485,57 +548,69 @@ const hasNextAvailable = computed(() => {
           </svg>
         </button>
 
-        <ul class="relative z-10 grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
-          <li
-            v-for="(item, index) in currentNewsItems"
-            :key="`${activePageIndex}-${safeSlideStartIndex}-${item?.uid || item?.slug || item?.title || index}`"
-            class="h-full"
-          >
-            <NuxtLink
-              :to="resolveSlug(item)"
-              class="group flex h-full min-h-[460px] flex-col overflow-hidden rounded-sm bg-white shadow-[0_16px_34px_rgba(0,0,0,0.12)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_42px_rgba(0,0,0,0.16)]"
+        <UCarousel
+          ref="carousel"
+          :key="`news-carousel-${cardsPerView}-${activePageIndex}`"
+          v-slot="{ item: chunk }"
+          :items="newsChunks"
+          :ui="carouselUi"
+          :loop="false"
+          align="start"
+          class="relative z-10"
+          @select="onCarouselSelect"
+        >
+          <ul class="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
+            <li
+              v-for="(item, index) in chunk"
+              :key="`${activePageIndex}-${index}-${item?.uid || item?.slug || item?.title}`"
+              class="h-full"
             >
-              <div class="relative aspect-[16/10] overflow-hidden bg-black/5">
-                <img
-                  v-if="resolveImageUrl(item)"
-                  :src="resolveImageUrl(item)"
-                  :alt="resolveImageAlt(item)"
-                  class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                  loading="lazy"
-                  decoding="async"
-                  fetchpriority="low"
-                  sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
-                >
-                <div
-                  v-else
-                  class="flex h-full w-full items-center justify-center text-sm text-black/55"
-                >
-                  {{ localizedNoImage }}
+              <NuxtLink
+                :to="resolveSlug(item)"
+                class="group flex h-full min-h-[460px] flex-col overflow-hidden rounded-sm bg-white shadow-[0_16px_34px_rgba(0,0,0,0.12)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_42px_rgba(0,0,0,0.16)]"
+              >
+                <div class="relative aspect-[16/10] overflow-hidden bg-black/5">
+                  <img
+                    v-if="resolveImageUrl(item)"
+                    :src="resolveImageUrl(item)"
+                    :alt="resolveImageAlt(item)"
+                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    loading="lazy"
+                    decoding="async"
+                    fetchpriority="low"
+                    sizes="(min-width: 1280px) 33vw, (min-width: 992px) 33vw, (min-width: 768px) 50vw, 100vw"
+                  >
+                  <div
+                    v-else
+                    class="flex h-full w-full items-center justify-center text-sm text-black/55"
+                  >
+                    {{ localizedNoImage }}
+                  </div>
                 </div>
-              </div>
 
-              <article class="flex h-full flex-col p-4 lg:p-5">
-                <p class="mb-3 text-xs uppercase tracking-[0.14em] text-black/65">
-                  <span v-if="formatDate(item)">{{ formatDate(item) }}</span>
-                  <span v-if="extractCategory(item)" class="mx-2 text-black/35">•</span>
-                  <span v-if="extractCategory(item)">{{ extractCategory(item) }}</span>
-                </p>
+                <article class="flex h-full flex-col p-4 lg:p-5">
+                  <p class="mb-3 text-xs uppercase tracking-[0.14em] text-black/65">
+                    <span v-if="formatDate(item)">{{ formatDate(item) }}</span>
+                    <span v-if="extractCategory(item)" class="mx-2 text-black/35">•</span>
+                    <span v-if="extractCategory(item)">{{ extractCategory(item) }}</span>
+                  </p>
 
-                <h3 class="news-teaser-title mt-0 mb-0 !text-black transition-colors group-hover:text-primary">
-                  {{ item?.title }}
-                </h3>
+                  <h3 class="news-teaser-title mt-0 mb-0 !text-black transition-colors group-hover:text-primary">
+                    {{ item?.title }}
+                  </h3>
 
-                <p class="news-teaser-text mt-3 mb-0 text-sm text-black/85">
-                  {{ item?.teaser || '\u00A0' }}
-                </p>
+                  <p class="news-teaser-text mt-3 mb-0 text-sm text-black/85">
+                    {{ item?.teaser || '\u00A0' }}
+                  </p>
 
-                <span class="mt-4 inline-flex text-sm font-semibold text-primary group-hover:underline">
-                  {{ resolveMoreLabel(item) }}
-                </span>
-              </article>
-            </NuxtLink>
-          </li>
-        </ul>
+                  <span class="mt-auto pt-4 inline-flex text-sm font-semibold text-primary group-hover:underline">
+                    {{ resolveMoreLabel(item) }}
+                  </span>
+                </article>
+              </NuxtLink>
+            </li>
+          </ul>
+        </UCarousel>
       </div>
 
       <p v-else class="text-black/70">
@@ -545,7 +620,6 @@ const hasNextAvailable = computed(() => {
       <p v-if="fetchError" class="mt-4 text-sm text-red-700">
         {{ fetchError }}
       </p>
-
     </UContainer>
   </section>
 </template>
@@ -577,5 +651,4 @@ const hasNextAvailable = computed(() => {
   -webkit-line-clamp: 4;
   overflow: hidden;
 }
-
 </style>
