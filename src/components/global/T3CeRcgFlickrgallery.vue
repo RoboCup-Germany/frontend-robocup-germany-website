@@ -415,7 +415,7 @@ onUnmounted(() => {
             </a>
           </div>
 
-          <div v-else class="relative h-[clamp(300px,52vw,640px)] w-full">
+          <div v-else class="relative h-[clamp(300px,52vw,640px)] w-full" :class="{ 'mb-4': hasMultiplePhotos }">
             <transition name="flickr-fade" mode="out-in">
               <img
                 v-if="activePhoto"
@@ -435,7 +435,7 @@ onUnmounted(() => {
               :title="photoLinkTitle(activePhoto)"
               target="_blank"
               rel="noopener noreferrer"
-              class="absolute bottom-3 right-3 z-10 rounded bg-primary/80 px-3 py-1.5 text-xs text-white transition-all duration-200 ease-out hover:bg-primary hover:scale-[1.04]"
+              class="absolute right-3 top-3 z-40 rounded bg-primary/80 px-3 py-1.5 text-xs text-white transition-all duration-200 ease-out hover:bg-primary hover:scale-[1.04] md:top-auto md:bottom-3"
             >
               Öffnen auf flickr.de
             </a>
@@ -483,7 +483,7 @@ onUnmounted(() => {
           />
         </div>
 
-        <p v-if="!loading && !isGridLayout && hasPhotos && activePhoto?.title" class="mt-3 text-sm text-gray-700">
+        <p v-if="!loading && !isGridLayout && hasPhotos && activePhoto?.title" class="relative z-40 mt-3 text-sm text-gray-700">
           {{ activePhoto.title }}
         </p>
       </div>
