@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
-import { computed, onMounted, onUnmounted, ref, type Ref, useAttrs, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, type Ref, useAttrs, watch } from 'vue'
 import CarouselControls from '~/components/basic/CarouselControls.vue'
 import { extractArrayFromUnknown, findImageLikeDeep, parseMaybeJson, toDisplayImage, type DisplayImage } from '~/utils/media-image'
 
@@ -8,6 +8,7 @@ defineOptions({ inheritAttrs: false })
 
 interface ThemeGalleryBlockAppearance {
   layout?: string
+  galleryType?: string
   frameClass?: string
   spaceBefore?: string
   spaceAfter?: string
@@ -19,6 +20,7 @@ interface ThemeGalleryBlock {
   index?: number
   id?: number | null
   frame_class?: string
+  gallery_type?: number
   gallery?: MediaRef[]
   layout?: number
   space_after_class?: string
@@ -32,6 +34,7 @@ interface T3CeRcgGallery extends T3CeBaseProps {
   block?: ThemeGalleryBlock | string | null
   layout?: number | string | null
   gallery_layout?: number | string | null
+  gallery_type?: number | string | null
 }
 
 interface GalleryImageView {
@@ -130,16 +133,41 @@ const toPositiveInt = (value: unknown, fallback: number): number => {
 
 const galleryLayout = computed(() => {
   const b = blockObj.value
+  const blockContent = (b as { content?: Record<string, unknown> } | null)?.content
   const value = props.gallery_layout
     ?? props.layout
     ?? attrs.gallery_layout
     ?? attrs.layout
+    ?? blockContent?.gallery_layout
+    ?? blockContent?.layout
     ?? b?.layout
     ?? b?.appearance?.layout
   return toPositiveInt(value, 0)
 })
 
 const isGridLayout = computed(() => galleryLayout.value === 1)
+const galleryType = computed(() => {
+  const b = blockObj.value
+  const blockContent = (b as { content?: Record<string, unknown> } | null)?.content
+  const value = props.gallery_type
+    ?? attrs.gallery_type
+    ?? blockContent?.gallery_type
+    ?? b?.gallery_type
+    ?? b?.appearance?.galleryType
+  return toPositiveInt(value, 0)
+})
+const isSpaciousGallery = computed(() => galleryType.value === 1)
+const isChunkedCarouselLayout = computed(() => galleryLayout.value === 0 && isSpaciousGallery.value)
+const gridWrapperClass = computed(() => (
+  isSpaciousGallery.value
+    ? 'w-full columns-1 gap-10 px-2 py-4 md:columns-2 lg:columns-3'
+    : 'w-full columns-1 gap-4 px-2 py-4 md:columns-2 lg:columns-3'
+))
+const gridItemClass = computed(() => (
+  isSpaciousGallery.value
+    ? 'mb-10 w-full break-inside-avoid overflow-hidden rounded bg-white'
+    : 'mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white'
+))
 
 
 // --- Carousel control / active index (für Custom-Dots) ---
@@ -148,6 +176,9 @@ interface EmblaLike {
     scrollTo: (index: number) => void
     scrollPrev?: () => void
     scrollNext?: () => void
+    canScrollPrev?: () => boolean
+    canScrollNext?: () => boolean
+    selectedScrollSnap?: () => number
     plugins?: () => Record<string, { stop?: () => void }>
   }
 }
@@ -195,6 +226,73 @@ function next() {
   carousel.value?.emblaApi?.scrollNext?.()
 }
 
+const DESKTOP_BREAKPOINT = 992
+const selectedChunkIndex = ref(0)
+const canScrollChunkPrev = ref(false)
+const canScrollChunkNext = ref(false)
+const cardsPerView = computed(() => {
+  if (!isChunkedCarouselLayout.value) return 1
+  if (viewportWidth.value >= DESKTOP_BREAKPOINT) return 4
+  if (viewportWidth.value >= MOBILE_BREAKPOINT) return 2
+  return 1
+})
+const galleryImageChunks = computed<GalleryImageView[][]>(() => {
+  if (!isChunkedCarouselLayout.value) return []
+  const size = cardsPerView.value
+  if (size < 1 || galleryImages.value.length === 0) return []
+
+  const chunks: GalleryImageView[][] = []
+  for (let i = 0; i < galleryImages.value.length; i += size) {
+    chunks.push(galleryImages.value.slice(i, i + size))
+  }
+  return chunks
+})
+
+const updateChunkCarouselState = () => {
+  if (!isChunkedCarouselLayout.value) {
+    canScrollChunkPrev.value = false
+    canScrollChunkNext.value = false
+    selectedChunkIndex.value = 0
+    return
+  }
+
+  const api = carousel.value?.emblaApi
+  if (!api) {
+    canScrollChunkPrev.value = false
+    canScrollChunkNext.value = false
+    return
+  }
+
+  canScrollChunkPrev.value = Boolean(api.canScrollPrev?.())
+  canScrollChunkNext.value = Boolean(api.canScrollNext?.())
+  selectedChunkIndex.value = api.selectedScrollSnap?.() ?? 0
+}
+
+function onChunkSelect() {
+  updateChunkCarouselState()
+}
+
+function prevChunk() {
+  const api = carousel.value?.emblaApi
+  if (!api || selectedChunkIndex.value <= 0) return
+
+  disableAutoplay()
+  api.scrollTo(Math.max(0, selectedChunkIndex.value - 1))
+  updateChunkCarouselState()
+}
+
+function nextChunk() {
+  const api = carousel.value?.emblaApi
+  if (!api || selectedChunkIndex.value >= Math.max(0, galleryImageChunks.value.length - 1)) return
+
+  disableAutoplay()
+  api.scrollTo(Math.min(galleryImageChunks.value.length - 1, selectedChunkIndex.value + 1))
+  updateChunkCarouselState()
+}
+
+const hasChunkPrev = computed(() => selectedChunkIndex.value > 0 || canScrollChunkPrev.value)
+const hasChunkNext = computed(() => selectedChunkIndex.value < Math.max(0, galleryImageChunks.value.length - 1) || canScrollChunkNext.value)
+
 // --- max. 5 Dots sichtbar, Window um activeIndex zentriert ---
 const visibleDots = computed(() => {
   const total = galleryImages.value.length
@@ -236,6 +334,7 @@ const isMobileViewport = computed(() => {
 
 const galleryHeightStyle = computed<Record<string, string>>(() => {
   if (isGridLayout.value) return {}
+  if (isChunkedCarouselLayout.value) return {}
   if (isMobileViewport.value) return {}
   return { height: `${galleryImageHeight.value}px` }
 })
@@ -316,10 +415,24 @@ watch(activeIndex, () => {
   preloadAroundActive()
 })
 
+watch(
+  () => [galleryImageChunks.value.length, cardsPerView.value, isChunkedCarouselLayout.value],
+  async () => {
+    if (!isChunkedCarouselLayout.value) return
+
+    await nextTick()
+    carousel.value?.emblaApi?.scrollTo(0)
+    updateChunkCarouselState()
+  }
+)
+
 onMounted(() => {
   updateViewportWidth()
   window.addEventListener('resize', updateViewportWidth)
   void refreshGalleryImageHeight()
+  void nextTick(() => {
+    updateChunkCarouselState()
+  })
 })
 
 onUnmounted(() => {
@@ -347,11 +460,11 @@ const sectionClasses = computed(() => {
 <template>
   <section :class="sectionClasses">
     <UContainer>
-      <div v-if="isGridLayout" class="w-full columns-1 gap-4 px-2 py-4 md:columns-2 lg:columns-3">
+      <div v-if="isGridLayout" :class="gridWrapperClass">
         <div
           v-for="image in galleryImages"
           :key="image.id"
-          class="mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white"
+          :class="gridItemClass"
           :style="galleryHeightStyle"
         >
           <picture class="block w-full">
@@ -368,6 +481,81 @@ const sectionClasses = computed(() => {
             >
           </picture>
         </div>
+      </div>
+
+      <div v-else-if="isChunkedCarouselLayout" class="relative w-full px-2 py-4 md:px-0">
+        <button
+          type="button"
+          class="absolute top-1/2 left-2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-[0_10px_28px_rgba(0,96,255,0.2)] transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40 md:left-0 md:-translate-x-1/2"
+          aria-label="Vorherige Bilder"
+          :disabled="!hasChunkPrev"
+          @click="prevChunk"
+        >
+          <svg viewBox="0 0 1080 1080" class="h-4 w-4 rotate-90" fill="none" aria-hidden="true">
+            <polyline
+              points="841.93 389.03 540 690.97 238.07 389.03"
+              stroke="currentColor"
+              stroke-width="110"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          class="absolute top-1/2 right-2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-[0_10px_28px_rgba(0,96,255,0.2)] transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40 md:right-0 md:translate-x-1/2"
+          aria-label="Nächste Bilder"
+          :disabled="!hasChunkNext"
+          @click="nextChunk"
+        >
+          <svg viewBox="0 0 1080 1080" class="h-4 w-4 -rotate-90" fill="none" aria-hidden="true">
+            <polyline
+              points="841.93 389.03 540 690.97 238.07 389.03"
+              stroke="currentColor"
+              stroke-width="110"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+
+        <UCarousel
+          ref="carousel"
+          :key="`gallery-chunks-${cardsPerView}`"
+          v-slot="{ item: chunk }"
+          :items="galleryImageChunks"
+          :ui="carouselUi"
+          :loop="false"
+          align="start"
+          autoplay
+          class="relative z-10"
+          @pointerdown="disableAutoplay"
+          @touchstart="disableAutoplay"
+          @select="onChunkSelect"
+        >
+          <ul class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+            <li
+              v-for="image in chunk"
+              :key="image.id"
+              class="overflow-hidden rounded bg-white"
+            >
+              <picture class="block w-full">
+                <source :srcset="image.srcDesktop" media="(min-width: 1024px)">
+                <img
+                  :src="image.srcMobile"
+                  :alt="image.alt"
+                  :title="image.title"
+                  class="rcg-image block aspect-[4/3] w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  fetchpriority="low"
+                  draggable="false"
+                >
+              </picture>
+            </li>
+          </ul>
+        </UCarousel>
       </div>
 
       <!-- relative => Overlay kann am unteren Rand "kleben" -->
