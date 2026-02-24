@@ -119,16 +119,13 @@ const spacingClasses = computed(() => {
           </div>
 
           <div class="rcg-cta-logo-wrap">
-            <NuxtImg
+            <img
               :src="logoSrc"
               :alt="logoAlt"
               loading="lazy"
               decoding="async"
               fetchpriority="low"
               class="rcg-cta-logo"
-              sizes="(min-width: 992px) 360px, 80vw"
-              format="webp"
-              :quality="80"
             />
           </div>
         </div>
