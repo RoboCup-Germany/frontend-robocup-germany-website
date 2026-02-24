@@ -21,6 +21,16 @@ interface MediaItem {
     mimeType?: string | null;
     type?: string | null;
   } | null;
+  content?: {
+    publicUrl?: string | null;
+    url?: string | null;
+    originalUrl?: string | null;
+    mimeType?: string | null;
+    properties?: {
+      originalUrl?: string | null;
+      mimeType?: string | null;
+    } | null;
+  } | null;
   cropVariants?: {
     default?: { publicUrl?: string | null; url?: string | null } | null;
     small?: { publicUrl?: string | null; url?: string | null } | null;
@@ -58,6 +68,7 @@ const mediaItem = computed<MediaItem | null>(() => {
 });
 
 const mediaDisplay = computed(() => toDisplayImage(mediaItem.value));
+const mediaSource = computed(() => mediaItem.value?.content || mediaItem.value || null);
 
 const imageDesktopUrl = computed(() => {
   return toUrl(mediaDisplay.value?.urlDefault);
@@ -73,10 +84,38 @@ const imageAlt = computed(() => {
 
 const imageMobileDisplayUrl = computed(() => imageMobileUrl.value || imageDesktopUrl.value);
 const imageDesktopDisplayUrl = computed(() => imageDesktopUrl.value || imageMobileUrl.value);
-const videoDisplayUrl = computed(() => imageDesktopDisplayUrl.value || imageMobileDisplayUrl.value);
+const videoDefaultUrl = computed(() => {
+  const media = mediaSource.value;
+  if (!media) return '';
+  return toUrl(media.publicUrl || media.url || media.originalUrl || media.properties?.originalUrl);
+});
+
+const videoMobileUrl = computed(() => {
+  if (isVideoUrl(imageMobileDisplayUrl.value)) {
+    return imageMobileDisplayUrl.value;
+  }
+  return videoDefaultUrl.value;
+});
+
+const videoDesktopUrl = computed(() => {
+  if (isVideoUrl(imageDesktopDisplayUrl.value)) {
+    return imageDesktopDisplayUrl.value;
+  }
+  return videoDefaultUrl.value;
+});
+
+const videoPosterUrl = computed(() => {
+  if (imageMobileDisplayUrl.value && !isVideoUrl(imageMobileDisplayUrl.value)) {
+    return imageMobileDisplayUrl.value;
+  }
+  if (imageDesktopDisplayUrl.value && !isVideoUrl(imageDesktopDisplayUrl.value)) {
+    return imageDesktopDisplayUrl.value;
+  }
+  return '';
+});
 
 const mediaMimeType = computed(() => {
-  const media = mediaItem.value;
+  const media = mediaSource.value;
   if (!media) return '';
   return toUrl(media.mimeType || media.properties?.mimeType).toLowerCase();
 });
@@ -85,7 +124,8 @@ const isVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url
 
 const mediaIsVideo = computed(() => {
   return Boolean(
-    isVideoUrl(imageMobileDisplayUrl.value)
+    isVideoUrl(videoDefaultUrl.value)
+    || isVideoUrl(imageMobileDisplayUrl.value)
     || isVideoUrl(imageDesktopDisplayUrl.value)
     || mediaMimeType.value.startsWith('video/')
   );
@@ -100,8 +140,13 @@ const mediaIsImage = computed(() => {
 });
 
 const hasImage = computed(() => Boolean(imageMobileUrl.value || imageDesktopUrl.value));
+const hasVideo = computed(() => Boolean(videoDefaultUrl.value || videoMobileUrl.value || videoDesktopUrl.value));
+const hasVisual = computed(() => {
+  if (mediaIsVideo.value) return hasVideo.value;
+  return hasImage.value;
+});
 const hasHeadline = computed(() => Boolean(props.title || props.subtitle));
-const hasHero = computed(() => hasImage.value || hasHeadline.value);
+const hasHero = computed(() => hasVisual.value || hasHeadline.value);
 const hasMediaButton = computed(() => {
   const label = props.mediaButtonText?.trim();
   const href = props.mediaButtonLink?.url || props.mediaButtonLink?.attr?.href;
@@ -111,21 +156,39 @@ const hasMediaButton = computed(() => {
 
 <template>
   <section v-if="hasHero" class="relative w-full overflow-hidden">
-    <template v-if="hasImage">
+    <template v-if="hasVisual">
       <div class="relative">
         <video
-          v-if="videoDisplayUrl && mediaIsVideo"
-          :src="videoDisplayUrl"
+          v-if="mediaIsVideo && hasVideo"
           autoplay
           muted
           playsinline
           loop
           preload="metadata"
+          :poster="videoPosterUrl || undefined"
           aria-hidden="true"
           tabindex="-1"
           role="presentation"
-          class="block w-full aspect-square min-h-[100vw] object-cover md:hidden"
-        />
+          class="block w-full aspect-square min-h-[100vw] object-cover md:min-h-0 md:h-auto md:max-h-[68vh]"
+        >
+          <source
+            v-if="videoMobileUrl && videoMobileUrl !== videoDesktopUrl"
+            :src="videoMobileUrl"
+            media="(max-width: 767px)"
+            :type="mediaMimeType || undefined"
+          />
+          <source
+            v-if="videoDesktopUrl"
+            :src="videoDesktopUrl"
+            media="(min-width: 768px)"
+            :type="mediaMimeType || undefined"
+          />
+          <source
+            v-else-if="videoMobileUrl"
+            :src="videoMobileUrl"
+            :type="mediaMimeType || undefined"
+          />
+        </video>
         <NuxtImg
           v-else-if="imageMobileDisplayUrl && mediaIsImage"
           :src="imageMobileDisplayUrl"
@@ -138,21 +201,8 @@ const hasMediaButton = computed(() => {
           :quality="80"
           class="block w-full aspect-square object-cover md:hidden"
         />
-        <video
-          v-if="videoDisplayUrl && mediaIsVideo"
-          :src="videoDisplayUrl"
-          autoplay
-          muted
-          playsinline
-          loop
-          preload="metadata"
-          aria-hidden="true"
-          tabindex="-1"
-          role="presentation"
-          class="hidden w-full h-auto max-h-[68vh] object-cover md:block"
-        />
         <NuxtImg
-          v-else-if="imageDesktopDisplayUrl && mediaIsImage"
+          v-if="imageDesktopDisplayUrl && mediaIsImage"
           :src="imageDesktopDisplayUrl"
           :alt="imageAlt"
           loading="eager"
