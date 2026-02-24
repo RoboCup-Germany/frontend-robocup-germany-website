@@ -4,14 +4,17 @@
 <template>
   <SiteHeader />
   <slot/>
-  <img
+  <NuxtImg
     src="/assets/RCgermany_element2.png"
     alt=""
     aria-hidden="true"
     class="block h-auto w-full"
     loading="lazy"
     decoding="async"
-  >
+    sizes="100vw"
+    format="webp"
+    :quality="80"
+  />
   <SiteFooter />
 </template>
 

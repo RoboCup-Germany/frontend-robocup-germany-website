@@ -39,20 +39,32 @@ const resolvedFetchPriority = computed(() => {
 
 <template>
   <div v-if="urlDefault" class="relative group overflow-hidden">
-    <!-- On lg and above use default crop; below use small (or default as fallback) -->
-    <picture>
-      <source :srcset="urlDefault || ''" media="(min-width: 1024px)" />
-      <img
-        :src="urlSmall || urlDefault || ''"
-        :alt="alt || ''"
-        :title="title || ''"
-        :loading="props.loading"
-        :decoding="props.decoding"
-        :fetchpriority="resolvedFetchPriority"
-        :sizes="props.sizes"
-        class="w-full h-full object-cover"
-      />
-    </picture>
+    <NuxtImg
+      :src="urlSmall || urlDefault || ''"
+      :alt="alt || ''"
+      :title="title || ''"
+      :loading="props.loading"
+      :decoding="props.decoding"
+      :fetchpriority="resolvedFetchPriority"
+      sizes="100vw"
+      densities="x1 x2"
+      format="webp"
+      :quality="80"
+      class="block w-full h-full object-cover lg:hidden"
+    />
+    <NuxtImg
+      :src="urlDefault || ''"
+      :alt="alt || ''"
+      :title="title || ''"
+      :loading="props.loading"
+      :decoding="props.decoding"
+      :fetchpriority="resolvedFetchPriority"
+      :sizes="props.sizes"
+      densities="x1 x2"
+      format="webp"
+      :quality="80"
+      class="hidden w-full h-full object-cover lg:block"
+    />
     <div
       v-if="creator"
       class="pointer-events-none absolute bottom-0 right-0 inline-flex items-center gap-1 bg-black/65 px-3 py-2 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 rounded-tl-md"

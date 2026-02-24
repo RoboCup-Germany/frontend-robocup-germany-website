@@ -117,7 +117,7 @@ const hasBackgroundElement = computed(() => props.background === 1);
 
 <template>
   <div class="relative overflow-visible">
-    <img
+    <NuxtImg
       v-if="hasBackgroundElement"
       src="/assets/RCgermany_element2.png"
       alt=""
@@ -126,7 +126,10 @@ const hasBackgroundElement = computed(() => props.background === 1);
       loading="lazy"
       decoding="async"
       fetchpriority="low"
-    >
+      sizes="100vw"
+      format="webp"
+      :quality="80"
+    />
 
     <UContainer>
       <div class="relative z-10 flex flex-col items-start">

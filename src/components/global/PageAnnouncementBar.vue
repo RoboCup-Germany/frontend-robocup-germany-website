@@ -128,7 +128,7 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
 
 <template>
   <section v-if="hasContent" class="relative overflow-hidden">
-    <img
+    <NuxtImg
       src="/assets/RCgermany_element2.png"
       alt=""
       aria-hidden="true"
@@ -136,8 +136,11 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
       loading="lazy"
       decoding="async"
       fetchpriority="low"
-    >
-    <img
+      sizes="100vw"
+      format="webp"
+      :quality="80"
+    />
+    <NuxtImg
       src="/assets/RCgermany_element3.png"
       alt=""
       aria-hidden="true"
@@ -145,7 +148,10 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
       loading="lazy"
       decoding="async"
       fetchpriority="low"
-    >
+      sizes="(min-width: 768px) 420px, 0px"
+      format="webp"
+      :quality="80"
+    />
 
     <UContainer class="relative z-10">
       <div class="py-6 lg:py-8">

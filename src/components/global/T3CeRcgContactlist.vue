@@ -144,18 +144,30 @@ const contactCards = computed<ContactCard[]>(() => {
             >
               <article class="contact-card" :aria-labelledby="card.headingId">
                 <div class="contact-image-wrap">
-                  <picture v-if="card.imageUrlDefault">
-                    <source :srcset="card.imageUrlDefault" media="(min-width: 1024px)" />
-                    <img
+                  <div v-if="card.imageUrlDefault">
+                    <NuxtImg
                       :src="card.imageUrlSmall || card.imageUrlDefault"
                       :alt="card.imageAlt"
                       loading="lazy"
                       decoding="async"
                       fetchpriority="low"
-                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      class="contact-image"
-                    >
-                  </picture>
+                      sizes="(min-width: 640px) 50vw, 100vw"
+                      format="webp"
+                      :quality="80"
+                      class="contact-image lg:hidden"
+                    />
+                    <NuxtImg
+                      :src="card.imageUrlDefault"
+                      :alt="card.imageAlt"
+                      loading="lazy"
+                      decoding="async"
+                      fetchpriority="low"
+                      sizes="(min-width: 1024px) 33vw, 100vw"
+                      format="webp"
+                      :quality="80"
+                      class="contact-image hidden lg:block"
+                    />
+                  </div>
                   <div v-else class="contact-image-fallback" aria-hidden="true" />
                 </div>
 

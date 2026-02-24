@@ -505,12 +505,15 @@ const hasNextAvailable = computed(() => {
       />
 
       <div v-if="newsItems.length > 0" class="news-stage relative mx-auto mb-20 w-full max-w-[1200px] overflow-visible px-5 pb-32 lg:px-8 lg:pb-40">
-        <img
+        <NuxtImg
           class="news-stage-bg"
           src="/assets/RCgermany_element2.png"
           alt=""
           aria-hidden="true"
-        >
+          sizes="100vw"
+          format="webp"
+          :quality="80"
+        />
 
         <button
           type="button"
@@ -570,7 +573,7 @@ const hasNextAvailable = computed(() => {
                 class="group flex h-full min-h-[460px] flex-col overflow-hidden rounded-sm bg-white shadow-[0_16px_34px_rgba(0,0,0,0.12)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_42px_rgba(0,0,0,0.16)]"
               >
                 <div class="relative aspect-[16/10] overflow-hidden bg-black/5">
-                  <img
+                  <NuxtImg
                     v-if="resolveImageUrl(item)"
                     :src="resolveImageUrl(item)"
                     :alt="resolveImageAlt(item)"
@@ -579,7 +582,9 @@ const hasNextAvailable = computed(() => {
                     decoding="async"
                     fetchpriority="low"
                     sizes="(min-width: 1280px) 33vw, (min-width: 992px) 33vw, (min-width: 768px) 50vw, 100vw"
-                  >
+                    format="webp"
+                    :quality="80"
+                  />
                   <div
                     v-else
                     class="flex h-full w-full items-center justify-center text-sm text-black/55"

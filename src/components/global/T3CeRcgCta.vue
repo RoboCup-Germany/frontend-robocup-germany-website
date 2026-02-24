@@ -92,6 +92,18 @@ const spacingClasses = computed(() => {
 <template>
   <section :class="spacingClasses">
     <div class="rcg-cta-wrapper">
+      <NuxtImg
+        src="/assets/RCgeramy_element1.png"
+        alt=""
+        aria-hidden="true"
+        class="rcg-cta-bg"
+        loading="lazy"
+        decoding="async"
+        fetchpriority="low"
+        sizes="100vw"
+        format="webp"
+        :quality="80"
+      />
       <UContainer>
         <div class="rcg-cta-grid">
           <div class="rcg-cta-content">
@@ -110,14 +122,17 @@ const spacingClasses = computed(() => {
           </div>
 
           <div class="rcg-cta-logo-wrap">
-            <img
+            <NuxtImg
               :src="logoSrc"
               :alt="logoAlt"
               loading="lazy"
               decoding="async"
               fetchpriority="low"
               class="rcg-cta-logo"
-            >
+              sizes="(min-width: 992px) 360px, 80vw"
+              format="webp"
+              :quality="80"
+            />
           </div>
         </div>
       </UContainer>
@@ -132,17 +147,15 @@ const spacingClasses = computed(() => {
   padding: 70px 0;
 }
 
-.rcg-cta-wrapper::before {
-  content: '';
+.rcg-cta-bg {
   position: absolute;
   left: 0;
   right: 0;
   top: 250px;
   height: min(200px, calc(100% - 110px));
-  background-image: url('/assets/RCgeramy_element1.png');
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center center;
+  width: 100%;
+  object-fit: cover;
+  object-position: center center;
   opacity: 0.35;
   pointer-events: none;
   z-index: 0;
@@ -191,11 +204,11 @@ const spacingClasses = computed(() => {
 }
 
 @media (min-width: 992px) {
-  .rcg-cta-wrapper::before {
+  .rcg-cta-bg {
     top: 52%;
     transform: translateY(-28%);
     height: min(200px, 50%);
-    background-position: center center;
+    object-position: center center;
   }
 
   .rcg-cta-grid {

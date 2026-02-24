@@ -399,14 +399,17 @@ onUnmounted(() => {
               rel="noopener noreferrer"
               class="group relative mb-4 block w-full break-inside-avoid overflow-hidden rounded bg-white"
             >
-              <img
+              <NuxtImg
                 :src="photo.src"
                 :alt="photo.alt"
                 class="block h-auto w-full transition-transform duration-300 ease-out group-hover:scale-[1.03]"
                 loading="lazy"
                 decoding="async"
                 fetchpriority="low"
-              >
+                sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                format="webp"
+                :quality="80"
+              />
               <span
                 class="pointer-events-none absolute bottom-2 right-2 rounded bg-primary/80 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
               >
@@ -417,7 +420,7 @@ onUnmounted(() => {
 
           <div v-else class="relative h-[clamp(300px,52vw,640px)] w-full" :class="{ 'mb-4': hasMultiplePhotos }">
             <transition name="flickr-fade" mode="out-in">
-              <img
+              <NuxtImg
                 v-if="activePhoto"
                 :key="activePhoto.id"
                 :src="activePhoto.src"
@@ -426,7 +429,10 @@ onUnmounted(() => {
                 loading="lazy"
                 decoding="async"
                 fetchpriority="low"
-              >
+                sizes="100vw"
+                format="webp"
+                :quality="80"
+              />
             </transition>
 
             <a

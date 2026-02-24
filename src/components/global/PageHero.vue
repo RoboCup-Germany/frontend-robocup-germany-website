@@ -126,7 +126,7 @@ const hasMediaButton = computed(() => {
           role="presentation"
           class="block w-full aspect-square min-h-[100vw] object-cover md:hidden"
         />
-        <img
+        <NuxtImg
           v-else-if="imageMobileDisplayUrl && mediaIsImage"
           :src="imageMobileDisplayUrl"
           :alt="imageAlt"
@@ -134,8 +134,10 @@ const hasMediaButton = computed(() => {
           decoding="async"
           fetchpriority="high"
           sizes="100vw"
+          format="webp"
+          :quality="80"
           class="block w-full aspect-square object-cover md:hidden"
-        >
+        />
         <video
           v-if="videoDisplayUrl && mediaIsVideo"
           :src="videoDisplayUrl"
@@ -149,7 +151,7 @@ const hasMediaButton = computed(() => {
           role="presentation"
           class="hidden w-full h-auto max-h-[68vh] object-cover md:block"
         />
-        <img
+        <NuxtImg
           v-else-if="imageDesktopDisplayUrl && mediaIsImage"
           :src="imageDesktopDisplayUrl"
           :alt="imageAlt"
@@ -157,8 +159,10 @@ const hasMediaButton = computed(() => {
           decoding="async"
           fetchpriority="high"
           sizes="100vw"
+          format="webp"
+          :quality="80"
           class="hidden w-full h-auto max-h-[68vh] object-cover md:block"
-        >
+        />
 
         <div
           aria-hidden="true"

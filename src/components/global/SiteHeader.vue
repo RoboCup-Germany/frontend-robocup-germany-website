@@ -190,7 +190,7 @@ watch(
           class="inline-flex items-center gap-4 no-underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           :aria-label="siteTitle"
         >
-          <img
+          <NuxtImg
             src="/assets/RCgermany_Logo.png"
             :alt="`${siteTitle} Logo`"
             class="h-auto w-[210px] md:w-[260px]"
@@ -199,7 +199,10 @@ watch(
             loading="eager"
             decoding="async"
             fetchpriority="high"
-          >
+            sizes="(min-width: 768px) 260px, 210px"
+            format="webp"
+            :quality="80"
+          />
         </NuxtLink>
 
         <div class="hidden flex-1 flex-col items-end gap-2 lg:flex">
@@ -304,7 +307,7 @@ watch(
       >
         <UContainer class="py-8 lg:grid lg:grid-cols-12 lg:gap-8">
           <div class="border-r-4 border-primary pr-6 lg:col-span-4">
-            <img
+            <NuxtImg
               v-if="megaMenuPreview"
               :src="megaMenuPreview.src"
               :alt="megaMenuPreview.alt"
@@ -312,7 +315,10 @@ watch(
               loading="lazy"
               decoding="async"
               fetchpriority="low"
-            >
+              sizes="(min-width: 1024px) 33vw, 100vw"
+              format="webp"
+              :quality="80"
+            />
             <p v-if="megaMenuPreview?.subtitle" class="mt-4 text-base italic tracking-wide text-black font-semibold">
               {{ megaMenuPreview.subtitle }}
             </p>
