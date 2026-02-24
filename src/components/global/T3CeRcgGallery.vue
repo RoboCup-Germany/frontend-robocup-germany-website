@@ -125,11 +125,18 @@ interface EmblaLike {
     scrollTo: (index: number) => void
     scrollPrev?: () => void
     scrollNext?: () => void
+    plugins?: () => Record<string, { stop?: () => void }>
   }
 }
 const carousel: Ref<EmblaLike | null> = ref(null)
 const activeIndex = ref(0)
 const navigationDirection = ref<1 | -1>(1)
+
+function disableAutoplay() {
+  const plugins = carousel.value?.emblaApi?.plugins?.()
+  const autoplayPlugin = plugins?.autoplay ?? plugins?.Autoplay
+  autoplayPlugin?.stop?.()
+}
 
 function onSelect(index: number) {
   const total = normalizedImages.value.length
@@ -147,17 +154,20 @@ function onSelect(index: number) {
 
 function select(index: number) {
   if (index === activeIndex.value) return
+  disableAutoplay()
   navigationDirection.value = index > activeIndex.value ? 1 : -1
   activeIndex.value = index
   carousel.value?.emblaApi?.scrollTo(index)
 }
 
 function prev() {
+  disableAutoplay()
   navigationDirection.value = -1
   carousel.value?.emblaApi?.scrollPrev?.()
 }
 
 function next() {
+  disableAutoplay()
   navigationDirection.value = 1
   carousel.value?.emblaApi?.scrollNext?.()
 }
@@ -288,6 +298,8 @@ const sectionClasses = computed(() => {
           align="start"
           autoplay
           class="relative z-10"
+          @pointerdown="disableAutoplay"
+          @touchstart="disableAutoplay"
           @select="onSelect"
         >
           <div class="flex w-full items-start justify-center overflow-hidden bg-white" :style="{ height: `${galleryImageHeight}px` }">
