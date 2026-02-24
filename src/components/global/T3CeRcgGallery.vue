@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
-import { computed, onMounted, ref, type Ref, useAttrs, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, type Ref, useAttrs, watch } from 'vue'
 import CarouselControls from '~/components/basic/CarouselControls.vue'
 import { extractArrayFromUnknown, findImageLikeDeep, parseMaybeJson, toDisplayImage, type DisplayImage } from '~/utils/media-image'
 
@@ -32,6 +32,14 @@ interface T3CeRcgGallery extends T3CeBaseProps {
   block?: ThemeGalleryBlock | string | null
   layout?: number | string | null
   gallery_layout?: number | string | null
+}
+
+interface GalleryImageView {
+  id: string
+  srcMobile: string
+  srcDesktop: string
+  alt: string
+  title: string
 }
 
 const props = withDefaults(defineProps<T3CeRcgGallery>(), {})
@@ -99,6 +107,21 @@ const normalizedImages = computed<DisplayImage[]>(() => parsedImages.value
   .map(toDisplayImage)
   .filter((v): v is DisplayImage => !!v))
 
+const galleryImages = computed<GalleryImageView[]>(() => normalizedImages.value
+  .map((item, index) => {
+    const srcDesktop = item.urlDefault || item.urlSmall || ''
+    const srcMobile = item.urlSmall || item.urlDefault || ''
+    if (!srcDesktop && !srcMobile) return null
+    return {
+      id: srcDesktop || srcMobile || String(index),
+      srcMobile,
+      srcDesktop,
+      alt: item.alt || '',
+      title: item.title || ''
+    } satisfies GalleryImageView
+  })
+  .filter((item): item is GalleryImageView => Boolean(item)))
+
 const toPositiveInt = (value: unknown, fallback: number): number => {
   const parsed = Number.parseInt(String(value ?? ''), 10)
   if (!Number.isFinite(parsed) || parsed < 1) return fallback
@@ -139,7 +162,7 @@ function disableAutoplay() {
 }
 
 function onSelect(index: number) {
-  const total = normalizedImages.value.length
+  const total = galleryImages.value.length
   if (index !== activeIndex.value) {
     if (total > 1 && index === 0 && activeIndex.value === total - 1) {
       navigationDirection.value = 1
@@ -174,7 +197,7 @@ function next() {
 
 // --- max. 5 Dots sichtbar, Window um activeIndex zentriert ---
 const visibleDots = computed(() => {
-  const total = normalizedImages.value.length
+  const total = galleryImages.value.length
   if (total <= 1) return []
 
   const max = Math.min(5, total)
@@ -196,8 +219,53 @@ const carouselUi = computed(() => ({
 }))
 
 const GALLERY_MAX_HEIGHT = 640
+const MOBILE_BREAKPOINT = 768
 const galleryImageHeight = ref<number>(GALLERY_MAX_HEIGHT)
+const viewportWidth = ref(MOBILE_BREAKPOINT)
 let heightRequestId = 0
+
+const updateViewportWidth = () => {
+  if (!import.meta.client) return
+  viewportWidth.value = window.innerWidth || MOBILE_BREAKPOINT
+}
+
+const isMobileViewport = computed(() => {
+  if (!import.meta.client) return false
+  return viewportWidth.value < MOBILE_BREAKPOINT
+})
+
+const galleryHeightStyle = computed<Record<string, string>>(() => {
+  if (isMobileViewport.value) return {}
+  return { height: `${galleryImageHeight.value}px` }
+})
+
+const preloadCache = new Set<string>()
+
+const preloadImage = (url: string) => {
+  if (!import.meta.client || !url || preloadCache.has(url)) return
+  preloadCache.add(url)
+  const img = new Image()
+  img.decoding = 'async'
+  img.src = url
+}
+
+const preloadAroundActive = () => {
+  if (!import.meta.client || galleryImages.value.length === 0) return
+
+  const total = galleryImages.value.length
+  const indices = [
+    activeIndex.value,
+    (activeIndex.value + 1) % total,
+    (activeIndex.value - 1 + total) % total
+  ]
+
+  for (const index of indices) {
+    const image = galleryImages.value[index]
+    if (!image) continue
+    preloadImage(image.srcMobile)
+    preloadImage(image.srcDesktop)
+  }
+}
 
 const loadImageNaturalHeight = (url: string): Promise<number | null> => {
   if (!import.meta.client || !url) return Promise.resolve(null)
@@ -213,13 +281,7 @@ const loadImageNaturalHeight = (url: string): Promise<number | null> => {
 const refreshGalleryImageHeight = async () => {
   if (!import.meta.client) return
 
-  const urls = Array.from(
-    new Set(
-      normalizedImages.value
-        .map((item) => item.urlDefault || item.urlSmall || '')
-        .filter((url): url is string => Boolean(url))
-    )
-  )
+  const urls = Array.from(new Set(galleryImages.value.map((item) => item.srcDesktop).filter(Boolean)))
 
   if (urls.length === 0) {
     galleryImageHeight.value = GALLERY_MAX_HEIGHT
@@ -241,12 +303,27 @@ const refreshGalleryImageHeight = async () => {
   galleryImageHeight.value = Math.min(Math.min(...validHeights), GALLERY_MAX_HEIGHT)
 }
 
-watch(normalizedImages, () => {
+watch(galleryImages, () => {
+  if (activeIndex.value >= galleryImages.value.length) {
+    activeIndex.value = Math.max(0, galleryImages.value.length - 1)
+  }
   void refreshGalleryImageHeight()
+  preloadAroundActive()
 }, { immediate: true })
 
+watch(activeIndex, () => {
+  preloadAroundActive()
+})
+
 onMounted(() => {
+  updateViewportWidth()
+  window.addEventListener('resize', updateViewportWidth)
   void refreshGalleryImageHeight()
+})
+
+onUnmounted(() => {
+  if (!import.meta.client) return
+  window.removeEventListener('resize', updateViewportWidth)
 })
 
 // Compute optional spacing/frame classes from block appearance
@@ -271,20 +348,24 @@ const sectionClasses = computed(() => {
     <UContainer>
       <div v-if="isGridLayout" class="w-full px-2 py-4 flex flex-wrap items-start gap-4">
         <div
-          v-for="(item, index) in normalizedImages"
-          :key="item.urlDefault || item.urlSmall || String(index)"
-          class="shrink-0 overflow-hidden rounded bg-white"
-          :style="{ height: `${galleryImageHeight}px` }"
+          v-for="image in galleryImages"
+          :key="image.id"
+          class="w-full shrink-0 overflow-hidden rounded bg-white md:w-auto"
+          :style="galleryHeightStyle"
         >
-          <img
-            :src="item.urlSmall || item.urlDefault || ''"
-            :alt="item.alt || ''"
-            :title="item.title || ''"
-            class="block h-full w-auto max-w-none object-cover"
-            loading="lazy"
-            decoding="async"
-            fetchpriority="low"
-          >
+          <picture class="block h-full w-full">
+            <source :srcset="image.srcDesktop" media="(min-width: 1024px)">
+            <img
+              :src="image.srcMobile"
+              :alt="image.alt"
+              :title="image.title"
+              class="rcg-image block h-auto w-full object-contain md:h-full md:w-auto md:max-w-none md:object-cover"
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
+              draggable="false"
+            >
+          </picture>
         </div>
       </div>
 
@@ -293,7 +374,7 @@ const sectionClasses = computed(() => {
         <UCarousel
           ref="carousel"
           v-slot="{ item }"
-          :items="normalizedImages"
+          :items="galleryImages"
           :ui="carouselUi"
           align="start"
           autoplay
@@ -302,23 +383,27 @@ const sectionClasses = computed(() => {
           @touchstart="disableAutoplay"
           @select="onSelect"
         >
-          <div class="flex w-full items-start justify-center overflow-hidden bg-white" :style="{ height: `${galleryImageHeight}px` }">
-            <img
-              :src="item.urlDefault || item.urlSmall || ''"
-              :alt="item.alt || ''"
-              :title="item.title || ''"
-              class="block h-full w-auto max-w-none object-cover"
-              loading="lazy"
-              decoding="async"
-              fetchpriority="low"
-            >
+          <div class="rcg-slide-media flex w-full items-center justify-center overflow-hidden bg-white" :style="galleryHeightStyle">
+            <picture class="block h-full w-full md:w-auto">
+              <source :srcset="item.srcDesktop" media="(min-width: 1024px)">
+              <img
+                :src="item.srcMobile"
+                :alt="item.alt"
+                :title="item.title"
+                class="rcg-image mx-auto block h-auto w-full object-contain md:h-full md:w-auto md:max-w-none md:object-cover"
+                loading="lazy"
+                decoding="async"
+                fetchpriority="low"
+                draggable="false"
+              >
+            </picture>
           </div>
         </UCarousel>
 
         <CarouselControls
           :visible-dots="visibleDots"
           :active-index="activeIndex"
-          :show-arrows="normalizedImages.length > 1"
+          :show-arrows="galleryImages.length > 1"
           :animate-dots="true"
           :transition-name="dotTransitionName"
           @prev="prev"
@@ -329,3 +414,15 @@ const sectionClasses = computed(() => {
     </UContainer>
   </section>
 </template>
+
+<style scoped>
+.rcg-slide-media {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.rcg-image {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+</style>
