@@ -190,7 +190,7 @@ watch(
           class="inline-flex items-center gap-4 no-underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           :aria-label="siteTitle"
         >
-          <NuxtImg
+          <img
             src="/assets/RCgermany_Logo.png"
             :alt="`${siteTitle} Logo`"
             class="h-auto w-[210px] md:w-[260px]"
@@ -199,10 +199,7 @@ watch(
             loading="eager"
             decoding="async"
             fetchpriority="high"
-            sizes="(min-width: 768px) 260px, 210px"
-            format="webp"
-            :quality="80"
-          />
+          >
         </NuxtLink>
 
         <div class="hidden flex-1 flex-col items-end gap-2 lg:flex">

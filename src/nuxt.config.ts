@@ -11,6 +11,10 @@ const toInt = (value: string | undefined, fallback: number) => {
     const parsed = Number.parseInt(String(value ?? ''), 10)
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
+const toNonNegativeInt = (value: string | undefined, fallback: number) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10)
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback
+}
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -22,19 +26,18 @@ export default defineNuxtConfig({
     },
     routeRules: {
         '/**': {
-            ssr: true,
-            swr: 120
+            ssr: true
         },
         '/api/typo3': {
             swr: false,
             headers: {
-                'cache-control': 'public, max-age=5, s-maxage=30, stale-while-revalidate=120, stale-if-error=600'
+                'cache-control': 'public, max-age=0, s-maxage=0, must-revalidate'
             }
         },
         '/api/typo3/**': {
             swr: false,
             headers: {
-                'cache-control': 'public, max-age=5, s-maxage=30, stale-while-revalidate=120, stale-if-error=600'
+                'cache-control': 'public, max-age=0, s-maxage=0, must-revalidate'
             }
         },
         '/api/flickr-photoset': {
@@ -83,7 +86,7 @@ export default defineNuxtConfig({
         flickrApiKey,
         flickrUserId,
         upstreamCache: {
-            minFreshMs: toInt(process.env.NUXT_UPSTREAM_CACHE_MIN_FRESH_MS, 15_000),
+            minFreshMs: toNonNegativeInt(process.env.NUXT_UPSTREAM_CACHE_MIN_FRESH_MS, 0),
             hardTtlMs: toInt(process.env.NUXT_UPSTREAM_CACHE_HARD_TTL_MS, 21_600_000),
             staleIfErrorMs: toInt(process.env.NUXT_UPSTREAM_CACHE_STALE_IF_ERROR_MS, 86_400_000),
             maxEntries: toInt(process.env.NUXT_UPSTREAM_CACHE_MAX_ENTRIES, 400),

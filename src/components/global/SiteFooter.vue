@@ -124,7 +124,7 @@ const socialLinks = computed(() => {
       </nav>
 
       <div class="flex flex-col items-center justify-start gap-3">
-        <NuxtImg
+        <img
           src="/assets/RCgermany_Logo.png"
           :alt="`${siteTitle} Logo`"
           class="h-auto w-full max-w-[340px]"
@@ -133,10 +133,7 @@ const socialLinks = computed(() => {
           fetchpriority="low"
           width="340"
           height="150"
-          sizes="(min-width: 1024px) 340px, 70vw"
-          format="webp"
-          :quality="80"
-        />
+        >
         <div v-if="socialLinks.length" class="flex flex-wrap items-center justify-center gap-2">
           <a
             v-for="channel in socialLinks"

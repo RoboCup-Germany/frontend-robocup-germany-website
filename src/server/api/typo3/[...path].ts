@@ -2,7 +2,7 @@ import { defineEventHandler, getMethod, getRequestHeaders, getRequestURL, proxyR
 import { fetchWithWatchedCache } from '~/server/utils/upstream-cache'
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
-const cacheControl = 'public, max-age=5, s-maxage=30, stale-while-revalidate=120, stale-if-error=600'
+const cacheControl = 'public, max-age=0, s-maxage=0, must-revalidate'
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
