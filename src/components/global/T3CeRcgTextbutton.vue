@@ -128,7 +128,7 @@ const hasBackgroundElement = computed(() => Number(props.background) === 1);
       fetchpriority="low"
     />
 
-    <UContainer>
+    <UContainer :class="{ 'pb-14': hasBackgroundElement }">
       <div class="relative z-10 flex flex-col items-start">
         <SectionHeader
           :header="header"
