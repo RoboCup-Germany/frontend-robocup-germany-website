@@ -141,7 +141,7 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
       :quality="80"
     />
     <NuxtImg
-      src="/assets/RCgermany_element3.png"
+      src="/assets/RCgermany_element3.webp"
       alt=""
       aria-hidden="true"
       class="pointer-events-none absolute right-0 top-1/2 z-0 hidden h-auto w-auto max-w-none -translate-y-1/2 object-contain object-right md:block"
