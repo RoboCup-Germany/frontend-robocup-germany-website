@@ -24,7 +24,7 @@ interface T3CeRcgTexttwocol extends T3CeBaseProps
   header?: string;
   header_layout?: number | string;
   subheader?: string;
-  background?: 0 | 1;
+  background?: 0 | 1 | '0' | '1';
   text_left?: string;
   text_right?: string;
   buttons_left?: ContentButton[];
@@ -128,14 +128,14 @@ const leftText = computed(() => props.text_left || props.bodytext || '');
 
 const hasLeftContent = computed(() => Boolean(leftText.value) || leftButtons.value.length > 0);
 const hasRightContent = computed(() => Boolean(props.text_right) || rightButtons.value.length > 0);
-const hasBackgroundElement = computed(() => props.background === 1);
+const hasBackgroundElement = computed(() => Number(props.background) === 1);
 </script>
 
 <template>
   <div class="relative overflow-visible">
     <NuxtImg
       v-if="hasBackgroundElement"
-      src="/assets/RCgermany_element2.png"
+      src="/assets/RCgermany_element2.webp"
       alt=""
       aria-hidden="true"
       class="pointer-events-none absolute bottom-0 left-1/2 z-0 h-full w-screen -translate-x-1/2 object-cover object-bottom md:object-top"

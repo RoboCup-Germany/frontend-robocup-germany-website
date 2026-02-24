@@ -92,17 +92,14 @@ const spacingClasses = computed(() => {
 <template>
   <section :class="spacingClasses">
     <div class="rcg-cta-wrapper">
-      <NuxtImg
-        src="/assets/RCgeramy_element1.png"
+      <img
+        src="/assets/RCgermany_element1.png"
         alt=""
         aria-hidden="true"
         class="rcg-cta-bg"
         loading="lazy"
         decoding="async"
         fetchpriority="low"
-        sizes="100vw"
-        format="webp"
-        :quality="80"
       />
       <UContainer>
         <div class="rcg-cta-grid">

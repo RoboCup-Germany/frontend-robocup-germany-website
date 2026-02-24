@@ -235,6 +235,7 @@ const isMobileViewport = computed(() => {
 })
 
 const galleryHeightStyle = computed<Record<string, string>>(() => {
+  if (isGridLayout.value) return {}
   if (isMobileViewport.value) return {}
   return { height: `${galleryImageHeight.value}px` }
 })
@@ -346,20 +347,20 @@ const sectionClasses = computed(() => {
 <template>
   <section :class="sectionClasses">
     <UContainer>
-      <div v-if="isGridLayout" class="w-full px-2 py-4 flex flex-wrap items-start gap-4">
+      <div v-if="isGridLayout" class="w-full columns-1 gap-4 px-2 py-4 md:columns-2 lg:columns-3">
         <div
           v-for="image in galleryImages"
           :key="image.id"
-          class="w-full shrink-0 overflow-hidden rounded bg-white md:w-auto"
+          class="mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white"
           :style="galleryHeightStyle"
         >
-          <picture class="block h-full w-full">
+          <picture class="block w-full">
             <source :srcset="image.srcDesktop" media="(min-width: 1024px)">
             <img
               :src="image.srcMobile"
               :alt="image.alt"
               :title="image.title"
-              class="rcg-image block h-auto w-full object-contain md:h-full md:w-auto md:max-w-none md:object-cover"
+              class="rcg-image block h-auto w-full object-cover"
               loading="lazy"
               decoding="async"
               fetchpriority="low"

@@ -505,14 +505,14 @@ const hasNextAvailable = computed(() => {
       />
 
       <div v-if="newsItems.length > 0" class="news-stage relative mx-auto mb-20 w-full max-w-[1200px] overflow-visible px-5 pb-32 lg:px-8 lg:pb-40">
-        <NuxtImg
+        <img
           class="news-stage-bg"
-          src="/assets/RCgermany_element2.png"
+          src="/assets/RCgermany_element2.webp"
           alt=""
           aria-hidden="true"
-          sizes="100vw"
-          format="webp"
-          :quality="80"
+          loading="lazy"
+          decoding="async"
+          fetchpriority="low"
         />
 
         <button

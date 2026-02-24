@@ -129,7 +129,7 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
 <template>
   <section v-if="hasContent" class="relative overflow-hidden">
     <NuxtImg
-      src="/assets/RCgermany_element2.png"
+      src="/assets/RCgermany_element2.webp"
       alt=""
       aria-hidden="true"
       class="pointer-events-none absolute bottom-0 left-1/2 z-0 h-full w-screen -translate-x-1/2 object-cover object-bottom md:object-top md:hidden"
