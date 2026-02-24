@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
-import { computed, ref, type Ref, useAttrs } from 'vue'
+import { computed, onMounted, ref, type Ref, useAttrs, watch } from 'vue'
 import CarouselControls from '~/components/basic/CarouselControls.vue'
-import Image from '~/components/basic/Image.vue'
 import { extractArrayFromUnknown, findImageLikeDeep, parseMaybeJson, toDisplayImage, type DisplayImage } from '~/utils/media-image'
 
 defineOptions({ inheritAttrs: false })
@@ -186,6 +185,60 @@ const carouselUi = computed(() => ({
   container: 'justify-around'
 }))
 
+const GALLERY_MAX_HEIGHT = 640
+const galleryImageHeight = ref<number>(GALLERY_MAX_HEIGHT)
+let heightRequestId = 0
+
+const loadImageNaturalHeight = (url: string): Promise<number | null> => {
+  if (!import.meta.client || !url) return Promise.resolve(null)
+
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => resolve(img.naturalHeight > 0 ? img.naturalHeight : null)
+    img.onerror = () => resolve(null)
+    img.src = url
+  })
+}
+
+const refreshGalleryImageHeight = async () => {
+  if (!import.meta.client) return
+
+  const urls = Array.from(
+    new Set(
+      normalizedImages.value
+        .map((item) => item.urlDefault || item.urlSmall || '')
+        .filter((url): url is string => Boolean(url))
+    )
+  )
+
+  if (urls.length === 0) {
+    galleryImageHeight.value = GALLERY_MAX_HEIGHT
+    return
+  }
+
+  const requestId = ++heightRequestId
+  const heights = await Promise.all(urls.map((url) => loadImageNaturalHeight(url)))
+
+  if (requestId !== heightRequestId) return
+
+  const validHeights = heights.filter((height): height is number => typeof height === 'number' && height > 0)
+
+  if (validHeights.length === 0) {
+    galleryImageHeight.value = GALLERY_MAX_HEIGHT
+    return
+  }
+
+  galleryImageHeight.value = Math.min(Math.min(...validHeights), GALLERY_MAX_HEIGHT)
+}
+
+watch(normalizedImages, () => {
+  void refreshGalleryImageHeight()
+}, { immediate: true })
+
+onMounted(() => {
+  void refreshGalleryImageHeight()
+})
+
 // Compute optional spacing/frame classes from block appearance
 const sectionClasses = computed(() => {
   const b = blockObj.value
@@ -206,13 +259,22 @@ const sectionClasses = computed(() => {
 <template>
   <section :class="sectionClasses">
     <UContainer>
-      <div v-if="isGridLayout" class="w-full px-2 py-4 columns-1 md:columns-2 lg:columns-3">
+      <div v-if="isGridLayout" class="w-full px-2 py-4 flex flex-wrap items-start gap-4">
         <div
           v-for="(item, index) in normalizedImages"
           :key="item.urlDefault || item.urlSmall || String(index)"
-          class="mb-4 break-inside-avoid overflow-hidden rounded bg-white"
+          class="shrink-0 overflow-hidden rounded bg-white"
+          :style="{ height: `${galleryImageHeight}px` }"
         >
-          <Image :display="item" />
+          <img
+            :src="item.urlSmall || item.urlDefault || ''"
+            :alt="item.alt || ''"
+            :title="item.title || ''"
+            class="block h-full w-auto max-w-none object-cover"
+            loading="lazy"
+            decoding="async"
+            fetchpriority="low"
+          >
         </div>
       </div>
 
@@ -228,7 +290,17 @@ const sectionClasses = computed(() => {
           class="relative z-10"
           @select="onSelect"
         >
-          <Image :display="item" />
+          <div class="flex w-full items-start justify-center overflow-hidden bg-white" :style="{ height: `${galleryImageHeight}px` }">
+            <img
+              :src="item.urlDefault || item.urlSmall || ''"
+              :alt="item.alt || ''"
+              :title="item.title || ''"
+              class="block h-full w-auto max-w-none object-cover"
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
+            >
+          </div>
         </UCarousel>
 
         <CarouselControls
