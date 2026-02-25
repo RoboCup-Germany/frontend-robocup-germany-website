@@ -52,6 +52,20 @@ export default defineNuxtConfig({
         '@nuxt/ui',
         '@t3headless/nuxt-typo3'
     ],
+    image: {
+        screens: {
+            xs: 320,
+            sm: 576,
+            md: 768,
+            lg: 992,
+            xl: 1320,
+            xxl: 1504,
+            xxxl: 1760
+        },
+        format: ['webp'],
+        quality: 80,
+        densities: [1, 2]
+    },
     typo3: {
         api: {
             baseUrl: typo3ProxyBaseUrl

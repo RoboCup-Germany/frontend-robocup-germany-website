@@ -5,11 +5,15 @@ export type DisplayImage = {
   title?: string | null;
   creator?: string | null;
   description?: string | null;
+  width?: number | null;
+  height?: number | null;
 };
 
 type CropVariantLike = {
   url?: string | null;
   publicUrl?: string | null;
+  width?: number | string | null;
+  height?: number | string | null;
 };
 
 type CropVariantsLike = {
@@ -27,12 +31,16 @@ type MediaObjectLike = {
   description?: string | null;
   alt?: string | null;
   creator?: string | null;
+  width?: number | string | null;
+  height?: number | string | null;
   cropVariants?: CropVariantsLike | null;
   properties?: {
     title?: string | null;
     alternative?: string | null;
     description?: string | null;
     originalUrl?: string | null;
+    width?: number | string | null;
+    height?: number | string | null;
   } | null;
   content?: unknown;
 };
@@ -52,6 +60,12 @@ const variantUrl = (variant: CropVariantLike | null | undefined): string | null 
   return toTextOrNull(variant.publicUrl) || toTextOrNull(variant.url);
 };
 
+const toPositiveIntOrNull = (value: unknown): number | null => {
+  if (value == null) return null;
+  const parsed = Number.parseInt(String(value), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
 const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | null => {
   const urlDefault
     = variantUrl(media.cropVariants?.default)
@@ -69,6 +83,14 @@ const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | n
   }
 
   const description = toTextOrNull(media.description) || toTextOrNull(media.properties?.description);
+  const width
+    = toPositiveIntOrNull(media.cropVariants?.default?.width)
+      || toPositiveIntOrNull(media.width)
+      || toPositiveIntOrNull(media.properties?.width);
+  const height
+    = toPositiveIntOrNull(media.cropVariants?.default?.height)
+      || toPositiveIntOrNull(media.height)
+      || toPositiveIntOrNull(media.properties?.height);
 
   return {
     urlDefault,
@@ -86,7 +108,9 @@ const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | n
       || toTextOrNull(media.properties?.title)
       || null,
     creator: toTextOrNull(media.creator) || null,
-    description: description || null
+    description: description || null,
+    width,
+    height
   };
 };
 

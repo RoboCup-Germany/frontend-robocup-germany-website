@@ -23,9 +23,18 @@ const urlDefault = computed<string | null>(() => {
 const urlSmall = computed<string | null>(() => {
   return props.display?.urlSmall ?? urlDefault.value;
 });
+const imageSrc = computed<string | null>(() => {
+  return urlDefault.value || urlSmall.value;
+});
 
 const alt = computed(() => props.display?.alt ?? '');
 const title = computed(() => props.display?.title ?? '');
+const width = computed<number | undefined>(() => {
+  return props.display?.width && props.display.width > 0 ? props.display.width : undefined;
+});
+const height = computed<number | undefined>(() => {
+  return props.display?.height && props.display.height > 0 ? props.display.height : undefined;
+});
 const creator = computed(() => {
   const value = props.display?.creator ?? '';
   return value.trim();
@@ -38,24 +47,13 @@ const resolvedFetchPriority = computed(() => {
 </script>
 
 <template>
-  <div v-if="urlDefault" class="relative group overflow-hidden">
+  <div v-if="imageSrc" class="relative group overflow-hidden">
     <NuxtImg
-      :src="urlSmall || urlDefault || ''"
+      :src="imageSrc || ''"
       :alt="alt || ''"
       :title="title || ''"
-      :loading="props.loading"
-      :decoding="props.decoding"
-      :fetchpriority="resolvedFetchPriority"
-      sizes="100vw"
-      densities="x1 x2"
-      format="webp"
-      :quality="80"
-      class="block w-full h-full object-cover lg:hidden"
-    />
-    <NuxtImg
-      :src="urlDefault || ''"
-      :alt="alt || ''"
-      :title="title || ''"
+      :width="width"
+      :height="height"
       :loading="props.loading"
       :decoding="props.decoding"
       :fetchpriority="resolvedFetchPriority"
@@ -63,7 +61,7 @@ const resolvedFetchPriority = computed(() => {
       densities="x1 x2"
       format="webp"
       :quality="80"
-      class="hidden w-full h-full object-cover lg:block"
+      class="block h-auto w-full"
     />
     <div
       v-if="creator"
