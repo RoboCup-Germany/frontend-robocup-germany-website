@@ -84,7 +84,7 @@ const accordionItems = computed(() =>
             <template #trailing="{ open }">
               <span
                 :class="[
-                  'grid place-items-center size-8 rounded-full border transition-all duration-200 ease-out',
+                  'grid place-items-center w-8 h-8 min-w-8 shrink-0 rounded-full border transition-all duration-200 ease-out',
                   open ? 'bg-primary text-white border-primary rotate-45' : 'text-primary border-primary/35'
                 ]"
               >
