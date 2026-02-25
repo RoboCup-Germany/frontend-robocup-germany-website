@@ -149,27 +149,40 @@ const hasImageSources = computed(() => Boolean(imageMobileDisplayUrl.value || im
 const videoElement = ref<HTMLVideoElement | null>(null);
 const videoPlaybackFailed = ref(false);
 
-const videoSources = computed(() => {
-  return Array.from(
+type VideoSource = { src: string; type?: string };
+
+const typeFromVideoUrl = (source: string): string | undefined => {
+  if (/\.mp4(\?|#|$)/i.test(source)) return 'video/mp4';
+  if (/\.m4v(\?|#|$)/i.test(source)) return 'video/mp4';
+  if (/\.webm(\?|#|$)/i.test(source)) return 'video/webm';
+  if (/\.ogg(\?|#|$)/i.test(source)) return 'video/ogg';
+  if (/\.mov(\?|#|$)/i.test(source)) return 'video/quicktime';
+  return undefined;
+};
+
+const videoSources = computed<VideoSource[]>(() => {
+  const urls = Array.from(
     new Set([
       videoMobileUrl.value,
       videoDesktopUrl.value,
       videoFallbackUrl.value
     ].filter((value): value is string => Boolean(value)))
   );
-});
 
-const resolvedVideoType = computed(() => {
-  const mime = mediaMimeType.value;
-  if (mime.startsWith('video/')) return mime;
+  const fallbackType = mediaMimeType.value.startsWith('video/') ? mediaMimeType.value : undefined;
+  const sources = urls.map((src) => ({
+    src,
+    type: typeFromVideoUrl(src) || fallbackType
+  }));
 
-  const source = videoSources.value[0] || '';
-  if (/\.mp4(\?|#|$)/i.test(source)) return 'video/mp4';
-  if (/\.webm(\?|#|$)/i.test(source)) return 'video/webm';
-  if (/\.ogg(\?|#|$)/i.test(source)) return 'video/ogg';
-  if (/\.mov(\?|#|$)/i.test(source)) return 'video/quicktime';
-  if (/\.m4v(\?|#|$)/i.test(source)) return 'video/mp4';
-  return undefined;
+  // Safari tends to behave more reliably with MP4 as first candidate.
+  sources.sort((a, b) => {
+    const aScore = a.type === 'video/mp4' ? 0 : 1;
+    const bScore = b.type === 'video/mp4' ? 0 : 1;
+    return aScore - bScore;
+  });
+
+  return sources;
 });
 
 const canPlayVideo = computed(() => mediaIsVideo.value && hasVideo.value && !videoPlaybackFailed.value);
@@ -185,6 +198,7 @@ const tryStartVideo = async () => {
 
   element.muted = true;
   element.defaultMuted = true;
+  element.load();
 
   try {
     await element.play();
@@ -213,7 +227,7 @@ onMounted(() => {
 });
 
 watch(
-  () => `${mediaIsVideo.value}-${videoSources.value.join('|')}`,
+  () => `${mediaIsVideo.value}-${videoSources.value.map((item) => item.src).join('|')}`,
   () => {
     videoPlaybackFailed.value = false;
     if (mediaIsVideo.value) {
@@ -248,9 +262,9 @@ watch(
         >
           <source
             v-for="source in videoSources"
-            :key="source"
-            :src="source"
-            :type="resolvedVideoType"
+            :key="source.src"
+            :src="source.src"
+            :type="source.type"
           />
         </video>
         <template v-else-if="hasImageSources">
