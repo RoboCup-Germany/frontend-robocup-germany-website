@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Button from '~/components/basic/Button.vue';
 import { toDisplayImage } from '~/utils/media-image';
 
@@ -145,8 +145,55 @@ const mediaIsImage = computed(() => {
 
 const hasImage = computed(() => Boolean(imageMobileUrl.value || imageDesktopUrl.value));
 const hasVideo = computed(() => Boolean(videoDefaultUrl.value || videoMobileUrl.value || videoDesktopUrl.value));
+const hasImageSources = computed(() => Boolean(imageMobileDisplayUrl.value || imageDesktopDisplayUrl.value));
+const videoElement = ref<HTMLVideoElement | null>(null);
+const videoPlaybackFailed = ref(false);
+
+const videoSources = computed(() => {
+  return Array.from(
+    new Set([
+      videoMobileUrl.value,
+      videoDesktopUrl.value,
+      videoFallbackUrl.value
+    ].filter((value): value is string => Boolean(value)))
+  );
+});
+
+const resolvedVideoType = computed(() => {
+  const mime = mediaMimeType.value;
+  if (mime.startsWith('video/')) return mime;
+
+  const source = videoSources.value[0] || '';
+  if (/\.mp4(\?|#|$)/i.test(source)) return 'video/mp4';
+  if (/\.webm(\?|#|$)/i.test(source)) return 'video/webm';
+  if (/\.ogg(\?|#|$)/i.test(source)) return 'video/ogg';
+  if (/\.mov(\?|#|$)/i.test(source)) return 'video/quicktime';
+  if (/\.m4v(\?|#|$)/i.test(source)) return 'video/mp4';
+  return undefined;
+});
+
+const canPlayVideo = computed(() => mediaIsVideo.value && hasVideo.value && !videoPlaybackFailed.value);
+
+const markVideoAsFailed = () => {
+  videoPlaybackFailed.value = true;
+};
+
+const tryStartVideo = async () => {
+  if (!import.meta.client || !canPlayVideo.value) return;
+  const element = videoElement.value;
+  if (!element) return;
+
+  element.muted = true;
+  element.defaultMuted = true;
+
+  try {
+    await element.play();
+  } catch {
+    markVideoAsFailed();
+  }
+};
 const hasVisual = computed(() => {
-  if (mediaIsVideo.value) return hasVideo.value;
+  if (mediaIsVideo.value) return hasVideo.value || hasImageSources.value;
   return hasImage.value;
 });
 const hasHeadline = computed(() => Boolean(props.title || props.subtitle));
@@ -156,68 +203,89 @@ const hasMediaButton = computed(() => {
   const href = props.mediaButtonLink?.url || props.mediaButtonLink?.attr?.href;
   return Boolean(label && href);
 });
+
+onMounted(() => {
+  if (mediaIsVideo.value) {
+    nextTick(() => {
+      void tryStartVideo();
+    });
+  }
+});
+
+watch(
+  () => `${mediaIsVideo.value}-${videoSources.value.join('|')}`,
+  () => {
+    videoPlaybackFailed.value = false;
+    if (mediaIsVideo.value) {
+      nextTick(() => {
+        void tryStartVideo();
+      });
+    }
+  }
+);
 </script>
 
 <template>
   <section v-if="hasHero" class="relative w-full overflow-hidden">
     <template v-if="hasVisual">
       <div class="relative">
+        <div class="relative h-[clamp(260px,56vw,680px)] w-full overflow-hidden md:h-[clamp(320px,50vw,760px)]">
         <video
-          v-if="mediaIsVideo && hasVideo"
+          v-if="canPlayVideo"
+          ref="videoElement"
           autoplay
           muted
           playsinline
-          webkit-playsinline="true"
+          webkit-playsinline
           loop
-          preload="metadata"
+          preload="auto"
           :poster="videoPosterUrl || undefined"
           aria-hidden="true"
           tabindex="-1"
           role="presentation"
-          class="block w-full h-auto max-h-[68vh] object-cover"
+          class="absolute inset-0 h-full w-full object-cover"
+          @error="markVideoAsFailed"
         >
           <source
-            v-if="videoMobileUrl && videoMobileUrl !== videoDesktopUrl"
-            :src="videoMobileUrl"
-            media="(max-width: 767px)"
-            :type="mediaMimeType || undefined"
-          />
-          <source
-            v-if="videoDesktopUrl"
-            :src="videoDesktopUrl"
-            media="(min-width: 768px)"
-            :type="mediaMimeType || undefined"
-          />
-          <source
-            v-if="videoFallbackUrl"
-            :src="videoFallbackUrl"
-            :type="mediaMimeType || undefined"
+            v-for="source in videoSources"
+            :key="source"
+            :src="source"
+            :type="resolvedVideoType"
           />
         </video>
-        <NuxtImg
-          v-else-if="imageMobileDisplayUrl && mediaIsImage"
-          :src="imageMobileDisplayUrl"
-          :alt="imageAlt"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-          sizes="100vw"
-          format="webp"
-          :quality="80"
-          class="block w-full h-auto max-h-[68vh] object-cover md:hidden"
-        />
-        <NuxtImg
-          v-if="imageDesktopDisplayUrl && mediaIsImage"
-          :src="imageDesktopDisplayUrl"
-          :alt="imageAlt"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-          sizes="100vw"
-          format="webp"
-          :quality="80"
-          class="hidden w-full h-auto max-h-[68vh] object-cover md:block"
-        />
+        <template v-else-if="hasImageSources">
+          <NuxtPicture
+            provider="ipx"
+            v-if="imageMobileDisplayUrl"
+            :src="imageMobileDisplayUrl"
+            :alt="imageAlt"
+            class="absolute inset-0 block h-full w-full md:hidden"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+            sizes="100vw"
+            format="avif,webp"
+            legacy-format="jpeg"
+            :quality="80"
+            :img-attrs="{ class: 'h-full w-full object-cover' }"
+          />
+          <NuxtPicture
+            provider="ipx"
+            v-if="imageDesktopDisplayUrl"
+            :src="imageDesktopDisplayUrl"
+            :alt="imageAlt"
+            class="absolute inset-0 hidden h-full w-full md:block"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+            sizes="100vw"
+            format="avif,webp"
+            legacy-format="jpeg"
+            :quality="80"
+            :img-attrs="{ class: 'h-full w-full object-cover' }"
+          />
+        </template>
+        </div>
 
         <div
           aria-hidden="true"

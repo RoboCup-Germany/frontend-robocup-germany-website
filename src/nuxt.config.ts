@@ -7,6 +7,22 @@ const typo3ProxyBaseUrl = process.env.NUXT_PUBLIC_TYPO3_PROXY_BASE_URL ?? 'http:
 const typo3BackendOrigin = process.env.NUXT_TYPO3_API_ORIGIN ?? process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site'
 const flickrApiKey = process.env.NUXT_FLICKR_API_KEY ?? ''
 const flickrUserId = process.env.NUXT_FLICKR_USER_ID ?? '200186101@N05'
+const toHostname = (value: string): string | null => {
+    try {
+        return new URL(value).hostname || null
+    } catch {
+        return null
+    }
+}
+const imageDomains = Array.from(
+    new Set(
+        [
+            toHostname(typo3BackendOrigin),
+            toHostname(process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? ''),
+            toHostname(process.env.NUXT_PUBLIC_TYPO3_PROXY_BASE_URL ?? '')
+        ].filter((domain): domain is string => Boolean(domain))
+    )
+)
 const toInt = (value: string | undefined, fallback: number) => {
     const parsed = Number.parseInt(String(value ?? ''), 10)
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
@@ -53,6 +69,8 @@ export default defineNuxtConfig({
         '@t3headless/nuxt-typo3'
     ],
     image: {
+        provider: 'ipx',
+        domains: imageDomains,
         screens: {
             xs: 320,
             sm: 576,

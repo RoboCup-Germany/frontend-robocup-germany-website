@@ -13,7 +13,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   loading: 'lazy',
   decoding: 'async',
-  sizes: '(min-width: 1024px) 1200px, 100vw'
+  sizes: '100vw lg:1200px'
 });
 
 const urlDefault = computed<string | null>(() => {
@@ -48,20 +48,22 @@ const resolvedFetchPriority = computed(() => {
 
 <template>
   <div v-if="imageSrc" class="relative group overflow-hidden">
-    <NuxtImg
+    <NuxtPicture
+      provider="ipx"
       :src="imageSrc || ''"
       :alt="alt || ''"
       :title="title || ''"
+      class="block w-full"
       :width="width"
       :height="height"
       :loading="props.loading"
       :decoding="props.decoding"
       :fetchpriority="resolvedFetchPriority"
       :sizes="props.sizes"
-      densities="x1 x2"
-      format="webp"
+      format="avif,webp"
+      legacy-format="jpeg"
       :quality="80"
-      class="block h-auto w-full"
+      :img-attrs="{ class: 'block h-auto w-full' }"
     />
     <div
       v-if="creator"

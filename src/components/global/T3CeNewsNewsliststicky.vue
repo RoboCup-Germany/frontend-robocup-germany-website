@@ -573,17 +573,20 @@ const hasNextAvailable = computed(() => {
                 class="group flex h-full min-h-[460px] flex-col overflow-hidden rounded-sm bg-white shadow-[0_16px_34px_rgba(0,0,0,0.12)] transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_42px_rgba(0,0,0,0.16)]"
               >
                 <div class="relative aspect-[16/10] overflow-hidden bg-black/5">
-                  <NuxtImg
+                  <NuxtPicture
+                    provider="ipx"
                     v-if="resolveImageUrl(item)"
                     :src="resolveImageUrl(item)"
                     :alt="resolveImageAlt(item)"
-                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    class="block h-full w-full"
                     loading="lazy"
                     decoding="async"
                     fetchpriority="low"
-                    sizes="(min-width: 1280px) 33vw, (min-width: 992px) 33vw, (min-width: 768px) 50vw, 100vw"
-                    format="webp"
+                    sizes="100vw md:50vw lg:33vw"
+                    format="avif,webp"
+                    legacy-format="jpeg"
                     :quality="80"
+                    :img-attrs="{ class: 'h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]' }"
                   />
                   <div
                     v-else

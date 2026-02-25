@@ -330,17 +330,20 @@ watch(
       >
         <UContainer class="py-8 lg:grid lg:grid-cols-12 lg:gap-8">
           <div class="border-r-4 border-primary pr-6 lg:col-span-4">
-            <NuxtImg
+            <NuxtPicture
+              provider="ipx"
               v-if="megaMenuPreview"
               :src="megaMenuPreview.src"
               :alt="megaMenuPreview.alt"
-              class="h-48 w-full rounded-sm object-cover shadow-sm"
+              class="block h-48 w-full"
               loading="lazy"
               decoding="async"
               fetchpriority="low"
-              sizes="(min-width: 1024px) 33vw, 100vw"
-              format="webp"
+              sizes="100vw lg:33vw"
+              format="avif,webp"
+              legacy-format="jpeg"
               :quality="80"
+              :img-attrs="{ class: 'h-48 w-full rounded-sm object-cover shadow-sm' }"
             />
             <p v-if="megaMenuPreview?.subtitle" class="mt-4 text-base italic tracking-wide text-black font-semibold">
               {{ megaMenuPreview.subtitle }}

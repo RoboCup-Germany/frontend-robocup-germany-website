@@ -254,17 +254,20 @@ const resolvePaginationHref = (link?: string | null): string => {
           >
             <article v-if="viewMode === 'image'" class="grid grid-cols-1 gap-5 md:grid-cols-12 md:items-start">
               <div class="overflow-hidden rounded-sm bg-black/5 md:col-span-4 lg:col-span-3">
-                <NuxtImg
+                <NuxtPicture
+                  provider="ipx"
                   v-if="resolveImageUrl(item)"
                   :src="resolveImageUrl(item)"
                   :alt="resolveImageAlt(item)"
-                  class="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] md:h-36"
+                  class="block w-full"
                   loading="lazy"
                   decoding="async"
                   fetchpriority="low"
-                  sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 100vw"
-                  format="webp"
+                  sizes="100vw md:33vw lg:25vw"
+                  format="avif,webp"
+                  legacy-format="jpeg"
                   :quality="80"
+                  :img-attrs="{ class: 'h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] md:h-36' }"
                 />
                 <div
                   v-else

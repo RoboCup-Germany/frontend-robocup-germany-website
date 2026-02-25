@@ -141,16 +141,19 @@ const backLinkLabel = computed(() => {
       </p>
 
       <figure v-if="imageUrl" class="mb-8 overflow-hidden rounded-sm">
-        <NuxtImg
+        <NuxtPicture
+          provider="ipx"
           :src="imageUrl"
           :alt="imageAlt"
-          class="h-auto w-full object-cover"
+          class="block w-full"
           loading="eager"
           decoding="async"
           fetchpriority="high"
           sizes="100vw"
-          format="webp"
+          format="avif,webp"
+          legacy-format="jpeg"
           :quality="80"
+          :img-attrs="{ class: 'h-auto w-full object-cover' }"
         />
         <figcaption v-if="imageDescription" class="mt-3 text-sm italic text-black/70">
           {{ imageDescription }}
