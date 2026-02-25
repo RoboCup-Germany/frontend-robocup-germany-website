@@ -104,6 +104,10 @@ const videoDesktopUrl = computed(() => {
   return videoDefaultUrl.value;
 });
 
+const videoFallbackUrl = computed(() => {
+  return videoDesktopUrl.value || videoMobileUrl.value || videoDefaultUrl.value;
+});
+
 const videoPosterUrl = computed(() => {
   if (imageMobileDisplayUrl.value && !isVideoUrl(imageMobileDisplayUrl.value)) {
     return imageMobileDisplayUrl.value;
@@ -163,13 +167,14 @@ const hasMediaButton = computed(() => {
           autoplay
           muted
           playsinline
+          webkit-playsinline="true"
           loop
           preload="metadata"
           :poster="videoPosterUrl || undefined"
           aria-hidden="true"
           tabindex="-1"
           role="presentation"
-          class="block w-full aspect-square min-h-[100vw] object-cover md:min-h-0 md:h-auto md:max-h-[68vh]"
+          class="block w-full h-auto max-h-[68vh] object-cover"
         >
           <source
             v-if="videoMobileUrl && videoMobileUrl !== videoDesktopUrl"
@@ -184,8 +189,8 @@ const hasMediaButton = computed(() => {
             :type="mediaMimeType || undefined"
           />
           <source
-            v-else-if="videoMobileUrl"
-            :src="videoMobileUrl"
+            v-if="videoFallbackUrl"
+            :src="videoFallbackUrl"
             :type="mediaMimeType || undefined"
           />
         </video>
@@ -199,7 +204,7 @@ const hasMediaButton = computed(() => {
           sizes="100vw"
           format="webp"
           :quality="80"
-          class="block w-full aspect-square object-cover md:hidden"
+          class="block w-full h-auto max-h-[68vh] object-cover md:hidden"
         />
         <NuxtImg
           v-if="imageDesktopDisplayUrl && mediaIsImage"
