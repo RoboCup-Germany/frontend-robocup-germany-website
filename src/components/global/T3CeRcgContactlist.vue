@@ -9,6 +9,7 @@ defineOptions({
 
 interface CropVariant {
   publicUrl?: string | null;
+  url?: string | null;
 }
 
 interface ContactImage extends MediaRef {
@@ -92,8 +93,14 @@ const contactCards = computed<ContactCard[]>(() => {
     const degree = contact.degree?.trim() || '';
     const fullName = [firstname, lastname].filter(Boolean).join(' ').trim() || `Kontakt ${index + 1}`;
     const portrait = (contact.image ?? []).find((item) => item?.publicUrl || item?.cropVariants?.default?.publicUrl) || null;
-    const imageUrlDefault = portrait?.cropVariants?.default?.publicUrl || portrait?.publicUrl || undefined;
-    const imageUrlSmall = portrait?.cropVariants?.small?.publicUrl || imageUrlDefault;
+    const imageUrlDefault = portrait?.cropVariants?.default?.publicUrl
+      || portrait?.cropVariants?.default?.url
+      || portrait?.publicUrl
+      || portrait?.url
+      || undefined;
+    const imageUrlSmall = portrait?.cropVariants?.small?.publicUrl
+      || portrait?.cropVariants?.small?.url
+      || imageUrlDefault;
     const imageAlt = portrait?.alt?.trim()
       || portrait?.alternative?.trim()
       || portrait?.description?.trim()
@@ -145,28 +152,24 @@ const contactCards = computed<ContactCard[]>(() => {
               <article class="contact-card" :aria-labelledby="card.headingId">
                 <div class="contact-image-wrap">
                   <div v-if="card.imageUrlDefault">
-                    <NuxtImg
-                      :src="card.imageUrlSmall || card.imageUrlDefault"
-                      :alt="card.imageAlt"
-                      loading="lazy"
-                      decoding="async"
-                      fetchpriority="low"
-                      sizes="(min-width: 640px) 50vw, 100vw"
-                      format="webp"
-                      :quality="80"
-                      class="contact-image lg:hidden"
-                    />
-                    <NuxtImg
-                      :src="card.imageUrlDefault"
-                      :alt="card.imageAlt"
-                      loading="lazy"
-                      decoding="async"
-                      fetchpriority="low"
-                      sizes="(min-width: 1024px) 33vw, 100vw"
-                      format="webp"
-                      :quality="80"
-                      class="contact-image hidden lg:block"
-                    />
+                    <picture class="contact-image-picture">
+                      <source
+                        v-if="card.imageUrlSmall"
+                        :srcset="card.imageUrlSmall"
+                        media="(max-width: 1023px)"
+                      >
+                      <source
+                        :srcset="card.imageUrlDefault"
+                        media="(min-width: 1024px)"
+                      >
+                      <img
+                        :src="card.imageUrlDefault"
+                        :alt="card.imageAlt"
+                        loading="lazy"
+                        decoding="async"
+                        class="contact-image"
+                      >
+                    </picture>
                   </div>
                   <div v-else class="contact-image-fallback" aria-hidden="true" />
                 </div>
@@ -261,8 +264,20 @@ const contactCards = computed<ContactCard[]>(() => {
 }
 
 .contact-image-wrap {
+  position: relative;
+  overflow: hidden;
   aspect-ratio: 5 / 7;
   background: #d4d4d8;
+}
+
+.contact-image-wrap > div {
+  height: 100%;
+}
+
+.contact-image-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .contact-image {
