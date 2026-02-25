@@ -244,19 +244,37 @@ watch(
               <li
                 v-for="(item, index) in navItems"
                 :key="`${item.title}-${item.link}`"
-                class="relative"
-                @mouseenter="openDesktopIndex = hasChildren(item) ? index : null"
+                class="relative shrink-0"
               >
                 <template v-if="hasChildren(item)">
                   <button
                     type="button"
-                    class="inline-flex items-center border-b-4 px-0 py-3 text-sm font-semibold text-black no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    :class="desktopHighlightedIndex === index ? 'border-primary' : 'border-transparent hover:border-black/30'"
+                    class="group relative inline-flex items-center whitespace-nowrap px-2 py-3 text-sm font-semibold text-black no-underline transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     :aria-expanded="openDesktopIndex === index"
                     :aria-controls="`desktop-submenu-${index}`"
                     @click="openDesktopIndex = openDesktopIndex === index ? null : index"
                   >
-                    {{ item.title }}
+                    <span class="relative z-10">{{ item.title }}</span>
+                    <span
+                      class="pointer-events-none absolute bottom-0 left-0 h-[3px] w-full origin-left scale-x-0 bg-primary transition-transform duration-300"
+                      :class="desktopHighlightedIndex === index ? 'scale-x-100' : 'group-hover:scale-x-100'"
+                      aria-hidden="true"
+                    />
+                    <svg
+                      viewBox="0 0 1080 1080"
+                      class="pointer-events-none absolute left-1/2 top-full z-10 h-4 w-4 -translate-x-1/2 text-primary transition-all duration-200"
+                      :class="openDesktopIndex === index ? 'translate-y-0 opacity-0' : '-translate-y-1 opacity-0 group-hover:translate-y-0.5 group-hover:opacity-100'"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <polyline
+                        points="841.93 389.03 540 690.97 238.07 389.03"
+                        stroke="currentColor"
+                        stroke-width="110"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
                   </button>
                 </template>
                 <NuxtLink
@@ -264,17 +282,25 @@ watch(
                   :to="normalize(item.link)"
                   :target="item.target || undefined"
                   :external="isExternal(item.link)"
-                  class="inline-flex items-center border-b-4 px-0 py-3 text-sm font-semibold text-black no-underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                  :class="item.current === 1 ? 'border-primary' : 'border-transparent hover:border-black/30'"
+                  class="group relative inline-flex items-center whitespace-nowrap rounded-sm px-2 py-3 text-sm font-semibold text-black no-underline transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   @click="closeDesktopMenu"
                 >
-                  {{ item.title }}
+                  <span class="relative z-10">{{ item.title }}</span>
+                  <span
+                    class="pointer-events-none absolute bottom-0 left-0 h-[3px] w-full origin-left scale-x-0 bg-primary transition-transform duration-300"
+                    :class="item.current === 1 && openDesktopIndex === null ? 'scale-x-100' : 'group-hover:scale-x-100'"
+                    aria-hidden="true"
+                  />
                 </NuxtLink>
                 <span
                   v-else
-                  class="inline-flex items-center border-b-4 border-transparent px-0 py-3 text-sm font-semibold text-black"
+                  class="group relative inline-flex items-center whitespace-nowrap rounded-sm px-2 py-3 text-sm font-semibold text-black transition-all duration-200"
                 >
-                  {{ item.title }}
+                  <span class="relative z-10">{{ item.title }}</span>
+                  <span
+                    class="pointer-events-none absolute bottom-0 left-0 h-[3px] w-full origin-left scale-x-0 bg-primary transition-transform duration-300 group-hover:scale-x-100"
+                    aria-hidden="true"
+                  />
                 </span>
               </li>
             </ul>
@@ -300,7 +326,7 @@ watch(
       <div
         v-if="desktopOpenItem && hasChildren(desktopOpenItem)"
         :id="`desktop-submenu-${openDesktopIndex}`"
-        class="pointer-events-auto border-t border-black/10 bg-white/90 backdrop-blur-sm"
+        class="pointer-events-auto border-t border-black/10 bg-white/90 shadow-[0_18px_36px_-20px_rgba(0,0,0,0.45)] backdrop-blur-sm"
       >
         <UContainer class="py-8 lg:grid lg:grid-cols-12 lg:gap-8">
           <div class="border-r-4 border-primary pr-6 lg:col-span-4">
