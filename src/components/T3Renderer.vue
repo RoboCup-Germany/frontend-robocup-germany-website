@@ -188,25 +188,37 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    v-for="(component, index) in content"
-    :key="index"
-    :ref="(el) => setItemRef(el, index)"
-    class="t3-reveal-item"
-    :class="[
-      isFadeOnlyType(component.type)
-        ? 'reveal-fade-only'
-        : (index % 2 === 0 ? 'reveal-from-left' : 'reveal-from-right'),
-      isVisible(index) ? 'is-visible' : ''
-    ]"
-  >
-    <component
-      :is="frame && component.appearance?.frameClass !== 'none' ? renderFrame(component, index) : renderComponent(component, index)"
-    />
+  <div class="t3-reveal-list">
+    <div
+      v-for="(component, index) in content"
+      :key="index"
+      :ref="(el) => setItemRef(el, index)"
+      class="t3-reveal-item"
+      :class="[
+        isFadeOnlyType(component.type)
+          ? 'reveal-fade-only'
+          : (index % 2 === 0 ? 'reveal-from-left' : 'reveal-from-right'),
+        isVisible(index) ? 'is-visible' : ''
+      ]"
+    >
+      <component
+        :is="frame && component.appearance?.frameClass !== 'none' ? renderFrame(component, index) : renderComponent(component, index)"
+      />
+    </div>
   </div>
 </template>
 
 <style scoped>
+.t3-reveal-list {
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  .t3-reveal-list {
+    overflow-x: hidden;
+  }
+}
+
 .t3-reveal-item {
   opacity: 0;
   transform: translate3d(0, 32px, 0);
