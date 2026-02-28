@@ -192,7 +192,7 @@ const teaserItems = computed(() => {
                 {{ item.subtitle || '\u00A0' }}
               </p>
 
-              <div class="mt-auto pt-4">
+              <div class="mt-auto flex justify-end pt-4">
                 <Button
                   v-if="item.to"
                   :to="item.to"
