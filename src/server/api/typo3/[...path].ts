@@ -27,21 +27,27 @@ export default defineEventHandler(async (event) => {
   const targetPath = isLocaleRoot ? `${normalizedPath}/` : normalizedPath
   const target = `${origin}/${targetPath}${query}`
 
+  const requestHeaders = { ...getRequestHeaders(event) }
+  delete requestHeaders.host
+  delete requestHeaders['content-length']
+
   if (getMethod(event) !== 'GET') {
-    const requestHeaders = { ...getRequestHeaders(event) }
-    delete requestHeaders.host
-    delete requestHeaders['content-length']
     return proxyRequest(event, target, { headers: requestHeaders })
   }
 
-  return fetchWithWatchedCache(event, target, {
-    cacheNamespace: 'typo3',
-    cacheControlHeader: cacheControl,
-    minFreshMs: upstreamCache.minFreshMs,
-    hardTtlMs: upstreamCache.hardTtlMs,
-    staleIfErrorMs: upstreamCache.staleIfErrorMs,
-    maxEntries: upstreamCache.maxEntries,
-    maxTotalBytes: upstreamCache.maxTotalBytes,
-    maxBodyBytes: upstreamCache.maxBodyBytes
-  })
+  try {
+    return await fetchWithWatchedCache(event, target, {
+      cacheNamespace: 'typo3',
+      cacheControlHeader: cacheControl,
+      minFreshMs: upstreamCache.minFreshMs,
+      hardTtlMs: upstreamCache.hardTtlMs,
+      staleIfErrorMs: upstreamCache.staleIfErrorMs,
+      maxEntries: upstreamCache.maxEntries,
+      maxTotalBytes: upstreamCache.maxTotalBytes,
+      maxBodyBytes: upstreamCache.maxBodyBytes
+    })
+  } catch (error) {
+    console.error('[api/typo3/*] cache fetch failed, falling back to proxyRequest', error)
+    return proxyRequest(event, target, { headers: requestHeaders })
+  }
 })

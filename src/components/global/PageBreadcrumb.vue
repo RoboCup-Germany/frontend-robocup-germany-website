@@ -15,6 +15,7 @@ type LocaleItem = {
 
 const { pageData } = useT3Api()
 const route = useRoute()
+const { normalize } = useCmsLink()
 
 const rawBreadcrumbs = computed<BreadcrumbItem[]>(() => {
   const items = (pageData.value as { breadcrumbs?: BreadcrumbItem[] } | null)?.breadcrumbs
@@ -84,7 +85,7 @@ const shouldShow = computed(() => !isHomePage.value && breadcrumbs.value.length 
       >
         <NuxtLink
           v-if="index < currentIndex && item.link"
-          :to="item.link"
+          :to="normalize(item.link)"
           class="hover:underline"
         >
           {{ item.title }}

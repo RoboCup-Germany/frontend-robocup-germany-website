@@ -74,6 +74,7 @@ const props = withDefaults(defineProps<T3CeNewsPi1Props>(), {
 });
 
 const route = useRoute();
+const { normalize } = useCmsLink();
 const viewMode = ref<'image' | 'minimal'>('image');
 
 const newsItems = computed(() => {
@@ -124,7 +125,19 @@ const extractCategory = (item: NewsItem): string => {
 
 const resolveSlug = (item: NewsItem): string => {
   const slug = item?.slug?.trim();
-  if (slug) return slug;
+  if (slug) {
+    if (slug.startsWith('/')) return slug;
+
+    try {
+      const parsed = new URL(slug.startsWith('//') ? `https:${slug}` : slug);
+      return `${parsed.pathname}${parsed.search}${parsed.hash}` || '/news';
+    }
+    catch {
+      const normalized = normalize(slug);
+      if (!normalized) return '/news';
+      return normalized.startsWith('/') ? normalized : `/${normalized.replace(/^\/+/, '')}`;
+    }
+  }
 
   const segment = item?.pathSegment?.trim();
   if (segment) return `/news/${segment}`;

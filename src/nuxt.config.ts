@@ -32,6 +32,19 @@ const toHostname = (value: string): string | null => {
         return null
     }
 }
+const typo3InternalHosts = Array.from(
+    new Set(
+        [
+            'rc-new-website.ddev.site',
+            toHostname(typo3BackendOrigin),
+            toHostname(process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? ''),
+            ...(process.env.NUXT_PUBLIC_TYPO3_INTERNAL_HOSTS ?? '')
+                .split(',')
+                .map((host) => host.trim())
+                .filter(Boolean)
+        ].filter((host): host is string => Boolean(host))
+    )
+)
 const imageDomains = Array.from(
     new Set(
         [
@@ -148,6 +161,7 @@ export default defineNuxtConfig({
                 api: {
                     baseUrl: typo3ProxyBaseUrl,
                     backendBaseUrl: typo3BackendOrigin,
+                    internalHosts: typo3InternalHosts,
                     proxyHeaders: false,
                     proxyReqHeaders: false,
                 },

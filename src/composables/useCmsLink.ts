@@ -2,6 +2,7 @@ export const useCmsLink = () => {
   const runtimeConfig = useRuntimeConfig()
 
   const knownInternalHosts = new Set<string>()
+  const configuredInternalHosts = runtimeConfig.public?.typo3?.api?.internalHosts
 
   const apiBaseUrl = runtimeConfig.public?.typo3?.api?.baseUrl
   if (typeof apiBaseUrl === 'string' && apiBaseUrl.length > 0) {
@@ -23,8 +24,22 @@ export const useCmsLink = () => {
     }
   }
 
+  if (Array.isArray(configuredInternalHosts)) {
+    configuredInternalHosts.forEach((host) => {
+      if (typeof host === 'string' && host.trim()) {
+        knownInternalHosts.add(host.trim().toLowerCase())
+      }
+    })
+  } else if (typeof configuredInternalHosts === 'string' && configuredInternalHosts.trim()) {
+    configuredInternalHosts
+      .split(',')
+      .map((host) => host.trim().toLowerCase())
+      .filter(Boolean)
+      .forEach((host) => knownInternalHosts.add(host))
+  }
+
   if (process.client) {
-    knownInternalHosts.add(window.location.host)
+    knownInternalHosts.add(window.location.host.toLowerCase())
   }
 
   const normalize = (href?: string | null): string | undefined => {
@@ -47,8 +62,9 @@ export const useCmsLink = () => {
 
     try {
       const parsed = new URL(value.startsWith('//') ? `https:${value}` : value)
+      const parsedHost = parsed.host.toLowerCase()
 
-      if (knownInternalHosts.has(parsed.host)) {
+      if (knownInternalHosts.has(parsedHost)) {
         return `${parsed.pathname}${parsed.search}${parsed.hash}` || '/'
       }
 
