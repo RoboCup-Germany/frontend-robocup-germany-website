@@ -7,7 +7,7 @@ metadata:
   namespace: main-website
 spec:
   rules:
-    - host: website.robocup.de
+    - host: robocup.de
       http:
         paths:
           - pathType: ImplementationSpecific
@@ -19,5 +19,5 @@ spec:
                   number: 3000
   tls:
     - hosts:
-        - website.robocup.de
-      secretName: frontend-secret
+        - robocup.de
+      secretName: website-frontend-secret
