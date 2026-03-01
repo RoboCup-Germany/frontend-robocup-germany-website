@@ -3,7 +3,25 @@ import { access, mkdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve as resolvePath } from 'node:path'
 
 const { resolve } = createResolver(import.meta.url)
-const typo3ProxyBaseUrl = process.env.NUXT_PUBLIC_TYPO3_PROXY_BASE_URL ?? 'http://localhost:3000/api/typo3'
+const normalizePublicProxyBaseUrl = (value: string | undefined): string => {
+    const fallback = '/api/typo3'
+    const raw = String(value ?? '').trim()
+    if (!raw) return fallback
+
+    if (raw.startsWith('/')) {
+        return raw.replace(/\/+$/, '') || fallback
+    }
+
+    try {
+        const parsed = new URL(raw)
+        const path = parsed.pathname.replace(/\/+$/, '')
+        return path || fallback
+    } catch {
+        return fallback
+    }
+}
+
+const typo3ProxyBaseUrl = normalizePublicProxyBaseUrl(process.env.NUXT_PUBLIC_TYPO3_PROXY_BASE_URL)
 const typo3BackendOrigin = process.env.NUXT_TYPO3_API_ORIGIN ?? process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site'
 const flickrApiKey = process.env.NUXT_FLICKR_API_KEY ?? ''
 const flickrUserId = process.env.NUXT_FLICKR_USER_ID ?? '200186101@N05'
