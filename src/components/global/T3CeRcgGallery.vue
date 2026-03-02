@@ -158,6 +158,7 @@ const galleryType = computed(() => {
 })
 const isLogoGallery = computed(() => galleryType.value === 0)
 const isSpaciousGallery = computed(() => galleryType.value === 1)
+const isLogoStandardCarouselLayout = computed(() => galleryLayout.value === 0 && isLogoGallery.value)
 const isChunkedCarouselLayout = computed(() => galleryLayout.value === 0 && isSpaciousGallery.value)
 const gridWrapperClass = computed(() => (
   isSpaciousGallery.value
@@ -312,14 +313,24 @@ const dotTransitionName = computed(() => {
   return navigationDirection.value === 1 ? 'dots-forward' : 'dots-backward'
 })
 
-const carouselUi = computed(() => ({
-  item: 'basis-full',
-  container: 'justify-around'
-}))
+const carouselUi = computed(() => (
+  isChunkedCarouselLayout.value
+    ? {
+        item: 'basis-full',
+        container: ''
+      }
+    : {
+        item: 'basis-full',
+        container: 'justify-around'
+      }
+))
 
 const GALLERY_MAX_HEIGHT = 640
 const LOGO_BOX_HEIGHT_DESKTOP = 180
 const LOGO_BOX_HEIGHT_MOBILE = 140
+const LOGO_SLIDER_HEIGHT_MOBILE = 260
+const LOGO_SLIDER_HEIGHT_TABLET = 400
+const LOGO_SLIDER_HEIGHT_DESKTOP = 560
 const MOBILE_BREAKPOINT = 768
 const galleryImageHeight = ref<number>(GALLERY_MAX_HEIGHT)
 const viewportWidth = ref(MOBILE_BREAKPOINT)
@@ -337,7 +348,14 @@ const isMobileViewport = computed(() => {
 
 const logoBoxStyle = computed<Record<string, string>>(() => {
   if (!isLogoGallery.value) return {}
-  const height = isMobileViewport.value ? LOGO_BOX_HEIGHT_MOBILE : LOGO_BOX_HEIGHT_DESKTOP
+
+  let height = isMobileViewport.value ? LOGO_BOX_HEIGHT_MOBILE : LOGO_BOX_HEIGHT_DESKTOP
+  if (isLogoStandardCarouselLayout.value) {
+    if (viewportWidth.value >= DESKTOP_BREAKPOINT) height = LOGO_SLIDER_HEIGHT_DESKTOP
+    else if (viewportWidth.value >= MOBILE_BREAKPOINT) height = LOGO_SLIDER_HEIGHT_TABLET
+    else height = LOGO_SLIDER_HEIGHT_MOBILE
+  }
+
   const cssHeight = `${height}px`
   return {
     height: cssHeight,
