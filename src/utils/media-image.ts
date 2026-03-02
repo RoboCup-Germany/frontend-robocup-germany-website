@@ -14,6 +14,16 @@ type CropVariantLike = {
   publicUrl?: string | null;
   width?: number | string | null;
   height?: number | string | null;
+  dimensions?: {
+    width?: number | string | null;
+    height?: number | string | null;
+  } | null;
+  properties?: {
+    dimensions?: {
+      width?: number | string | null;
+      height?: number | string | null;
+    } | null;
+  } | null;
 };
 
 type CropVariantsLike = {
@@ -66,6 +76,17 @@ const toPositiveIntOrNull = (value: unknown): number | null => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
+const variantDimension = (
+  variant: CropVariantLike | null | undefined,
+  key: 'width' | 'height'
+): number | null => {
+  if (!variant) return null;
+
+  return toPositiveIntOrNull(variant[key])
+    || toPositiveIntOrNull(variant.dimensions?.[key])
+    || toPositiveIntOrNull(variant.properties?.dimensions?.[key]);
+};
+
 const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | null => {
   const urlDefault
     = variantUrl(media.cropVariants?.default)
@@ -84,11 +105,11 @@ const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | n
 
   const description = toTextOrNull(media.description) || toTextOrNull(media.properties?.description);
   const width
-    = toPositiveIntOrNull(media.cropVariants?.default?.width)
+    = variantDimension(media.cropVariants?.default, 'width')
       || toPositiveIntOrNull(media.width)
       || toPositiveIntOrNull(media.properties?.width);
   const height
-    = toPositiveIntOrNull(media.cropVariants?.default?.height)
+    = variantDimension(media.cropVariants?.default, 'height')
       || toPositiveIntOrNull(media.height)
       || toPositiveIntOrNull(media.properties?.height);
 
