@@ -156,6 +156,7 @@ const galleryType = computed(() => {
     ?? b?.appearance?.galleryType
   return toPositiveInt(value, 0)
 })
+const isLogoGallery = computed(() => galleryType.value === 0)
 const isSpaciousGallery = computed(() => galleryType.value === 1)
 const isChunkedCarouselLayout = computed(() => galleryLayout.value === 0 && isSpaciousGallery.value)
 const gridWrapperClass = computed(() => (
@@ -317,6 +318,8 @@ const carouselUi = computed(() => ({
 }))
 
 const GALLERY_MAX_HEIGHT = 640
+const LOGO_BOX_HEIGHT_DESKTOP = 180
+const LOGO_BOX_HEIGHT_MOBILE = 140
 const MOBILE_BREAKPOINT = 768
 const galleryImageHeight = ref<number>(GALLERY_MAX_HEIGHT)
 const viewportWidth = ref(MOBILE_BREAKPOINT)
@@ -332,7 +335,19 @@ const isMobileViewport = computed(() => {
   return viewportWidth.value < MOBILE_BREAKPOINT
 })
 
+const logoBoxStyle = computed<Record<string, string>>(() => {
+  if (!isLogoGallery.value) return {}
+  const height = isMobileViewport.value ? LOGO_BOX_HEIGHT_MOBILE : LOGO_BOX_HEIGHT_DESKTOP
+  const cssHeight = `${height}px`
+  return {
+    height: cssHeight,
+    minHeight: cssHeight,
+    maxHeight: cssHeight
+  }
+})
+
 const galleryHeightStyle = computed<Record<string, string>>(() => {
+  if (isLogoGallery.value) return {}
   if (isGridLayout.value) return {}
   if (isChunkedCarouselLayout.value) return {}
   if (isMobileViewport.value) return {}
@@ -380,6 +395,7 @@ const loadImageNaturalHeight = (url: string): Promise<number | null> => {
 
 const refreshGalleryImageHeight = async () => {
   if (!import.meta.client) return
+  if (isLogoGallery.value) return
 
   const urls = Array.from(new Set(galleryImages.value.map((item) => item.srcDesktop).filter(Boolean)))
 
@@ -465,15 +481,17 @@ const sectionClasses = computed(() => {
           v-for="image in galleryImages"
           :key="image.id"
           :class="gridItemClass"
-          :style="galleryHeightStyle"
+          :style="[galleryHeightStyle, logoBoxStyle]"
         >
-          <picture class="block w-full">
+          <picture class="block h-full w-full">
             <source :srcset="image.srcDesktop" media="(min-width: 1024px)">
             <img
               :src="image.srcMobile"
               :alt="image.alt"
               :title="image.title"
-              class="rcg-image block h-auto w-full object-cover"
+              :class="isLogoGallery
+                ? 'rcg-image block h-full w-full object-contain p-4'
+                : 'rcg-image block h-auto w-full object-cover'"
               loading="lazy"
               decoding="async"
               fetchpriority="low"
@@ -540,13 +558,13 @@ const sectionClasses = computed(() => {
               :key="image.id"
               class="overflow-hidden rounded bg-white"
             >
-              <picture class="block w-full">
+              <picture class="block aspect-[4/3] w-full">
                 <source :srcset="image.srcDesktop" media="(min-width: 1024px)">
                 <img
                   :src="image.srcMobile"
                   :alt="image.alt"
                   :title="image.title"
-                  class="rcg-image block aspect-[4/3] w-full object-cover"
+                  class="rcg-image block h-full w-full object-contain p-4"
                   loading="lazy"
                   decoding="async"
                   fetchpriority="low"
@@ -572,14 +590,16 @@ const sectionClasses = computed(() => {
           @touchstart="disableAutoplay"
           @select="onSelect"
         >
-          <div class="rcg-slide-media flex w-full items-center justify-center overflow-hidden bg-white" :style="galleryHeightStyle">
-            <picture class="block h-full w-full md:w-auto">
+          <div class="rcg-slide-media flex w-full items-center justify-center overflow-hidden bg-white" :style="[galleryHeightStyle, logoBoxStyle]">
+            <picture :class="isLogoGallery ? 'block h-full w-full' : 'block h-full w-full md:w-auto'">
               <source :srcset="item.srcDesktop" media="(min-width: 1024px)">
               <img
                 :src="item.srcMobile"
                 :alt="item.alt"
                 :title="item.title"
-                class="rcg-image mx-auto block h-auto w-full object-contain md:h-full md:w-auto md:max-w-none md:object-cover"
+                :class="isLogoGallery
+                  ? 'rcg-image mx-auto block h-full w-full object-contain p-4'
+                  : 'rcg-image mx-auto block h-auto w-full object-contain md:h-full md:w-auto md:max-w-none md:object-cover'"
                 loading="lazy"
                 decoding="async"
                 fetchpriority="low"
