@@ -1,9 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const { headData, pageData, backendLayout } = await useT3Page()
+const requestUrl = useRequestURL();
+const safeFullPath = `${requestUrl.pathname}${requestUrl.search || ''}` || '/';
+const nuxtRoute = useRoute();
+const route = (
+  nuxtRoute && typeof nuxtRoute.fullPath === 'string'
+    ? nuxtRoute
+    : { fullPath: safeFullPath, query: {} }
+) as ReturnType<typeof useRoute>;
+
+const { headData, pageData, backendLayout } = await useT3Page({
+  route,
+  fetchOnInit: true
+})
 const { initialData } = useT3Api()
-const route = useRoute()
 useHead(headData);
 
 interface AnnouncementButton {
