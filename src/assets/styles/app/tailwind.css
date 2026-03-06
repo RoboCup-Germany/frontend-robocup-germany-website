@@ -70,6 +70,14 @@
 	--ui-text: var(--color-black);
 }
 
+/* Cookie banner: align button shape with Nuxt UI button style (rounded-full) */
+.cookieControl .cookieControl__Bar button,
+.cookieControl .cookieControl__Modal button {
+	border-radius: 9999px;
+	font-family: var(--font-sans);
+	font-weight: 600;
+}
+
 /* =========================================
    Base defaults
    ========================================= */

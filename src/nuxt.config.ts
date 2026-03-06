@@ -25,6 +25,7 @@ const typo3ProxyBaseUrl = normalizePublicProxyBaseUrl(process.env.NUXT_PUBLIC_TY
 const typo3BackendOrigin = process.env.NUXT_TYPO3_API_ORIGIN ?? process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site'
 const flickrApiKey = process.env.NUXT_FLICKR_API_KEY ?? ''
 const flickrUserId = process.env.NUXT_FLICKR_USER_ID ?? '200186101@N05'
+const gtagId = process.env.NUXT_PUBLIC_GTAG_ID ?? ''
 const toHostname = (value: string): string | null => {
     try {
         return new URL(value).hostname || null
@@ -97,6 +98,7 @@ export default defineNuxtConfig({
         '@nuxt/image',
         '@nuxt/scripts',
         '@nuxt/ui',
+        '@dargmuesli/nuxt-cookie-control',
         '@t3headless/nuxt-typo3'
     ],
     image: {
@@ -127,6 +129,72 @@ export default defineNuxtConfig({
     css: [
         resolve("assets/styles/app/tailwind.css")
     ],
+    cookieControl: {
+        isAcceptNecessaryButtonEnabled: true,
+        isControlButtonEnabled: false,
+        barPosition: 'bottom-full',
+        locales: ['de', 'en'],
+        colors: {
+            barBackground: '#2f3f58',
+            barButtonBackground: '#0060ff',
+            barButtonColor: '#ffffff',
+            barButtonHoverBackground: '#004ecf',
+            barButtonHoverColor: '#ffffff',
+            barTextColor: '#ffffff',
+            checkboxActiveBackground: '#fff',
+            checkboxActiveCircleBackground: '#0060ff',
+            checkboxDisabledBackground: '#c7c7c7',
+            checkboxDisabledCircleBackground: '#9b9b9b',
+            checkboxInactiveBackground: '#8aa2cc',
+            checkboxInactiveCircleBackground: '#fff',
+            controlButtonBackground: '#0060ff',
+            controlButtonIconColor: '#ffffff',
+            controlButtonHoverBackground: '#004ecf',
+            controlButtonIconHoverColor: '#ffffff',
+            focusRingColor: '#0060ff',
+            modalBackground: '#ffffff',
+            modalButtonBackground: '#0060ff',
+            modalButtonColor: '#fff',
+            modalButtonHoverBackground: '#004ecf',
+            modalButtonHoverColor: '#fff',
+            modalOverlay: '#000',
+            modalOverlayOpacity: 0.65,
+            modalTextColor: '#111111',
+            modalUnsavedColor: '#cf1c1c'
+        },
+        cookies: {
+            necessary: [
+                {
+                    id: 'ncc_c',
+                    name: {
+                        de: 'Cookie-Einstellungen',
+                        en: 'Cookie settings'
+                    },
+                    description: {
+                        de: 'Speichert deine Zustimmung zu Cookies.',
+                        en: 'Stores your consent preferences for cookies.'
+                    }
+                }
+            ],
+            optional: gtagId
+                ? [
+                    {
+                        id: 'google-analytics',
+                        name: {
+                            de: 'Google Analytics',
+                            en: 'Google Analytics'
+                        },
+                        description: {
+                            de: 'Hilft uns, die Nutzung der Website anonymisiert zu analysieren.',
+                            en: 'Helps us analyze website usage in an anonymized way.'
+                        },
+                        targetCookieIds: ['_ga', '_gid', '_gat'],
+                        src: `https://www.googletagmanager.com/gtag/js?id=${gtagId}`
+                    }
+                ]
+                : []
+        },
+    },
     hooks: {
         async 'build:before'() {
             const candidates = [
@@ -157,6 +225,7 @@ export default defineNuxtConfig({
             maxBodyBytes: toInt(process.env.NUXT_UPSTREAM_CACHE_MAX_BODY_BYTES, 1_048_576)
         },
         public: {
+            gtagId,
             typo3: {
                 api: {
                     baseUrl: typo3ProxyBaseUrl,

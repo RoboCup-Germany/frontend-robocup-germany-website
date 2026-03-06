@@ -4,6 +4,7 @@ type FooterNavItem = {
   link?: string
   target?: string
   children?: FooterNavItem[]
+  isCookieSettings?: boolean
 }
 
 type SocialChannel =
@@ -19,6 +20,7 @@ type SocialChannel =
 type SocialUrls = Partial<Record<SocialChannel, string>>
 
 const { initialData, pageData } = useT3Api()
+const route = useRoute()
 const isMounted = ref(false)
 
 onMounted(() => {
@@ -37,8 +39,32 @@ const footerSections = computed<FooterNavItem[]>(() => {
   )
 })
 
+const footerSectionsWithCookieSettings = computed<FooterNavItem[]>(() => {
+  const sections = footerSections.value.map((section) => ({
+    ...section,
+    children: [...(section.children ?? [])]
+  }))
+
+  if (!sections.length) return sections
+
+  const lastSection = sections[sections.length - 1]
+  lastSection.children = [
+    ...(lastSection.children ?? []),
+    {
+      title: cookieSettingsLabel.value,
+      isCookieSettings: true
+    }
+  ]
+
+  return sections
+})
+
 const siteTitle = computed(
   () => initialData.value?.globalConfig?.title || 'RoboCup Germany'
+)
+const { isModalActive } = useCookieControl()
+const cookieSettingsLabel = computed(() =>
+  route.path.startsWith('/en') ? 'Cookie settings' : 'Cookie-Einstellungen'
 )
 
 const { normalize, isExternal } = useCmsLink()
@@ -97,7 +123,7 @@ const socialLinks = computed(() => {
         aria-label="Navigation im Fußbereich"
       >
         <section
-          v-for="section in footerSections"
+          v-for="section in footerSectionsWithCookieSettings"
           :key="section.title"
           class="min-w-0"
         >
@@ -109,7 +135,7 @@ const socialLinks = computed(() => {
               class="text-base leading-normal text-black"
             >
               <NuxtLink
-                v-if="item.link"
+                v-if="!item.isCookieSettings && item.link"
                 :to="normalize(item.link)"
                 :target="item.target || undefined"
                 :external="isExternal(item.link)"
@@ -117,7 +143,15 @@ const socialLinks = computed(() => {
               >
                 {{ item.title }}
               </NuxtLink>
-              <span v-else>{{ item.title }}</span>
+              <button
+                v-else-if="item.isCookieSettings"
+                type="button"
+                class="text-base leading-normal text-black no-underline hover:underline focus-visible:rounded-[2px] focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-primary"
+                @click="isModalActive = true"
+              >
+                {{ item.title }}
+              </button>
+              <span v-else-if="!item.isCookieSettings">{{ item.title }}</span>
             </li>
           </ul>
         </section>
