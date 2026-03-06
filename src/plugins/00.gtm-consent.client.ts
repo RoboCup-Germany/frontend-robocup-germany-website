@@ -1,7 +1,40 @@
 declare global {
   interface Window {
     dataLayer: unknown[]
+    gtag?: (...args: unknown[]) => void
   }
+}
+
+const CONSENT_DENIED = {
+  ad_storage: 'denied',
+  ad_user_data: 'denied',
+  ad_personalization: 'denied',
+  analytics_storage: 'denied'
+} as const
+
+const CONSENT_GRANTED = {
+  ad_storage: 'granted',
+  ad_user_data: 'granted',
+  ad_personalization: 'granted',
+  analytics_storage: 'granted'
+} as const
+
+const ensureGtag = () => {
+  window.dataLayer = window.dataLayer || []
+  if (!window.gtag) {
+    window.gtag = (...args: unknown[]) => {
+      window.dataLayer.push(args)
+    }
+  }
+}
+
+const setConsentDefaults = () => {
+  ensureGtag()
+  window.gtag?.('consent', 'default', {
+    ...CONSENT_DENIED,
+    wait_for_update: 500
+  })
+  window.gtag?.('set', 'ads_data_redaction', true)
 }
 
 const ensureGoogleTagManager = (gtmId: string) => {
@@ -34,16 +67,15 @@ export default defineNuxtPlugin(() => {
   if (!gtmId) return
 
   const { cookiesEnabledIds } = useCookieControl()
-  let isLoaded = false
+  setConsentDefaults()
+  ensureGoogleTagManager(gtmId)
 
   watch(
     cookiesEnabledIds,
     (enabledIds) => {
       const hasTagManagerConsent = (enabledIds ?? []).includes('google-tag-manager')
-      if (!hasTagManagerConsent || isLoaded) return
-
-      ensureGoogleTagManager(gtmId)
-      isLoaded = true
+      ensureGtag()
+      window.gtag?.('consent', 'update', hasTagManagerConsent ? CONSENT_GRANTED : CONSENT_DENIED)
     },
     { immediate: true, deep: true }
   )
