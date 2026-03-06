@@ -1,6 +1,6 @@
 declare global {
   interface Window {
-    dataLayer: Array<Record<string, unknown>>
+    dataLayer: unknown[]
   }
 }
 
@@ -9,7 +9,7 @@ const ensureGoogleTagManager = (gtmId: string) => {
   const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`)
   if (existing) return
 
-  // Google Tag Manager snippet (consent-gated)
+  // Google Tag Manager snippet
   window.dataLayer = window.dataLayer || []
   window.dataLayer.push({
     'gtm.start': new Date().getTime(),
