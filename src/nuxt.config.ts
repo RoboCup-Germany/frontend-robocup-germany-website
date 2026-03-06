@@ -176,23 +176,21 @@ export default defineNuxtConfig({
                     }
                 }
             ],
-            optional: gtagId
-                ? [
-                    {
-                        id: 'google-analytics',
-                        name: {
-                            de: 'Google Analytics',
-                            en: 'Google Analytics'
-                        },
-                        description: {
-                            de: 'Hilft uns, die Nutzung der Website anonymisiert zu analysieren.',
-                            en: 'Helps us analyze website usage in an anonymized way.'
-                        },
-                        targetCookieIds: ['_ga', '_gid', '_gat'],
-                        src: `https://www.googletagmanager.com/gtag/js?id=${gtagId}`
-                    }
-                ]
-                : []
+            optional: [
+                {
+                    id: 'google-analytics',
+                    name: {
+                        de: 'Google Analytics',
+                        en: 'Google Analytics'
+                    },
+                    description: {
+                        de: 'Hilft uns, die Nutzung der Website anonymisiert zu analysieren.',
+                        en: 'Helps us analyze website usage in an anonymized way.'
+                    },
+                    targetCookieIds: ['_ga', '_gid', '_gat'],
+                    ...(gtagId ? { src: `https://www.googletagmanager.com/gtag/js?id=${gtagId}` } : {})
+                }
+            ]
         },
     },
     hooks: {
