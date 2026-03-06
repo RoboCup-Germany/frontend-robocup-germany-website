@@ -25,7 +25,7 @@ const typo3ProxyBaseUrl = normalizePublicProxyBaseUrl(process.env.NUXT_PUBLIC_TY
 const typo3BackendOrigin = process.env.NUXT_TYPO3_API_ORIGIN ?? process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site'
 const flickrApiKey = process.env.NUXT_FLICKR_API_KEY ?? ''
 const flickrUserId = process.env.NUXT_FLICKR_USER_ID ?? '200186101@N05'
-const gtagId = process.env.NUXT_PUBLIC_GTAG_ID ?? ''
+const gtmId = process.env.NUXT_PUBLIC_GTM_ID ?? 'GTM-KLQ9QQCX'
 const toHostname = (value: string): string | null => {
     try {
         return new URL(value).hostname || null
@@ -178,17 +178,16 @@ export default defineNuxtConfig({
             ],
             optional: [
                 {
-                    id: 'google-analytics',
+                    id: 'google-tag-manager',
                     name: {
-                        de: 'Google Analytics',
-                        en: 'Google Analytics'
+                        de: 'Google Tag Manager',
+                        en: 'Google Tag Manager'
                     },
                     description: {
-                        de: 'Hilft uns, die Nutzung der Website anonymisiert zu analysieren.',
-                        en: 'Helps us analyze website usage in an anonymized way.'
+                        de: 'Lädt Analyse- und Marketing-Tags von Google (z. B. Google Analytics).',
+                        en: 'Loads analytics and marketing tags from Google (e.g. Google Analytics).'
                     },
-                    targetCookieIds: ['_ga', '_gid', '_gat'],
-                    ...(gtagId ? { src: `https://www.googletagmanager.com/gtag/js?id=${gtagId}` } : {})
+                    targetCookieIds: ['_ga', '_gid', '_gat', '_ga_*']
                 }
             ]
         },
@@ -223,7 +222,7 @@ export default defineNuxtConfig({
             maxBodyBytes: toInt(process.env.NUXT_UPSTREAM_CACHE_MAX_BODY_BYTES, 1_048_576)
         },
         public: {
-            gtagId,
+            gtmId,
             typo3: {
                 api: {
                     baseUrl: typo3ProxyBaseUrl,
