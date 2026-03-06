@@ -14,6 +14,18 @@ const ensureGtag = () => {
   }
 }
 
+const ensureGtagScript = (gtagId: string) => {
+  const src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gtagId)}`
+  const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`)
+  if (existing) return
+
+  const script = document.createElement('script')
+  script.async = true
+  script.src = src
+  script.setAttribute('data-cookie-control', 'google-analytics')
+  document.head.appendChild(script)
+}
+
 export default defineNuxtPlugin(() => {
   const runtimeConfig = useRuntimeConfig()
   const gtagId = runtimeConfig.public.gtagId as string
@@ -37,6 +49,7 @@ export default defineNuxtPlugin(() => {
 
       if (!hasAnalyticsConsent || isConfigured) return
 
+      ensureGtagScript(gtagId)
       ensureGtag()
       window.gtag?.('js', new Date())
       window.gtag?.('config', gtagId, {
