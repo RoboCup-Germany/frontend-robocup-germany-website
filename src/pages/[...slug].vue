@@ -32,6 +32,12 @@ interface AnnouncementBar {
   selectedPageUids?: Array<number | string>;
 }
 
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+};
+
 const parseUid = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value;
@@ -100,16 +106,22 @@ const findNewsDetail = (input: unknown): NewsDetailRecord | null => {
 const newsDetail = computed(() => findNewsDetail(pageData.value));
 
 const pageTitle = computed(() => {
-  return newsDetail.value?.title?.trim()
-    || pageData.value?.meta?.title?.trim()
-    || (pageData.value as { title?: string } | null)?.title?.trim()
+  const pageRecord = asRecord(pageData.value);
+  const metaRecord = asRecord(pageRecord?.meta);
+
+  return parseString(newsDetail.value?.title)
+    || parseString(metaRecord?.title)
+    || parseString(pageRecord?.title)
     || '';
 });
 
 const pageSubtitle = computed(() => {
-  return newsDetail.value?.teaser?.trim()
-    || pageData.value?.meta?.subtitle?.trim()
-    || (pageData.value as { subtitle?: string } | null)?.subtitle?.trim()
+  const pageRecord = asRecord(pageData.value);
+  const metaRecord = asRecord(pageRecord?.meta);
+
+  return parseString(newsDetail.value?.teaser)
+    || parseString(metaRecord?.subtitle)
+    || parseString(pageRecord?.subtitle)
     || '';
 });
 
@@ -214,21 +226,28 @@ const currentPageUids = computed(() => {
 });
 
 const announcementBars = computed<AnnouncementBar[]>(() => {
-  const fromInitial = (initialData.value?.globalConfig?.announcementBars as AnnouncementBar[] | undefined) ?? [];
+  const initialGlobalConfig = asRecord(initialData.value?.globalConfig);
+  const fromInitial = Array.isArray(initialGlobalConfig?.announcementBars)
+    ? initialGlobalConfig.announcementBars as AnnouncementBar[]
+    : [];
   if (fromInitial.length) {
     return fromInitial;
   }
 
-  const source = pageData.value as {
-    globalConfig?: { announcementBars?: AnnouncementBar[] };
-    meta?: { globalConfig?: { announcementBars?: AnnouncementBar[] } };
-  } | null;
+  const source = asRecord(pageData.value);
+  const sourceGlobalConfig = asRecord(source?.globalConfig);
+  const sourceMeta = asRecord(source?.meta);
+  const sourceMetaGlobalConfig = asRecord(sourceMeta?.globalConfig);
 
-  return (
-    source?.globalConfig?.announcementBars
-    ?? source?.meta?.globalConfig?.announcementBars
-    ?? []
-  );
+  if (Array.isArray(sourceGlobalConfig?.announcementBars)) {
+    return sourceGlobalConfig.announcementBars as AnnouncementBar[];
+  }
+
+  if (Array.isArray(sourceMetaGlobalConfig?.announcementBars)) {
+    return sourceMetaGlobalConfig.announcementBars as AnnouncementBar[];
+  }
+
+  return [];
 });
 
 const matchingAnnouncement = computed<AnnouncementBar | null>(() => {
@@ -238,7 +257,12 @@ const matchingAnnouncement = computed<AnnouncementBar | null>(() => {
   }
 
   return announcementBars.value.find((bar) => {
-    const selected = Array.isArray(bar.selectedPageUids) ? bar.selectedPageUids : [];
+    const barRecord = asRecord(bar);
+    if (!barRecord) {
+      return false;
+    }
+
+    const selected = Array.isArray(barRecord.selectedPageUids) ? barRecord.selectedPageUids : [];
     return selected.some((uid) => {
       const parsed = parseUid(uid);
       return parsed !== null && pageUids.has(parsed);

@@ -3,6 +3,25 @@ import { fetchWithWatchedCache } from '~/server/utils/upstream-cache'
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
 const cacheControl = 'public, max-age=0, s-maxage=0, must-revalidate'
+const toErrorMeta = (error: unknown) => {
+  const source = error as {
+    statusCode?: number
+    statusMessage?: string
+    data?: unknown
+  } | null
+
+  const rawData = typeof source?.data === 'string'
+    ? source.data
+    : source?.data != null
+      ? JSON.stringify(source.data)
+      : ''
+
+  return {
+    statusCode: source?.statusCode,
+    statusMessage: source?.statusMessage,
+    dataPreview: rawData.slice(0, 500)
+  }
+}
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
@@ -47,7 +66,10 @@ export default defineEventHandler(async (event) => {
       maxBodyBytes: upstreamCache.maxBodyBytes
     })
   } catch (error) {
-    console.error('[api/typo3/*] cache fetch failed, falling back to proxyRequest', error)
+    console.error('[api/typo3/*] cache fetch failed, falling back to proxyRequest', {
+      target,
+      ...toErrorMeta(error)
+    })
     return proxyRequest(event, target, { headers: requestHeaders })
   }
 })
