@@ -32,8 +32,8 @@ interface T3CeRcgTextimage extends T3CeBaseProps
   button_type?: ContentButton['button_type'];
   buttons?: ContentButton[];
   orientation?: 'left' | 'right';
-  image?: MediaRef[] | null;
-  media?: MediaRef[] | Record<string, unknown> | null;
+  image?: unknown;
+  media?: unknown;
 }
 
 const props = withDefaults(defineProps<T3CeRcgTextimage>(), {
@@ -49,6 +49,24 @@ const props = withDefaults(defineProps<T3CeRcgTextimage>(), {
   orientation: 'left',
   image: () => [] as MediaRef[],
   media: () => [] as MediaRef[]
+});
+
+const normalizedImageList = computed<MediaRef[]>(() => {
+  return Array.isArray(props.image)
+    ? props.image as MediaRef[]
+    : [];
+});
+
+const normalizedMediaList = computed<MediaRef[]>(() => {
+  return Array.isArray(props.media)
+    ? props.media as MediaRef[]
+    : [];
+});
+
+const normalizedMediaRecord = computed<Record<string, unknown> | null>(() => {
+  return props.media && typeof props.media === 'object' && !Array.isArray(props.media)
+    ? props.media as Record<string, unknown>
+    : null;
 });
 
 const resolveColor = (value?: ContentButton['color_select']): UiButtonColor => {
@@ -116,18 +134,18 @@ const normalizedButtons = computed(() => {
 const hasButtons = computed(() => normalizedButtons.value.length > 0);
 
 const displayImage = computed<DisplayImage | null>(() => {
-  if (Array.isArray(props.media)) {
-    return pickFirstDisplayImage(props.media) || pickFirstDisplayImage(props.image);
+  if (normalizedMediaList.value.length > 0) {
+    return pickFirstDisplayImage(normalizedMediaList.value) || pickFirstDisplayImage(normalizedImageList.value);
   }
 
-  if (props.media && typeof props.media === 'object') {
-    const parsed = toDisplayImage(props.media);
+  if (normalizedMediaRecord.value) {
+    const parsed = toDisplayImage(normalizedMediaRecord.value);
     if (parsed) {
       return parsed;
     }
   }
 
-  return pickFirstDisplayImage(props.image);
+  return pickFirstDisplayImage(normalizedImageList.value);
 });
 
 const imageColumnClass = computed(() => {
@@ -194,7 +212,7 @@ const imageCreator = computed(() => {
             v-if="imageCreator"
             class="pointer-events-none absolute bottom-0 right-0 inline-flex items-center gap-1 rounded-tl-md bg-black/65 px-3 py-2 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
           >
-            <UIcon name="i-lucide-copyright" class="size-3.5 shrink-0" />
+            <span class="text-xs leading-none">©</span>
             <span>{{ imageCreator }}</span>
           </div>
         </div>

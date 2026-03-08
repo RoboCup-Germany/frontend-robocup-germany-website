@@ -69,7 +69,7 @@ const resolvedFetchPriority = computed(() => {
       v-if="creator"
       class="pointer-events-none absolute bottom-0 right-0 inline-flex items-center gap-1 bg-black/65 px-3 py-2 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 rounded-tl-md"
     >
-      <UIcon name="i-lucide-copyright" class="size-3.5 shrink-0" />
+      <span class="text-xs leading-none">©</span>
       <span>{{ creator }}</span>
     </div>
   </div>

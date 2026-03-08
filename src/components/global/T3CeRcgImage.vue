@@ -10,7 +10,7 @@ defineOptions({
 interface T3CeRcgImage extends T3CeBaseProps
 {
   header_layout?: number | string;
-  customimage_desktop?: ImageRef[];
+  customimage_desktop?: unknown;
 }
 
 const _props = withDefaults(defineProps<T3CeRcgImage>(), {
@@ -18,8 +18,14 @@ const _props = withDefaults(defineProps<T3CeRcgImage>(), {
   customimage_desktop: null
 });
 
+const normalizedDesktopImages = computed<ImageRef[]>(() => {
+  return Array.isArray(_props.customimage_desktop)
+    ? _props.customimage_desktop as ImageRef[]
+    : [];
+});
+
 const displayImage = computed(() => {
-  return pickFirstDisplayImage(_props.customimage_desktop);
+  return pickFirstDisplayImage(normalizedDesktopImages.value);
 });
 
 const imageDescription = computed(() => {
@@ -77,7 +83,7 @@ const imageCreator = computed(() => {
           v-if="imageCreator"
           class="pointer-events-none absolute bottom-0 right-0 inline-flex items-center gap-1 rounded-tl-md bg-black/65 px-3 py-2 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
         >
-          <UIcon name="i-lucide-copyright" class="size-3.5 shrink-0" />
+          <span class="text-xs leading-none">©</span>
           <span>{{ imageCreator }}</span>
         </div>
       </div>

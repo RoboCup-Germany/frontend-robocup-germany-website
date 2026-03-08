@@ -2,32 +2,18 @@
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
 import SectionHeader from '~/components/basic/SectionHeader.vue';
+import { extractArrayFromUnknown, toDisplayImage } from '~/utils/media-image';
 
 defineOptions({
   inheritAttrs: false
 });
-
-interface CropVariant {
-  publicUrl?: string | null;
-  url?: string | null;
-}
-
-interface ContactImage extends MediaRef {
-  alternative?: string | null;
-  description?: string | null;
-  cropVariants?: {
-    default?: CropVariant;
-    small?: CropVariant;
-    [key: string]: CropVariant | undefined;
-  };
-}
 
 interface ContactPerson {
   degree?: string;
   firstname?: string;
   lastname?: string;
   function?: Array<string | { title?: string; label?: string; value?: string }>;
-  image?: ContactImage[] | null;
+  image?: unknown;
   mail?: string;
   phone?: LinkRef | null;
 }
@@ -35,7 +21,7 @@ interface ContactPerson {
 interface T3CeRcgContactlist extends T3CeBaseProps {
   header?: string;
   subheader?: string;
-  contactlist?: ContactPerson[];
+  contactlist?: unknown;
   space_before_class?: string;
   space_after_class?: string;
 }
@@ -86,23 +72,24 @@ const normalizeFunctions = (entry?: ContactPerson['function']): string[] => {
     .filter(Boolean);
 };
 
+const normalizedContactList = computed<ContactPerson[]>(() => {
+  return Array.isArray(props.contactlist)
+    ? props.contactlist as ContactPerson[]
+    : [];
+});
+
 const contactCards = computed<ContactCard[]>(() => {
-  return (props.contactlist ?? []).map((contact, index) => {
+  return normalizedContactList.value.map((contact, index) => {
     const firstname = contact.firstname?.trim() || '';
     const lastname = contact.lastname?.trim() || '';
     const degree = contact.degree?.trim() || '';
     const fullName = [firstname, lastname].filter(Boolean).join(' ').trim() || `Kontakt ${index + 1}`;
-    const portrait = (contact.image ?? []).find((item) => item?.publicUrl || item?.cropVariants?.default?.publicUrl) || null;
-    const imageUrlDefault = portrait?.cropVariants?.default?.publicUrl
-      || portrait?.cropVariants?.default?.url
-      || portrait?.publicUrl
-      || portrait?.url
-      || undefined;
-    const imageUrlSmall = portrait?.cropVariants?.small?.publicUrl
-      || portrait?.cropVariants?.small?.url
-      || imageUrlDefault;
+    const portrait = extractArrayFromUnknown(contact.image)
+      .map((item) => toDisplayImage(item))
+      .find((item) => item?.urlDefault || item?.urlSmall) || null;
+    const imageUrlDefault = portrait?.urlDefault || portrait?.urlSmall || undefined;
+    const imageUrlSmall = portrait?.urlSmall || imageUrlDefault;
     const imageAlt = portrait?.alt?.trim()
-      || portrait?.alternative?.trim()
       || portrait?.description?.trim()
       || `Porträt von ${fullName}`;
 
