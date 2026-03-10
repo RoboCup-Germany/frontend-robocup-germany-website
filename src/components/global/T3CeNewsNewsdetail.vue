@@ -31,6 +31,18 @@ type NewsDetail = {
   canonical?: string;
 };
 
+type SocialChannel =
+  | 'instagram'
+  | 'youtube'
+  | 'flickr'
+  | 'tiktok'
+  | 'linkedin'
+  | 'twitter'
+  | 'whatsapp'
+  | 'bluesky';
+
+type SocialUrls = Partial<Record<SocialChannel, string>>;
+
 type DetailData = {
   detail?: NewsDetail;
   contentElements?: unknown[];
@@ -46,6 +58,54 @@ const props = withDefaults(defineProps<T3CeNewsNewsdetailProps>(), {
   data: undefined,
   detail: undefined,
   contentElements: () => []
+});
+
+const { initialData, pageData } = useT3Api();
+const route = useRoute();
+
+const queryFlagEnabled = (value: unknown): boolean => {
+  if (Array.isArray(value)) {
+    return value.some(queryFlagEnabled);
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true';
+  }
+
+  return value === 1 || value === true;
+};
+
+const isDownloadView = computed(() => queryFlagEnabled(route.query.download));
+const isEnglishRoute = computed(() => route.path.startsWith('/en'));
+
+const downloadUrl = computed(() => {
+  const query = new URLSearchParams();
+
+  Object.entries(route.query).forEach(([key, value]) => {
+    if (key === 'download' || key === 'print') {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((entry) => {
+        if (entry != null) {
+          query.append(key, String(entry));
+        }
+      });
+      return;
+    }
+
+    if (value != null) {
+      query.set(key, String(value));
+    }
+  });
+
+  query.set('download', '1');
+  query.set('print', '1');
+
+  const search = query.toString();
+  return search ? `${route.path}?${search}` : route.path;
 });
 
 const resolvedDetail = computed<NewsDetail | null>(() => {
@@ -131,11 +191,62 @@ const backLinkLabel = computed(() => {
   return resolvedDetail.value?.backLink?.trim() || 'Zurück zur News-Übersicht';
 });
 
+const downloadLabel = computed(() => {
+  return isEnglishRoute.value
+    ? 'Save/print press release'
+    : 'Pressemitteilung speichern/drucken';
+});
+
+const socialChannelConfig: Array<{ key: SocialChannel; label: string; icon: string }> = [
+  { key: 'instagram', label: 'Instagram', icon: 'i-simple-icons-instagram' },
+  { key: 'youtube', label: 'YouTube', icon: 'i-simple-icons-youtube' },
+  { key: 'flickr', label: 'Flickr', icon: 'i-simple-icons-flickr' },
+  { key: 'tiktok', label: 'TikTok', icon: 'i-simple-icons-tiktok' },
+  { key: 'linkedin', label: 'LinkedIn', icon: 'i-simple-icons-linkedin' },
+  { key: 'twitter', label: 'Twitter', icon: 'i-simple-icons-twitter' },
+  { key: 'whatsapp', label: 'WhatsApp', icon: 'i-simple-icons-whatsapp' },
+  { key: 'bluesky', label: 'Bluesky', icon: 'i-simple-icons-bluesky' }
+];
+
+const socialUrls = computed<SocialUrls>(() => {
+  type GlobalConfigSocials = { socials?: SocialUrls; socialUrls?: SocialUrls };
+
+  const pageGlobalConfig = pageData.value?.globalConfig as GlobalConfigSocials | undefined;
+  const initialGlobalConfig = initialData.value?.globalConfig as GlobalConfigSocials | undefined;
+
+  return (
+    pageGlobalConfig?.socials
+    ?? pageGlobalConfig?.socialUrls
+    ?? initialGlobalConfig?.socials
+    ?? initialGlobalConfig?.socialUrls
+    ?? {}
+  );
+});
+
+const socialLinks = computed(() => {
+  return socialChannelConfig
+    .map((channel) => {
+      const href = socialUrls.value[channel.key]?.trim();
+      if (!href) return null;
+      return { ...channel, href };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+});
+
 </script>
 
 <template>
   <section class="pb-12 lg:pb-20">
     <UContainer>
+      <header v-if="isDownloadView && resolvedDetail" class="mb-8 border-b border-black/15 pb-6">
+        <h1 v-if="resolvedDetail.title" class="text-3xl font-bold tracking-tight text-black lg:text-5xl">
+          {{ resolvedDetail.title }}
+        </h1>
+        <p v-if="resolvedDetail.teaser" class="mt-4 text-lg leading-relaxed text-black/75">
+          {{ resolvedDetail.teaser }}
+        </p>
+      </header>
+
       <p v-if="formattedDate" class="mb-6 text-sm uppercase tracking-wide text-black/70">
         {{ formattedDate }}
       </p>
@@ -168,10 +279,36 @@ const backLinkLabel = computed(() => {
         <T3Renderer :content="nestedContentElements" />
       </div>
 
-      <div class="mt-10 border-t border-black/15 pt-6">
-        <NuxtLink to="/news" class="font-semibold text-primary hover:underline">
-          {{ backLinkLabel }}
-        </NuxtLink>
+      <div v-if="!isDownloadView" class="mt-10 border-t border-black/15 pt-6">
+        <div class="flex flex-wrap items-center justify-start gap-x-6 gap-y-4">
+          <NuxtLink to="/news" class="font-semibold text-primary hover:underline">
+            {{ backLinkLabel }}
+          </NuxtLink>
+
+          <a
+            :href="downloadUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center rounded-sm border-2 border-primary px-5 py-3 font-semibold text-primary transition hover:bg-primary/5"
+          >
+            {{ downloadLabel }}
+          </a>
+
+          <div v-if="socialLinks.length" class="flex flex-wrap items-center justify-start gap-2">
+            <a
+              v-for="channel in socialLinks"
+              :key="channel.key"
+              :href="channel.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="`${channel.label} öffnen`"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white transition-colors hover:bg-primary/90"
+            >
+              <UIcon :name="channel.icon" class="h-4 w-4" />
+              <span class="sr-only">{{ channel.label }}</span>
+            </a>
+          </div>
+        </div>
       </div>
     </UContainer>
   </section>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, onMounted } from 'vue';
 
 const requestUrl = useRequestURL();
 const safeFullPath = `${requestUrl.pathname}${requestUrl.search || ''}` || '/';
@@ -10,8 +10,59 @@ const route = (
     : { fullPath: safeFullPath, query: {} }
 ) as ReturnType<typeof useRoute>;
 
+const queryFlagEnabled = (value: unknown): boolean => {
+  if (Array.isArray(value)) {
+    return value.some(queryFlagEnabled);
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === '1' || normalized === 'true';
+  }
+
+  return value === 1 || value === true;
+};
+
+const isDownloadView = computed(() => queryFlagEnabled(route.query.download));
+const shouldAutoPrint = computed(() => queryFlagEnabled(route.query.print));
+
+const cmsQuery = computed(() => {
+  const query = { ...(route.query || {}) } as Record<string, unknown>;
+  delete query.download;
+  delete query.print;
+  return query;
+});
+
+const cmsFullPath = computed(() => {
+  const query = new URLSearchParams();
+
+  Object.entries(cmsQuery.value).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((entry) => {
+        if (entry != null) {
+          query.append(key, String(entry));
+        }
+      });
+      return;
+    }
+
+    if (value != null) {
+      query.set(key, String(value));
+    }
+  });
+
+  const search = query.toString();
+  return search ? `${route.path}?${search}` : route.path;
+});
+
+const cmsRoute = computed(() => ({
+  ...route,
+  fullPath: cmsFullPath.value,
+  query: cmsQuery.value
+}));
+
 const { headData, pageData, backendLayout } = await useT3Page({
-  route,
+  route: cmsRoute.value,
   fetchOnInit: true
 })
 const { initialData } = useT3Api()
@@ -270,17 +321,23 @@ const matchingAnnouncement = computed<AnnouncementBar | null>(() => {
   }) || null;
 });
 
-definePageMeta({
-  layout: 'default'
-})
+onMounted(async () => {
+  if (!isDownloadView.value || !shouldAutoPrint.value) {
+    return;
+  }
+
+  await nextTick();
+  window.print();
+});
 </script>
 
 <template>
   <PageAnnouncementBar
-    v-if="matchingAnnouncement"
+    v-if="matchingAnnouncement && !isDownloadView"
     :announcement="matchingAnnouncement"
   />
   <PageHero
+    v-if="!isDownloadView"
     :title="pageTitle"
     :subtitle="pageSubtitle"
     :media="pageMedia"

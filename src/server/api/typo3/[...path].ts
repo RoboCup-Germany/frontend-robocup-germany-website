@@ -3,6 +3,19 @@ import { fetchWithWatchedCache } from '~/server/utils/upstream-cache'
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
 const cacheControl = 'public, max-age=0, s-maxage=0, must-revalidate'
+const frontendOnlyParams = new Set(['download', 'print'])
+
+const sanitizeSearch = (search: string) => {
+  const params = new URLSearchParams(search)
+
+  frontendOnlyParams.forEach((param) => {
+    params.delete(param)
+  })
+
+  const serialized = params.toString()
+  return serialized ? `?${serialized}` : ''
+}
+
 const toErrorMeta = (error: unknown) => {
   const source = error as {
     statusCode?: number
@@ -36,7 +49,7 @@ export default defineEventHandler(async (event) => {
   const origin = trimTrailingSlash(config.typo3ApiOrigin as string)
   const path = event.context.params?.path ?? ''
   const requestUrl = getRequestURL(event)
-  const query = requestUrl.search || ''
+  const query = sanitizeSearch(requestUrl.search || '')
 
   const normalizedPath = Array.isArray(path) ? path.join('/') : path
   const locales = Array.isArray(config.public?.typo3?.i18n?.locales)

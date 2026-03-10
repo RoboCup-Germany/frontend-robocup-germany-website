@@ -70,6 +70,23 @@
 	--ui-text: var(--color-black);
 }
 
+@page {
+	size: A4 portrait;
+	margin: 14mm 12mm 16mm;
+}
+
+@media print {
+	html,
+	body {
+		background: var(--color-white) !important;
+	}
+
+	body {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+}
+
 /* Cookie banner: align button shape with Nuxt UI button style (rounded-full) */
 .cookieControl .cookieControl__Bar button,
 .cookieControl .cookieControl__Modal button {
