@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NuxtImg } from '#components';
 import type {T3CeBaseProps} from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
 import { pickFirstDisplayImage } from '~/utils/media-image';

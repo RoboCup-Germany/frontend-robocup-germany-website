@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NuxtPicture } from '#components';
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed, ref } from 'vue';
 

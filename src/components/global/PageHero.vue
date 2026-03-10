@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NuxtPicture } from '#components';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Button from '~/components/basic/Button.vue';
 import { toDisplayImage } from '~/utils/media-image';

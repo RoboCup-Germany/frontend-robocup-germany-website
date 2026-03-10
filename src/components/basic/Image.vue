@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NuxtPicture } from '#components';
 import { computed } from 'vue';
 import type { DisplayImage } from '~/utils/media-image';
 

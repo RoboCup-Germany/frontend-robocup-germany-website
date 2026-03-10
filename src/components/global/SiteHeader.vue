@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NuxtPicture } from '#components'
 type NavItem = {
   title?: string
   link?: string

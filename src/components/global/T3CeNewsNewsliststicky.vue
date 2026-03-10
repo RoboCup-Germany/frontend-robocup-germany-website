@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NuxtPicture } from '#components'
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import SectionHeader from '~/components/basic/SectionHeader.vue'
