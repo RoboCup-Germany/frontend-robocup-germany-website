@@ -34,6 +34,8 @@ export interface ScheduleSlot {
 export interface SchedulePlan {
   uid?: number;
   title?: string;
+  slotGroupTitle?: string;
+  slot_group_title?: string;
   day?: string;
   planType?: string;
   venue?: string;
@@ -48,6 +50,7 @@ export interface SchedulePlan {
 
 export interface SchedulePayload {
   sourcePid?: number;
+  subheader?: string;
   selectedCategory?: ScheduleEntity;
   selectedLeague?: ScheduleEntity;
   filters?: ScheduleFilters;
