@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 const route = useRoute()
 const cookieLocale = computed(() => (route.path.startsWith('/en') ? 'en' : 'de'))
 </script>

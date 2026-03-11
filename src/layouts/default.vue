@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+
+const nuxtApp = useNuxtApp()
 const route = useRoute()
 
 const queryFlagEnabled = (value: unknown): boolean => {
@@ -15,11 +18,59 @@ const queryFlagEnabled = (value: unknown): boolean => {
 }
 
 const hideChrome = computed(() => queryFlagEnabled(route.query.download))
+const isClient = ref(false)
+const isApiLoading = ref(false)
+const isDomReady = ref(false)
+
+const updateDomReady = () => {
+  if (import.meta.client) {
+    isDomReady.value = document.readyState === 'complete'
+  }
+}
+
+const onDomLoaded = () => {
+  isDomReady.value = true
+}
+
+if (import.meta.client) {
+  isApiLoading.value = Boolean(nuxtApp.isHydrating)
+
+  nuxtApp.hook('page:start', () => {
+    isApiLoading.value = true
+  })
+  nuxtApp.hook('page:finish', () => {
+    isApiLoading.value = false
+  })
+}
+
+onMounted(() => {
+  isClient.value = true
+  updateDomReady()
+  window.addEventListener('load', onDomLoaded, { once: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('load', onDomLoaded)
+})
+
+const showBodyLoader = computed(() => isClient.value && (isApiLoading.value || !isDomReady.value))
 </script>
 
 <template>
   <SiteHeader v-if="!hideChrome" />
-  <slot/>
+  <main class="layout-body">
+    <slot />
+    <Transition name="body-loader-fade">
+      <div
+        v-if="showBodyLoader"
+        class="body-loader body-loader--overlay"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div class="body-loader__spinner" aria-hidden="true" />
+      </div>
+    </Transition>
+  </main>
   <img
     v-if="!hideChrome"
     src="/assets/RCgermany_element2.webp"
@@ -35,5 +86,48 @@ const hideChrome = computed(() => queryFlagEnabled(route.query.download))
 </template>
 
 <style scoped>
+.layout-body {
+  position: relative;
+}
+
+.body-loader {
+  min-height: 42vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.body-loader--overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgb(255 255 255 / 82%);
+  backdrop-filter: blur(2px);
+}
+
+.body-loader__spinner {
+  width: 56px;
+  height: 56px;
+  border: 5px solid rgb(0 96 255 / 25%);
+  border-top-color: #0060ff;
+  border-radius: 9999px;
+  animation: body-loader-spin 0.8s linear infinite;
+}
+
+@keyframes body-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.body-loader-fade-enter-active,
+.body-loader-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.body-loader-fade-enter-from,
+.body-loader-fade-leave-to {
+  opacity: 0;
+}
 
 </style>
