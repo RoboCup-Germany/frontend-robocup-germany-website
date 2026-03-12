@@ -22,6 +22,10 @@ export interface ScheduleSlot {
   teamA?: string;
   teamB?: string;
   teamSingle?: string;
+  task?: string;
+  result?: string;
+  resultTeamA?: string;
+  resultTeamB?: string;
   participants?: string;
   durationMinutes?: number;
   breakAfterMinutes?: number;
@@ -36,6 +40,8 @@ export interface SchedulePlan {
   title?: string;
   slotGroupTitle?: string;
   slot_group_title?: string;
+  matchType?: string;
+  match_type?: string;
   day?: string;
   planType?: string;
   venue?: string;
