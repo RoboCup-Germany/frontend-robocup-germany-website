@@ -50,6 +50,7 @@ interface FilterState {
   leagueUid: string;
   day: string;
   sort: string;
+  hidePast: boolean;
 }
 
 const ALLOWED_PAGE_SIZES = [15, 30, 50, 100] as const;
@@ -77,7 +78,7 @@ const labels = computed(() => {
       teamPlaceholder: 'Enter team name',
       category: 'Category',
       league: 'League',
-      day: 'Day',
+      day: 'Date',
       sort: 'Sort by',
       all: 'All',
       filter: 'Filter',
@@ -92,6 +93,8 @@ const labels = computed(() => {
       previous: 'Previous',
       next: 'Next',
       pageSize: 'Page size',
+      hidePast: 'Hide past slots',
+      showPast: 'Show past slots',
       teamColumn: 'Team / Match',
       suggestionLoading: 'Loading suggestions...',
       suggestionEmpty: 'No teams found.',
@@ -113,7 +116,7 @@ const labels = computed(() => {
     teamPlaceholder: 'Teamname eingeben',
     category: 'Kategorie',
     league: 'Liga',
-    day: 'Tag',
+    day: 'Datum',
     sort: 'Sortierung',
     all: 'Alle',
     filter: 'Filtern',
@@ -128,6 +131,8 @@ const labels = computed(() => {
     previous: 'Zurueck',
     next: 'Weiter',
     pageSize: 'Seitengroesse',
+    hidePast: 'Vergangene Zeiten ausblenden',
+    showPast: 'Vergangene Zeiten anzeigen',
     teamColumn: 'Team / Match',
     suggestionLoading: 'Vorschlaege werden geladen...',
     suggestionEmpty: 'Keine Teams gefunden.',
@@ -150,6 +155,7 @@ const selectedCategoryUid = ref('');
 const selectedLeagueUid = ref('');
 const selectedDay = ref('');
 const selectedSort = ref('');
+const hidePast = ref(true);
 const lastAppliedFilterState = ref<FilterState | null>(null);
 
 const normalizedTeamInput = computed(() => selectedTeam.value.trim());
@@ -226,6 +232,7 @@ const formatDay = (dayValue: string) => {
 const getFilterStateFromPayload = (payload: ScheduleApiPayload | null): FilterState => {
   const requestFilters = payload?.filters?.request;
   const appliedFilters = payload?.filters?.applied;
+  const hidePastValue = requestFilters?.hidePast ?? appliedFilters?.hidePast;
 
   return {
     team: String(requestFilters?.team ?? appliedFilters?.team ?? '').trim(),
@@ -236,7 +243,8 @@ const getFilterStateFromPayload = (payload: ScheduleApiPayload | null): FilterSt
       ? String(requestFilters.leagueUid)
       : (appliedFilters?.leagueUid != null ? String(appliedFilters.leagueUid) : ''),
     day: String(requestFilters?.day ?? appliedFilters?.day ?? '').trim(),
-    sort: String(requestFilters?.sort ?? appliedFilters?.sort ?? '').trim()
+    sort: String(requestFilters?.sort ?? appliedFilters?.sort ?? '').trim(),
+    hidePast: hidePastValue === null || hidePastValue === undefined ? true : Boolean(hidePastValue)
   };
 };
 
@@ -247,13 +255,15 @@ const applyFilterState = (state: FilterState) => {
   selectedLeagueUid.value = state.leagueUid;
   selectedDay.value = state.day;
   selectedSort.value = state.sort;
+  hidePast.value = state.hidePast;
 };
 const getCurrentFilterState = (): FilterState => ({
   team: normalizedTeamInput.value,
   categoryUid: selectedCategoryUid.value,
   leagueUid: selectedLeagueUid.value,
   day: selectedDay.value,
-  sort: selectedSort.value
+  sort: selectedSort.value,
+  hidePast: hidePast.value
 });
 const isSameFilterState = (a: FilterState | null, b: FilterState | null) => {
   if (!a || !b) {
@@ -264,7 +274,8 @@ const isSameFilterState = (a: FilterState | null, b: FilterState | null) => {
     && a.categoryUid === b.categoryUid
     && a.leagueUid === b.leagueUid
     && a.day === b.day
-    && a.sort === b.sort;
+    && a.sort === b.sort
+    && a.hidePast === b.hidePast;
 };
 const hasPendingFilterChanges = computed(() => !isSameFilterState(lastAppliedFilterState.value, getCurrentFilterState()));
 
@@ -295,8 +306,22 @@ const dayOptions = computed(() => {
   }
 
   return Array.from(unique)
-    .sort((a, b) => a.localeCompare(b))
+    .sort((a, b) => b.localeCompare(a))
     .map((value) => ({ value, label: formatDay(value) }));
+});
+
+const displayedEntries = computed(() => {
+  return [...entries.value].sort((a, b) => {
+    const dayA = normalizeDay(a.day);
+    const dayB = normalizeDay(b.day);
+    if (dayA !== dayB) {
+      return dayB.localeCompare(dayA);
+    }
+
+    const startA = String(a.startTime || '');
+    const startB = String(b.startTime || '');
+    return startA.localeCompare(startB);
+  });
 });
 
 const categoryOptions = computed(() => {
@@ -349,6 +374,8 @@ const activeFilterPills = computed(() => {
     const sortLabel = sortLabelMap.value.get(selectedSort.value) || selectedSort.value;
     pills.push(`${labels.value.sort}: ${sortLabel}`);
   }
+
+  pills.push(hidePast.value ? labels.value.hidePast : labels.value.showPast);
 
   return pills;
 });
@@ -468,6 +495,10 @@ const buildQueryParams = ({
     query.sort = selectedSort.value;
   }
 
+  if (type === '8900') {
+    query.hidePast = hidePast.value ? '1' : '0';
+  }
+
   const showAllPlans = initialPayload.value?.filters?.applied?.showAllPlans
     ?? renderedPayload.value?.filters?.applied?.showAllPlans;
   if (includeShowAllPlans && showAllPlans) {
@@ -570,7 +601,7 @@ watch([selectedCategoryUid, selectedLeagueUid, selectedDay], () => {
   }
 });
 
-watch([selectedTeam, selectedCategoryUid, selectedLeagueUid, selectedDay, selectedSort], () => {
+watch([selectedTeam, selectedCategoryUid, selectedLeagueUid, selectedDay, selectedSort, hidePast], () => {
   currentPage.value = 1;
 });
 
@@ -871,6 +902,19 @@ onBeforeUnmount(() => {
               <option v-for="sortOption in sortOptions" :key="sortOption.value" :value="sortOption.value">{{ sortOption.label }}</option>
             </select>
           </div>
+
+          <div class="w-full md:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.75rem)]">
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-black/70">{{ labels.hidePast }}</label>
+            <label class="flex items-center gap-2 rounded-lg border border-primary/30 bg-white px-3 py-2 text-sm text-black">
+              <input
+                v-model="hidePast"
+                type="checkbox"
+                :disabled="isLoading"
+                class="h-4 w-4 accent-primary disabled:cursor-wait"
+              >
+              <span>{{ labels.hidePast }}</span>
+            </label>
+          </div>
         </div>
 
         <div class="mt-3 flex flex-wrap items-center gap-2">
@@ -988,7 +1032,7 @@ onBeforeUnmount(() => {
                 </tr>
               </thead>
               <tbody class="divide-y divide-primary/15">
-                <tr v-for="entry in entries" :key="entry.entryId" class="text-black/90">
+                <tr v-for="entry in displayedEntries" :key="entry.entryId" class="text-black/90">
                   <td class="px-3 py-2 whitespace-nowrap lg:px-4">{{ formatDay(normalizeDay(entry.day)) || '-' }}</td>
                   <td class="px-3 py-2 whitespace-nowrap lg:px-4">{{ entry.startTime || '--:--' }} - {{ entry.endTime || '--:--' }}</td>
                   <td class="px-3 py-2 lg:px-4">{{ teamLabel(entry) }}</td>

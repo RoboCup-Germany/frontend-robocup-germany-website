@@ -11,6 +11,7 @@ export interface ScheduleApiAppliedFilters {
   categoryUid?: number | null;
   leagueUid?: number | null;
   showAllPlans?: boolean | null;
+  hidePast?: boolean | null;
 }
 
 export interface ScheduleApiAvailableFilters {
