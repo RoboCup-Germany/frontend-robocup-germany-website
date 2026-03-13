@@ -23,6 +23,7 @@ const normalizePublicProxyBaseUrl = (value: string | undefined): string => {
 
 const typo3ProxyBaseUrl = normalizePublicProxyBaseUrl(process.env.NUXT_PUBLIC_TYPO3_PROXY_BASE_URL)
 const typo3BackendOrigin = process.env.NUXT_TYPO3_API_ORIGIN ?? process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? 'http://rc-new-website.ddev.site'
+const typo3SiteBase = String(process.env.TYPO3_SITE_BASE ?? '').trim()
 const flickrApiKey = process.env.NUXT_FLICKR_API_KEY ?? ''
 const flickrUserId = process.env.NUXT_FLICKR_USER_ID ?? '200186101@N05'
 const gtmId = process.env.NUXT_PUBLIC_GTM_ID ?? 'GTM-KLQ9QQCX'
@@ -223,6 +224,7 @@ export default defineNuxtConfig({
         },
         public: {
             gtmId,
+            typo3SiteBase,
             typo3: {
                 api: {
                     baseUrl: typo3ProxyBaseUrl,

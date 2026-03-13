@@ -16,7 +16,7 @@ const props = defineProps({
   frame: { type: Boolean, required: false, default: true }
 });
 
-const itemRefs = ref<HTMLElement[]>([]);
+const itemRefs = ref<Array<HTMLElement | undefined>>([]);
 const mediaQuery = ref<MediaQueryList | null>(null);
 const reduceMotion = ref(false);
 const visibleIndexes = ref(new Set<number>());
@@ -33,7 +33,9 @@ const isFadeOnlyType = (type?: string) => {
     || normalized === 'flickr_gallery';
 };
 
-const isVisible = (index: number) => visibleIndexes.value.has(index);
+const isScheduleType = (type?: string) => String(type || '').toLowerCase().includes('schedule');
+
+const isVisible = (index: number, type?: string) => isScheduleType(type) || visibleIndexes.value.has(index);
 
 const setItemRef = (el: Element | null, index: number) => {
   if (el instanceof HTMLElement) {
@@ -44,7 +46,7 @@ const setItemRef = (el: Element | null, index: number) => {
   }
 
   if (!el) {
-    delete itemRefs.value[index];
+    itemRefs.value[index] = undefined;
   }
 };
 
@@ -195,10 +197,12 @@ onBeforeUnmount(() => {
       :ref="(el) => setItemRef(el, index)"
       class="t3-reveal-item"
       :class="[
-        isFadeOnlyType(component.type)
+        isScheduleType(component.type)
+          ? 'no-reveal'
+          : isFadeOnlyType(component.type)
           ? 'reveal-fade-only'
           : (index % 2 === 0 ? 'reveal-from-left' : 'reveal-from-right'),
-        isVisible(index) ? 'is-visible' : ''
+        isVisible(index, component.type) ? 'is-visible' : ''
       ]"
     >
       <component
@@ -236,6 +240,12 @@ onBeforeUnmount(() => {
 
 .t3-reveal-item.reveal-fade-only {
   transform: translate3d(0, 16px, 0);
+}
+
+.t3-reveal-item.no-reveal {
+  opacity: 1;
+  transform: none;
+  transition: none;
 }
 
 .t3-reveal-item.is-visible {
