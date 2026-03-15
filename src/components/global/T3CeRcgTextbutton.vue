@@ -135,7 +135,7 @@ const hasBackgroundElement = computed(() => Number(props.background) === 1);
           :subheader="subheader"
           subheader-class="mb-4 text-base italic uppercase tracking-wide text-black font-semibold"
         />
-        <div v-if="bodytext" class="mb-4">
+        <div v-if="bodytext" class="mb-4 w-full">
           <T3HtmlParser class="rte-content" :content="bodytext" />
         </div>
 

@@ -209,76 +209,137 @@
 		margin-bottom: var(--spacing-para);
 	}
 
-	.rte-content ul li,
-	ul:not([class]) li {
-		position: relative;
-		padding-left: 1.5rem;
-		font-size: var(--text-base);
-		line-height: var(--leading-relaxed);
-		margin-bottom: 0.25em;
-	}
-
-	.rte-content ul li:last-child,
-	ul:not([class]) li:last-child {
+	.rte-content ul ul,
+	.rte-content ul ol,
+	.rte-content ol ul,
+	.rte-content ol ol,
+	ul:not([class]) ul,
+	ul:not([class]) ol,
+	ol:not([class]) ul,
+	ol:not([class]) ol {
+		margin-top: 0.4rem;
 		margin-bottom: 0;
 	}
 
-	.rte-content ul li::before,
-	ul:not([class]) li::before {
+	.rte-content ul > li,
+	ul:not([class]) > li {
+			position: relative;
+			padding-left: 1.5rem;
+			font-size: var(--text-base);
+			line-height: var(--leading-relaxed);
+			margin-bottom: 0.25em;
+	}
+
+	.rte-content ul > li:last-child,
+	ul:not([class]) > li:last-child {
+			margin-bottom: 0;
+	}
+
+	.rte-content ul > li::before,
+	ul:not([class]) > li::before {
 		content: "";
 		position: absolute;
 		left: 0;
-		top: 0.6em;
-		width: 0.65rem;
-		height: 0.65rem;
-		transform: translateY(-50%) rotate(-90deg);
-		background-repeat: no-repeat;
+			top: 0.6em;
+			width: 0.65rem;
+			height: 0.65rem;
+			transform: translateY(-50%) rotate(-90deg);
+			background-repeat: no-repeat;
 		background-size: contain;
 		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1080 1080' fill='none'%3E%3Cpolyline points='841.93 389.03 540 690.97 238.07 389.03' stroke='%230060ff' stroke-width='110' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 	}
 
-	.rte-content ol,
-	ol:not([class]) {
-		padding-left: 1.5rem;
-		margin-bottom: var(--spacing-para);
+	.rte-content ul ul,
+	.rte-content ol ul,
+	ul:not([class]) ul,
+	ol:not([class]) ul {
+		padding-left: 1.35rem;
 	}
 
-	.rte-content ol li,
-	ol:not([class]) li {
+	.rte-content ul ul > li::before,
+	.rte-content ol ul > li::before,
+	ul:not([class]) ul > li::before,
+	ol:not([class]) ul > li::before {
+		top: 0.25em;
+		width: 0.9rem;
+		height: 0.9rem;
+		transform: none;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none'%3E%3Cpath d='M14 10v22c0 7.732 6.268 14 14 14h22' stroke='%230060ff' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M40 36l10 10-10 10' stroke='%230060ff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	}
+
+	.rte-content ol,
+	ol:not([class]) {
+		list-style: none;
+		padding-left: 0;
+		margin-bottom: var(--spacing-para);
+		counter-reset: rte-ordered-list;
+	}
+
+	.rte-content ol ol,
+	ol:not([class]) ol {
+		padding-left: 1.9rem;
+	}
+
+	.rte-content ol > li,
+	ol:not([class]) > li {
+		position: relative;
+		padding-left: 1.9rem;
 		font-size: var(--text-base);
 		line-height: var(--leading-relaxed);
 		margin-bottom: 0.25em;
+		counter-increment: rte-ordered-list;
 	}
 
-	.rte-content ol li:last-child,
-	ol:not([class]) li:last-child {
-		margin-bottom: 0;
+	.rte-content ol > li:last-child,
+	ol:not([class]) > li:last-child {
+			margin-bottom: 0;
 	}
 
-	.rte-content ol li::marker,
-	ol:not([class]) li::marker {
+	.rte-content ol > li::before,
+	ol:not([class]) > li::before {
+		content: counter(rte-ordered-list) ".";
+		position: absolute;
+		left: 0;
+		top: 0;
+		min-width: 1.4rem;
 		color: var(--color-primary);
 		font-weight: var(--font-weight-semibold);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.rte-content figure.table,
+	.rte-content figure:has(> table.contenttable) {
+		display: block !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		min-width: 100%;
+		margin: 0 0 var(--spacing-para);
 	}
 
 	.rte-content table,
+	.rte-content table.contenttable,
 	table:not([class]) {
 		width: 100%;
+		min-width: 100%;
 		border-collapse: collapse;
 		margin-bottom: var(--spacing-para);
 		font-size: var(--text-xs);
 		line-height: var(--leading-normal);
 		border-top: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-white));
 		border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-white));
+		background: var(--color-white);
 	}
 
 	.rte-content thead,
+	.rte-content table.contenttable thead,
 	table:not([class]) thead {
 		color: var(--color-black);
 	}
 
 	.rte-content th,
 	.rte-content td,
+	.rte-content table.contenttable th,
+	.rte-content table.contenttable td,
 	table:not([class]) th,
 	table:not([class]) td {
 		padding: 0.7rem 0.35rem;
@@ -286,13 +347,19 @@
 		border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 30%, var(--color-white));
 	}
 
-	.rte-content th,
-	table:not([class]) th {
+	.rte-content thead th,
+	.rte-content table.contenttable thead th,
+	table:not([class]) thead th {
+		position: sticky;
+		top: 0;
+		z-index: 1;
+		background: var(--color-white);
 		font-weight: var(--font-weight-semibold);
 		font-size: var(--text-sm);
 	}
 
 	.rte-content caption,
+	.rte-content table.contenttable caption,
 	table:not([class]) caption {
 		caption-side: bottom;
 		padding-top: 0.5rem;
@@ -302,17 +369,33 @@
 
 	@media (width >= theme(--breakpoint-md)) {
 		.rte-content table,
+		.rte-content table.contenttable,
 		table:not([class]) {
 			font-size: var(--text-sm);
 		}
 	}
 
 	@media (width < theme(--breakpoint-md)) {
-		.rte-content table,
-		table:not([class]) {
-			display: block;
+		.rte-content figure.table,
+		.rte-content figure:has(> table.contenttable) {
 			overflow-x: auto;
+			overflow-y: visible;
+			display: block !important;
+			width: 100% !important;
+			max-width: 100% !important;
+			min-width: 100%;
+			-webkit-overflow-scrolling: touch;
+			margin-bottom: var(--spacing-para);
+		}
+
+		.rte-content table,
+		.rte-content table.contenttable,
+		table:not([class]) {
+			display: table;
+			width: max-content;
+			min-width: 100%;
 			white-space: nowrap;
+			margin-bottom: 0;
 		}
 	}
 	
