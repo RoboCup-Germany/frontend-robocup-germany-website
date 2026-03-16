@@ -277,7 +277,7 @@ const socialLinks = computed(() => {
       </div>
 
       <div v-if="nestedContentElements.length > 0" class="mt-10">
-        <T3Renderer :content="nestedContentElements" />
+        <T3Renderer :content="nestedContentElements" :disable-reveal="true" />
       </div>
 
       <div v-if="!isDownloadView" class="mt-10 border-t border-black/15 pt-6">

@@ -13,7 +13,8 @@ type T3ContentElement = {
 
 const props = defineProps({
   content: { type: Array as () => T3ContentElement[], required: false, default: () => [] },
-  frame: { type: Boolean, required: false, default: true }
+  frame: { type: Boolean, required: false, default: true },
+  disableReveal: { type: Boolean, required: false, default: false }
 });
 
 const itemRefs = ref<Array<HTMLElement | undefined>>([]);
@@ -35,7 +36,7 @@ const isFadeOnlyType = (type?: string) => {
 
 const isScheduleType = (type?: string) => String(type || '').toLowerCase().includes('schedule');
 
-const isVisible = (index: number, type?: string) => isScheduleType(type) || visibleIndexes.value.has(index);
+const isVisible = (index: number, type?: string) => props.disableReveal || isScheduleType(type) || visibleIndexes.value.has(index);
 
 const setItemRef = (el: Element | null, index: number) => {
   if (el instanceof HTMLElement) {
@@ -97,6 +98,12 @@ const setupObserver = () => {
     return;
   }
 
+  if (props.disableReveal) {
+    revealAll();
+    observer?.disconnect();
+    return;
+  }
+
   observer?.disconnect();
   observer = new IntersectionObserver(
     (entries) => {
@@ -123,8 +130,8 @@ const setupObserver = () => {
       }
     },
     {
-      threshold: 0.12,
-      rootMargin: '0px 0px -8% 0px'
+      threshold: 0.04,
+      rootMargin: '0px 0px 15% 0px'
     }
   );
 
@@ -157,7 +164,7 @@ onMounted(async () => {
 
   await nextTick();
 
-  if (reduceMotion.value) {
+  if (reduceMotion.value || props.disableReveal) {
     revealAll();
     return;
   }
@@ -170,13 +177,35 @@ watch(
   async () => {
     visibleIndexes.value = new Set();
     await nextTick();
-    if (reduceMotion.value) {
+    if (reduceMotion.value || props.disableReveal) {
       revealAll();
       return;
     }
     setupObserver();
   },
   { deep: true }
+);
+
+watch(
+  () => props.disableReveal,
+  async (disabled) => {
+    await nextTick();
+
+    if (disabled) {
+      revealAll();
+      observer?.disconnect();
+      return;
+    }
+
+    visibleIndexes.value = new Set();
+
+    if (reduceMotion.value) {
+      revealAll();
+      return;
+    }
+
+    setupObserver();
+  }
 );
 
 onBeforeUnmount(() => {
