@@ -5,7 +5,7 @@
     "#internal/nuxt/paths": "./internal/nuxt-paths.mjs"
   },
   "private": true,
-  "version": "2.4.2",
+  "version": "2.4.3",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev --clear",
