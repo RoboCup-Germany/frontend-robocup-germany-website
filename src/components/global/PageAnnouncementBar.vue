@@ -123,6 +123,7 @@ const normalizedButtons = computed(() => {
 });
 
 const hasButtons = computed(() => normalizedButtons.value.length > 0);
+const hasMultipleButtons = computed(() => normalizedButtons.value.length > 1);
 const hasContent = computed(() => Boolean(props.announcement?.title || props.announcement?.description || hasButtons.value));
 </script>
 
@@ -164,7 +165,11 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
             </div>
           </div>
 
-          <div v-if="hasButtons" class="flex shrink-0 flex-wrap items-center gap-4 lg:justify-end">
+          <div
+            v-if="hasButtons"
+            class="flex shrink-0 gap-4"
+            :class="hasMultipleButtons ? 'flex-col items-start lg:items-end' : 'flex-row items-center'"
+          >
             <Button
               v-for="(button, index) in normalizedButtons"
               :key="`${button.label}-${index}`"
