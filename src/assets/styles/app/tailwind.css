@@ -68,6 +68,34 @@
     --ui-major: var(--color-major);
 	--ui-bg: var(--color-white);
 	--ui-text: var(--color-black);
+	--color-background: var(--color-white);
+	--color-text: var(--color-black);
+	--color-secondary: #004ecf;
+	--color-accent: #e8f0ff;
+	--button-background: var(--color-primary);
+	--button-text: var(--color-white);
+	--button-hover-background: var(--color-secondary);
+}
+
+:root[data-theme="wm27"],
+:root[data-theme="worldcup2027"] {
+	/* Placeholder WM27 palette; replace here when final brand colors are available. */
+	--color-primary: #d71920;
+	--color-secondary: #8f1117;
+	--color-accent: #ffe3e5;
+	--color-background: #fff8f8;
+	--color-text: #191416;
+	--color-black: var(--color-text);
+	--color-junior: #ff6b35;
+	--color-major: #7a1f3d;
+	--button-background: var(--color-primary);
+	--button-text: var(--color-white);
+	--button-hover-background: var(--color-secondary);
+}
+
+html {
+	background: var(--color-background);
+	color: var(--color-text);
 }
 
 @page {

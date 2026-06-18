@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted } from 'vue';
+import { computed, nextTick, onMounted, watchEffect } from 'vue';
+import { resolveThemeFromTypo3SitePayload, type ResolvedSiteConfig } from '~/utils/site-config';
 
 const requestUrl = useRequestURL();
 const safeFullPath = `${requestUrl.pathname}${requestUrl.search || ''}` || '/';
@@ -67,6 +68,29 @@ const { headData, pageData, backendLayout } = await useT3Page({
 })
 const { initialData } = useT3Api()
 useHead(headData);
+
+const activeSite = useState<ResolvedSiteConfig | null>('active-site', () => null);
+const resolvedTheme = computed(() => resolveThemeFromTypo3SitePayload(
+  pageData.value,
+  activeSite.value?.theme || 'default'
+));
+
+watchEffect(() => {
+  if (!activeSite.value) {
+    return;
+  }
+
+  activeSite.value = {
+    ...activeSite.value,
+    theme: resolvedTheme.value
+  };
+});
+
+useHead(() => ({
+  htmlAttrs: {
+    'data-theme': resolvedTheme.value
+  }
+}));
 
 interface AnnouncementButton {
   text?: string;

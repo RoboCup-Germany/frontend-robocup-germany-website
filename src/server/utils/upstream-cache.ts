@@ -12,6 +12,7 @@ type CachedUpstreamEntry = {
 type CachedFetchOptions = {
   cacheNamespace: string
   cacheControlHeader: string
+  requestHeaders?: Record<string, string | string[] | undefined>
   minFreshMs?: number
   hardTtlMs?: number
   staleIfErrorMs?: number
@@ -238,7 +239,12 @@ export const fetchWithWatchedCache = async (
     return parseResponseBody(cached.body, cached.contentType)
   }
 
-  const requestHeaders = sanitizeRequestHeaders(getRequestHeaders(event))
+  const sourceRequestHeaders = options.requestHeaders ?? getRequestHeaders(event)
+  const requestHeaders = sanitizeRequestHeaders(sourceRequestHeaders)
+  const explicitHost = sourceRequestHeaders.host
+  if (typeof explicitHost === 'string' && explicitHost) {
+    requestHeaders.host = explicitHost
+  }
   if (cached?.etag) {
     requestHeaders['if-none-match'] = cached.etag
   }
