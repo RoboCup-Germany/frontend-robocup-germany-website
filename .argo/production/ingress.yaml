@@ -17,7 +17,20 @@ spec:
                 name: frontend
                 port:
                   number: 3000
+    - host: wm.robocup.de
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: "/"
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
   tls:
     - hosts:
         - robocup.de
       secretName: website-frontend-secret
+    - hosts:
+        - wm.robocup.de
+      secretName: website-frontend-wm-secret
