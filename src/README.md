@@ -102,17 +102,24 @@ NUXT_PUBLIC_SITE_CONFIG='[
 ```bash
 NUXT_PUBLIC_SITE_CONFIG='[
   {
-    "key": "wm27",
+    "key": "default",
     "domains": ["localhost"],
-    "theme": "wm27",
+    "theme": "default",
     "isDefault": true,
+    "typo3ApiOrigin": "http://rc-new-website.ddev.site/",
+    "typo3Host": "rc-new-website.ddev.site"
+  },
+  {
+    "key": "wm27",
+    "domains": ["wm27.localhost"],
+    "theme": "wm27",
     "typo3ApiOrigin": "http://rc-new-website.ddev.site/wm27/",
     "typo3Host": "rc-new-website.ddev.site"
   }
 ]'
 ```
 
-Beide lokalen Sites koennen nicht gleichzeitig nur ueber `localhost:3000` per Host erkannt werden. Dafuer waere ein zweiter Host, ein Pfad-Prefix oder ein anderes zentrales Unterscheidungsmerkmal noetig.
+Damit sind lokal beide Sites gleichzeitig per Host unterscheidbar: `http://localhost:3000` nutzt die Default-Site und `http://wm27.localhost:3000` nutzt die WM27-Site. Der TYPO3-Backend-Einstieg fuer WM27 bleibt trotzdem `http://rc-new-website.ddev.site/wm27/`.
 
 Falls der lokale DDEV-Router nur auf die DDEV-Domain reagiert, kann pro Eintrag optional `typo3Host` gesetzt werden, z. B. `"typo3Host": "rc-new-website.ddev.site"`.
 

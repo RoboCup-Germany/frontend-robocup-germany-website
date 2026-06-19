@@ -111,7 +111,7 @@ const removeEntry = async (
   index: CacheIndex,
   cacheKey: string
 ) => {
-  delete index.entries[cacheKey]
+  Reflect.deleteProperty(index.entries, cacheKey)
   await storage.removeItem(cacheKey)
 }
 
@@ -241,10 +241,6 @@ export const fetchWithWatchedCache = async (
 
   const sourceRequestHeaders = options.requestHeaders ?? getRequestHeaders(event)
   const requestHeaders = sanitizeRequestHeaders(sourceRequestHeaders)
-  const explicitHost = sourceRequestHeaders.host
-  if (typeof explicitHost === 'string' && explicitHost) {
-    requestHeaders.host = explicitHost
-  }
   if (cached?.etag) {
     requestHeaders['if-none-match'] = cached.etag
   }

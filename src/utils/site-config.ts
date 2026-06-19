@@ -127,9 +127,10 @@ export const resolveSiteFromHost = (
     && (!site.pathPrefix || normalizedPath === site.pathPrefix || normalizedPath.startsWith(`${site.pathPrefix}/`))
   ))
 
+  const resolvedSite = matchedSite ?? defaultSite
+
   return {
-    ...defaultSite,
-    ...(matchedSite ?? {}),
+    ...resolvedSite,
     host: normalizedHost,
     path: normalizedPath,
     isKnown: Boolean(matchedSite)
