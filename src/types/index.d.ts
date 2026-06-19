@@ -9,6 +9,8 @@ declare global
         title?: string;
         description?: string;
         publicUrl?: string;
+        url?: string;
+        originalUrl?: string;
         creator?: string;
     }
     
@@ -16,10 +18,42 @@ declare global
     {
         id?: number;
         alt?: string;
+        alternative?: string;
         title?: string;
         description?: string;
         publicUrl?: string;
         creator?: string;
+    }
+
+    interface FileObject extends ImageRef
+    {
+        alternative?: string;
+        publicUrl?: string;
+        url?: string;
+        originalUrl?: string;
+    }
+
+    interface SiteContactConfig
+    {
+        name?: string | null;
+        mail?: string | null;
+        email?: string | null;
+        phone?: string | null;
+    }
+
+    interface SiteConfig
+    {
+        rootPageUid?: number;
+        contact?: SiteContactConfig | null;
+        headerLogo?: FileObject | null;
+        footerLogo?: FileObject | null;
+    }
+
+    interface GlobalConfig
+    {
+        title?: string;
+        contact?: SiteContactConfig | null;
+        siteConfig?: SiteConfig | null;
     }
     
     interface LinkRef

@@ -54,12 +54,17 @@ const DEFAULT_MAX_ENTRIES = 400
 const DEFAULT_MAX_TOTAL_BYTES = 50 * 1024 * 1024
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024
 
-const toStorageKey = (namespace: string, normalizedUrl: string) => {
-  const hash = createHash('sha256').update(normalizedUrl).digest('hex')
-  return `upstream:${namespace}:${hash}`
+const toNamespaceKey = (namespace: string) => {
+  return createHash('sha256').update(namespace).digest('hex').slice(0, 16)
 }
 
-const toIndexKey = (namespace: string) => `upstream-index:${namespace}`
+const toStorageKey = (namespace: string, normalizedUrl: string) => {
+  const namespaceKey = toNamespaceKey(namespace)
+  const hash = createHash('sha256').update(normalizedUrl).digest('hex')
+  return `upstream-entry-${namespaceKey}-${hash}`
+}
+
+const toIndexKey = (namespace: string) => `upstream-index-${toNamespaceKey(namespace)}`
 
 const normalizeUrlForCache = (input: string) => {
   const parsed = new URL(input)

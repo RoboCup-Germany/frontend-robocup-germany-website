@@ -19,18 +19,53 @@ type LocaleItem = {
 }
 
 const { initialData, pageData } = useT3Api()
+const requestUrl = useRequestURL()
+const { data: siteRootData } = useFetch<Record<string, unknown>>('/api/typo3', {
+  key: `site-root:${requestUrl.host}`
+})
 
 const isMobileMenuOpen = ref(false)
 const openDesktopIndex = ref<number | null>(null)
 const isMounted = ref(false)
 const localeDropdown = ref<HTMLDetailsElement | null>(null)
 const route = useRoute()
+const siteGlobalConfig = useState<GlobalConfig | null>('site-global-config', () => null)
+const siteHeaderLogo = useState<{ src: string; alt?: string } | null>('site-header-logo', () => null)
 
 onMounted(() => {
   isMounted.value = true
 })
 
-const siteTitle = computed(() => initialData.value?.globalConfig?.title || 'RoboCup Germany')
+const fallbackHeaderLogoSrc = '/assets/RCgermany_Logo.png'
+const globalConfig = computed<GlobalConfig | undefined>(() => {
+  if (siteGlobalConfig.value) {
+    return siteGlobalConfig.value
+  }
+
+  if (!isMounted.value) {
+    return initialData.value?.globalConfig as GlobalConfig | undefined
+  }
+
+  return (
+    (pageData.value?.globalConfig as GlobalConfig | undefined) ??
+    (siteRootData.value?.globalConfig as GlobalConfig | undefined) ??
+    (initialData.value?.globalConfig as GlobalConfig | undefined)
+  )
+})
+
+const siteTitle = computed(() => globalConfig.value?.title || 'RoboCup Germany')
+const headerLogo = computed(() => globalConfig.value?.siteConfig?.headerLogo ?? null)
+const headerLogoSrc = computed(() => (
+  siteHeaderLogo.value?.src ||
+  headerLogo.value?.publicUrl?.trim() ||
+  headerLogo.value?.url?.trim() ||
+  headerLogo.value?.originalUrl?.trim() ||
+  fallbackHeaderLogoSrc
+))
+const headerLogoAlt = computed(() => {
+  const alt = siteHeaderLogo.value?.alt || headerLogo.value?.alt?.trim() || headerLogo.value?.alternative?.trim()
+  return alt || `${siteTitle.value} Logo`
+})
 const homeLink = computed(() => (/^\/en(\/|$)/.test(route.path.toLowerCase()) ? '/en' : '/'))
 
 const navItems = computed<NavItem[]>(
@@ -192,8 +227,8 @@ watch(
           :aria-label="siteTitle"
         >
           <img
-            src="/assets/RCgermany_Logo.png"
-            :alt="`${siteTitle} Logo`"
+            :src="headerLogoSrc"
+            :alt="headerLogoAlt"
             class="h-auto w-[210px] md:w-[260px]"
             width="260"
             height="110"
@@ -332,8 +367,8 @@ watch(
         <UContainer class="py-8 lg:grid lg:grid-cols-12 lg:gap-8">
           <div class="border-r-4 border-primary pr-6 lg:col-span-4">
             <NuxtPicture
-              provider="ipx"
               v-if="megaMenuPreview"
+              provider="ipx"
               :src="megaMenuPreview.src"
               :alt="megaMenuPreview.alt"
               class="block h-48 w-full"

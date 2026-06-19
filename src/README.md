@@ -85,19 +85,20 @@ NUXT_PUBLIC_SITE_CONFIG='[
     "domains": ["localhost", "robocup.de", "www.robocup.de"],
     "theme": "default",
     "isDefault": true,
-    "typo3ApiOrigin": "http://rc-new-website.ddev.site/"
+    "typo3ApiOrigin": "http://rc-new-website.ddev.site"
   },
   {
     "key": "wm27",
     "domains": ["wm27.robocup.de"],
     "theme": "wm27",
-    "typo3ApiOrigin": "http://rc-new-website.ddev.site/wm27/",
+    "typo3ApiOrigin": "http://rc-new-website.ddev.site",
+    "typo3PathPrefix": "/wm27",
     "typo3Host": "rc-new-website.ddev.site"
   }
 ]'
 ```
 
-`typo3ApiOrigin` kann pro Site auf einen eigenen TYPO3-Headless-Einstieg zeigen. Lokal laeuft das Nuxt-Frontend ueber `http://localhost:3000`. Wenn lokal die World-Cup-2027-Site getestet werden soll, muss `localhost` auf diese Site zeigen:
+`typo3ApiOrigin` ist der TYPO3-Origin ohne Site-Pfad. Site-spezifische Backend-Pfade wie `/wm27` werden ueber `typo3PathPrefix` gesetzt. Lokal laeuft das Nuxt-Frontend ueber `http://localhost:3000`:
 
 ```bash
 NUXT_PUBLIC_SITE_CONFIG='[
@@ -106,14 +107,15 @@ NUXT_PUBLIC_SITE_CONFIG='[
     "domains": ["localhost"],
     "theme": "default",
     "isDefault": true,
-    "typo3ApiOrigin": "http://rc-new-website.ddev.site/",
+    "typo3ApiOrigin": "http://rc-new-website.ddev.site",
     "typo3Host": "rc-new-website.ddev.site"
   },
   {
     "key": "wm27",
     "domains": ["wm27.localhost"],
     "theme": "wm27",
-    "typo3ApiOrigin": "http://rc-new-website.ddev.site/wm27/",
+    "typo3ApiOrigin": "http://rc-new-website.ddev.site",
+    "typo3PathPrefix": "/wm27",
     "typo3Host": "rc-new-website.ddev.site"
   }
 ]'

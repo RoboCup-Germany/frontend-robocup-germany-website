@@ -36,6 +36,21 @@ export const stripSitePathPrefix = (path: string, pathPrefix?: string): string =
   return path
 }
 
+const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, '')
+
+export const prefixTypo3Path = (path: string, typo3PathPrefix?: string): string => {
+  const normalizedPrefix = trimSlashes(typo3PathPrefix || '')
+  const normalizedPath = trimSlashes(path)
+
+  if (!normalizedPrefix) return normalizedPath
+  if (!normalizedPath) return normalizedPrefix
+  if (normalizedPath === normalizedPrefix || normalizedPath.startsWith(`${normalizedPrefix}/`)) {
+    return normalizedPath
+  }
+
+  return `${normalizedPrefix}/${normalizedPath}`
+}
+
 export const createTypo3ContextHeaders = (event: H3Event, typo3Host?: string) => {
   const headers = { ...getRequestHeaders(event) }
   const frontendHost = getFrontendRequestHost(event)

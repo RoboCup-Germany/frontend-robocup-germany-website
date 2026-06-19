@@ -3,6 +3,10 @@ type FooterNavItem = {
   title?: string
   link?: string
   target?: string
+  active?: number
+  current?: number
+  spacer?: number
+  hasSubpages?: number
   children?: FooterNavItem[]
   isCookieSettings?: boolean
 }
@@ -20,22 +24,58 @@ type SocialChannel =
 type SocialUrls = Partial<Record<SocialChannel, string>>
 
 const { initialData, pageData } = useT3Api()
+const requestUrl = useRequestURL()
+const { data: siteRootData } = useFetch<Record<string, unknown>>('/api/typo3', {
+  key: `site-root:${requestUrl.host}`
+})
 const route = useRoute()
 const isMounted = ref(false)
+const siteGlobalConfig = useState<GlobalConfig | null>('site-global-config', () => null)
+const siteFooterLogo = useState<{ src: string; alt?: string } | null>('site-footer-logo', () => null)
 
 onMounted(() => {
   isMounted.value = true
 })
 
-const footerSections = computed<FooterNavItem[]>(() => {
+const fallbackFooterLogoSrc = '/assets/RCgermany_Logo.png'
+
+const firstNonEmptyNavigation = (...items: Array<unknown>): FooterNavItem[] => {
+  for (const item of items) {
+    if (Array.isArray(item) && item.length) {
+      return item as FooterNavItem[]
+    }
+  }
+
+  return []
+}
+
+const globalConfig = computed<GlobalConfig | undefined>(() => {
+  if (siteGlobalConfig.value) {
+    return siteGlobalConfig.value
+  }
+
   if (!isMounted.value) {
-    return (initialData.value?.footerNavigation as FooterNavItem[] | undefined) ?? []
+    return initialData.value?.globalConfig as GlobalConfig | undefined
   }
 
   return (
-    (pageData.value?.footerNavigation as FooterNavItem[] | undefined) ??
-    (initialData.value?.footerNavigation as FooterNavItem[] | undefined) ??
-    []
+    (pageData.value?.globalConfig as GlobalConfig | undefined) ??
+    (siteRootData.value?.globalConfig as GlobalConfig | undefined) ??
+    (initialData.value?.globalConfig as GlobalConfig | undefined)
+  )
+})
+
+const footerSections = computed<FooterNavItem[]>(() => {
+  if (!isMounted.value) {
+    return firstNonEmptyNavigation(
+      initialData.value?.footerNavigation
+    )
+  }
+
+  return firstNonEmptyNavigation(
+    pageData.value?.footerNavigation,
+    siteRootData.value?.footerNavigation,
+    initialData.value?.footerNavigation
   )
 })
 
@@ -60,7 +100,7 @@ const footerSectionsWithCookieSettings = computed<FooterNavItem[]>(() => {
 })
 
 const siteTitle = computed(
-  () => initialData.value?.globalConfig?.title || 'RoboCup Germany'
+  () => globalConfig.value?.title || 'RoboCup Germany'
 )
 const { isModalActive } = useCookieControl()
 const cookieSettingsLabel = computed(() =>
@@ -99,6 +139,46 @@ const socialUrls = computed<SocialUrls>(() => {
     {}
   )
 })
+
+const footerLogo = computed(() => globalConfig.value?.siteConfig?.footerLogo ?? null)
+const footerLogoSrc = computed(() => (
+  siteFooterLogo.value?.src ||
+  footerLogo.value?.publicUrl?.trim() ||
+  footerLogo.value?.url?.trim() ||
+  footerLogo.value?.originalUrl?.trim() ||
+  fallbackFooterLogoSrc
+))
+const footerLogoAlt = computed(() => {
+  const alt = siteFooterLogo.value?.alt || footerLogo.value?.alt?.trim() || footerLogo.value?.alternative?.trim()
+  return alt || `${siteTitle.value} Logo`
+})
+
+const contactName = computed(() => (
+  globalConfig.value?.siteConfig?.contact?.name?.trim() ||
+  globalConfig.value?.contact?.name?.trim() ||
+  ''
+))
+const contactMail = computed(() => (
+  globalConfig.value?.siteConfig?.contact?.mail?.trim() ||
+  globalConfig.value?.siteConfig?.contact?.email?.trim() ||
+  globalConfig.value?.contact?.mail?.trim() ||
+  globalConfig.value?.contact?.email?.trim() ||
+  ''
+))
+const contactPhone = computed(() => (
+  globalConfig.value?.siteConfig?.contact?.phone?.trim() ||
+  globalConfig.value?.contact?.phone?.trim() ||
+  ''
+))
+const contactMailHref = computed(() => contactMail.value ? `mailto:${contactMail.value}` : '')
+const contactPhoneHref = computed(() => {
+  const phone = contactPhone.value
+  if (!phone) return ''
+  return phone.toLowerCase().startsWith('tel:')
+    ? phone
+    : `tel:${phone.replace(/[^\d+]/g, '')}`
+})
+const hasContact = computed(() => Boolean(contactName.value || contactMail.value || contactPhone.value))
 
 const socialLinks = computed(() => {
   return socialChannelConfig
@@ -159,8 +239,8 @@ const socialLinks = computed(() => {
 
       <div class="flex flex-col items-center justify-start gap-3">
         <img
-          src="/assets/RCgermany_Logo.png"
-          :alt="`${siteTitle} Logo`"
+          :src="footerLogoSrc"
+          :alt="footerLogoAlt"
           class="h-auto w-full max-w-[340px]"
           loading="lazy"
           decoding="async"
@@ -168,6 +248,25 @@ const socialLinks = computed(() => {
           width="340"
           height="150"
         >
+        <address v-if="hasContact" class="not-italic text-center text-sm leading-relaxed text-black">
+          <p v-if="contactName" class="font-semibold">{{ contactName }}</p>
+          <p v-if="contactMail">
+            <a
+              :href="contactMailHref"
+              class="text-black no-underline hover:underline focus-visible:rounded-[2px] focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-primary"
+            >
+              {{ contactMail }}
+            </a>
+          </p>
+          <p v-if="contactPhone">
+            <a
+              :href="contactPhoneHref"
+              class="text-black no-underline hover:underline focus-visible:rounded-[2px] focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-primary"
+            >
+              {{ contactPhone }}
+            </a>
+          </p>
+        </address>
         <div v-if="socialLinks.length" class="flex flex-wrap items-center justify-center gap-2">
           <a
             v-for="channel in socialLinks"

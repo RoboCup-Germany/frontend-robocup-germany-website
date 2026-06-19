@@ -3,6 +3,7 @@ export const useCmsLink = () => {
   const activeSite = useState<{
     domains?: string[]
     typo3ApiOrigin?: string
+    typo3PathPrefix?: string
   } | null>('active-site', () => null)
 
   const knownInternalHosts = new Set<string>()
@@ -55,29 +56,18 @@ export const useCmsLink = () => {
 
   const stripBackendPathPrefix = (parsed: URL): string => {
     const href = `${parsed.pathname}${parsed.search}${parsed.hash}` || '/'
-    const typo3ApiOrigin = activeSite.value?.typo3ApiOrigin
-    if (!typo3ApiOrigin) {
+    const prefixPath = activeSite.value?.typo3PathPrefix?.replace(/\/+$/, '')
+    if (!prefixPath || prefixPath === '/') {
       return href
     }
 
-    try {
-      const originUrl = new URL(typo3ApiOrigin)
-      const originPath = originUrl.pathname.replace(/\/+$/, '')
-      if (!originPath || originPath === '/') {
-        return href
-      }
-
-      if (parsed.pathname === originPath) {
-        return `/${parsed.search}${parsed.hash}`
-      }
-
-      if (parsed.pathname.startsWith(`${originPath}/`)) {
-        const frontendPath = parsed.pathname.slice(originPath.length) || '/'
-        return `${frontendPath}${parsed.search}${parsed.hash}`
-      }
+    if (parsed.pathname === prefixPath) {
+      return `/${parsed.search}${parsed.hash}`
     }
-    catch {
-      // Ignore invalid runtime config.
+
+    if (parsed.pathname.startsWith(`${prefixPath}/`)) {
+      const frontendPath = parsed.pathname.slice(prefixPath.length) || '/'
+      return `${frontendPath}${parsed.search}${parsed.hash}`
     }
 
     return href

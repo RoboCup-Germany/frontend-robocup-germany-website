@@ -1,15 +1,15 @@
 import { defineEventHandler, getMethod, getRequestURL, proxyRequest } from 'h3'
-import { createTypo3ContextHeaders, resolveRequestSite, stripSitePathPrefix } from '~/server/utils/site-context'
+import { createTypo3ContextHeaders, prefixTypo3Path, resolveRequestSite, stripSitePathPrefix } from '~/server/utils/site-context'
 import { fetchWithWatchedCache } from '~/server/utils/upstream-cache'
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
-const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, '')
+const trimLeadingSlash = (value: string) => value.replace(/^\/+/, '')
 const cacheControl = 'public, max-age=0, s-maxage=0, must-revalidate'
 const frontendOnlyParams = new Set(['download', 'print'])
 
 const joinUrl = (origin: string, path = '', query = '') => {
   const normalizedOrigin = trimTrailingSlash(origin)
-  const normalizedPath = trimSlashes(path)
+  const normalizedPath = trimLeadingSlash(path)
   return `${normalizedOrigin}${normalizedPath ? `/${normalizedPath}` : '/'}${query}`
 }
 
@@ -26,6 +26,9 @@ const sanitizeSearch = (search: string) => {
 
 const toErrorMeta = (error: unknown) => {
   const source = error as {
+    name?: string
+    message?: string
+    cause?: unknown
     statusCode?: number
     statusMessage?: string
     data?: unknown
@@ -38,9 +41,35 @@ const toErrorMeta = (error: unknown) => {
       : ''
 
   return {
+    name: source?.name,
+    message: source?.message,
+    cause: source?.cause,
     statusCode: source?.statusCode,
     statusMessage: source?.statusMessage,
     dataPreview: rawData.slice(0, 500)
+  }
+}
+
+const proxyWithFallbackLog = async (
+  event: Parameters<typeof proxyRequest>[0],
+  target: string,
+  headers: Record<string, string | string[] | undefined>,
+  error: unknown
+) => {
+  try {
+    const response = await proxyRequest(event, target, { headers })
+    console.warn('[api/typo3/*] cache fetch failed, proxyRequest succeeded', {
+      target,
+      ...toErrorMeta(error)
+    })
+    return response
+  } catch (proxyError) {
+    console.error('[api/typo3/*] cache fetch failed, proxyRequest failed', {
+      target,
+      cacheError: toErrorMeta(error),
+      proxyError: toErrorMeta(proxyError)
+    })
+    throw proxyError
   }
 }
 
@@ -67,7 +96,7 @@ export default defineEventHandler(async (event) => {
   const isLocaleRoot = locales.includes(normalizedPath)
   const siteRelativePath = stripSitePathPrefix(normalizedPath, site.pathPrefix)
   const targetPath = isLocaleRoot ? `${siteRelativePath}/` : siteRelativePath
-  const target = joinUrl(origin, targetPath, query)
+  const target = joinUrl(origin, prefixTypo3Path(targetPath, site.typo3PathPrefix), query)
 
   const requestHeaders = createTypo3ContextHeaders(event, site.typo3Host)
 
@@ -88,10 +117,6 @@ export default defineEventHandler(async (event) => {
       maxBodyBytes: upstreamCache.maxBodyBytes
     })
   } catch (error) {
-    console.error('[api/typo3/*] cache fetch failed, falling back to proxyRequest', {
-      target,
-      ...toErrorMeta(error)
-    })
-    return proxyRequest(event, target, { headers: requestHeaders })
+    return proxyWithFallbackLog(event, target, requestHeaders, error)
   }
 })

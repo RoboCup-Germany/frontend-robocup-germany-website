@@ -70,10 +70,38 @@ const { initialData } = useT3Api()
 useHead(headData);
 
 const activeSite = useState<ResolvedSiteConfig | null>('active-site', () => null);
+const siteGlobalConfig = useState<GlobalConfig | null>('site-global-config', () => null);
+const siteHeaderLogo = useState<{ src: string; alt?: string } | null>('site-header-logo', () => null);
+const siteFooterLogo = useState<{ src: string; alt?: string } | null>('site-footer-logo', () => null);
 const resolvedTheme = computed(() => resolveThemeFromTypo3SitePayload(
   pageData.value,
   activeSite.value?.theme || 'default'
 ));
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+};
+
+const asTrimmedString = (value: unknown): string => {
+  return typeof value === 'string' ? value.trim() : '';
+};
+
+const resolvePayloadLogo = (value: unknown): { src: string; alt?: string } | null => {
+  const file = asRecord(value);
+  if (!file) {
+    return null;
+  }
+
+  const src = asTrimmedString(file.publicUrl) || asTrimmedString(file.url) || asTrimmedString(file.originalUrl);
+  if (!src) {
+    return null;
+  }
+
+  const alt = asTrimmedString(file.alt) || asTrimmedString(file.alternative);
+  return alt ? { src, alt } : { src };
+};
 
 watchEffect(() => {
   if (!activeSite.value) {
@@ -84,6 +112,15 @@ watchEffect(() => {
     ...activeSite.value,
     theme: resolvedTheme.value
   };
+});
+
+watchEffect(() => {
+  const globalConfig = pageData.value?.globalConfig ?? initialData.value?.globalConfig;
+  if (globalConfig) {
+    siteGlobalConfig.value = globalConfig as GlobalConfig;
+    siteHeaderLogo.value = resolvePayloadLogo((globalConfig as GlobalConfig).siteConfig?.headerLogo);
+    siteFooterLogo.value = resolvePayloadLogo((globalConfig as GlobalConfig).siteConfig?.footerLogo);
+  }
 });
 
 useHead(() => ({
@@ -106,12 +143,6 @@ interface AnnouncementBar {
   buttons?: AnnouncementButton[];
   selectedPageUids?: Array<number | string>;
 }
-
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-};
 
 const parseUid = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) {

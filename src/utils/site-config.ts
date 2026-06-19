@@ -5,6 +5,7 @@ export interface PublicSiteConfig {
   isDefault?: boolean
   pathPrefix?: string
   typo3ApiOrigin?: string
+  typo3PathPrefix?: string
   typo3Host?: string
 }
 
@@ -45,6 +46,7 @@ const normalizeSite = (site: PublicSiteConfig, index: number): NormalizedSiteCon
     ? site.domains.map((domain) => normalizeHost(domain)).filter(Boolean)
     : []
   const pathPrefix = normalizePathPrefix(site.pathPrefix)
+  const typo3PathPrefix = normalizePathPrefix(site.typo3PathPrefix)
 
   return {
     ...site,
@@ -52,6 +54,7 @@ const normalizeSite = (site: PublicSiteConfig, index: number): NormalizedSiteCon
     theme,
     domains,
     pathPrefix,
+    typo3PathPrefix,
     typo3ApiOrigin: normalizeUrl(site.typo3ApiOrigin) || undefined,
     typo3Host: normalizeHost(site.typo3Host) || undefined
   }
