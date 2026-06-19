@@ -74,6 +74,12 @@ export default defineNuxtConfig({
     experimental: {
         appManifest: false
     },
+    vite: {
+        esbuild: {
+            // Avoid Vite/tsconfck reading Nuxt-generated tsconfig references while Nuxt is still writing them.
+            tsconfigRaw: {}
+        }
+    },
     routeRules: {
         '/**': {
             ssr: true
