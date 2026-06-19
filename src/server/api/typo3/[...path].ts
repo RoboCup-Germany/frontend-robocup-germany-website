@@ -1,9 +1,17 @@
-import { defineEventHandler, getMethod, getRequestHeaders, getRequestURL, proxyRequest } from 'h3'
+import { defineEventHandler, getMethod, getRequestURL, proxyRequest } from 'h3'
+import { createTypo3ContextHeaders, resolveRequestSite, stripSitePathPrefix } from '~/server/utils/site-context'
 import { fetchWithWatchedCache } from '~/server/utils/upstream-cache'
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
+const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, '')
 const cacheControl = 'public, max-age=0, s-maxage=0, must-revalidate'
 const frontendOnlyParams = new Set(['download', 'print'])
+
+const joinUrl = (origin: string, path = '', query = '') => {
+  const normalizedOrigin = trimTrailingSlash(origin)
+  const normalizedPath = trimSlashes(path)
+  return `${normalizedOrigin}${normalizedPath ? `/${normalizedPath}` : '/'}${query}`
+}
 
 const sanitizeSearch = (search: string) => {
   const params = new URLSearchParams(search)
@@ -46,7 +54,8 @@ export default defineEventHandler(async (event) => {
     maxTotalBytes?: number
     maxBodyBytes?: number
   }
-  const origin = trimTrailingSlash(config.typo3ApiOrigin as string)
+  const site = resolveRequestSite(event, config.public)
+  const origin = site.typo3ApiOrigin || config.typo3ApiOrigin as string
   const path = event.context.params?.path ?? ''
   const requestUrl = getRequestURL(event)
   const query = sanitizeSearch(requestUrl.search || '')
@@ -56,12 +65,11 @@ export default defineEventHandler(async (event) => {
     ? config.public.typo3.i18n.locales
     : []
   const isLocaleRoot = locales.includes(normalizedPath)
-  const targetPath = isLocaleRoot ? `${normalizedPath}/` : normalizedPath
-  const target = `${origin}/${targetPath}${query}`
+  const siteRelativePath = stripSitePathPrefix(normalizedPath, site.pathPrefix)
+  const targetPath = isLocaleRoot ? `${siteRelativePath}/` : siteRelativePath
+  const target = joinUrl(origin, targetPath, query)
 
-  const requestHeaders = { ...getRequestHeaders(event) }
-  delete requestHeaders.host
-  delete requestHeaders['content-length']
+  const requestHeaders = createTypo3ContextHeaders(event, site.typo3Host)
 
   if (getMethod(event) !== 'GET') {
     return proxyRequest(event, target, { headers: requestHeaders })
@@ -69,8 +77,9 @@ export default defineEventHandler(async (event) => {
 
   try {
     return await fetchWithWatchedCache(event, target, {
-      cacheNamespace: 'typo3',
+      cacheNamespace: `typo3:${site.key}`,
       cacheControlHeader: cacheControl,
+      requestHeaders,
       minFreshMs: upstreamCache.minFreshMs,
       hardTtlMs: upstreamCache.hardTtlMs,
       staleIfErrorMs: upstreamCache.staleIfErrorMs,

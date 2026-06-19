@@ -12,6 +12,7 @@ type CachedUpstreamEntry = {
 type CachedFetchOptions = {
   cacheNamespace: string
   cacheControlHeader: string
+  requestHeaders?: Record<string, string | string[] | undefined>
   minFreshMs?: number
   hardTtlMs?: number
   staleIfErrorMs?: number
@@ -110,7 +111,7 @@ const removeEntry = async (
   index: CacheIndex,
   cacheKey: string
 ) => {
-  delete index.entries[cacheKey]
+  Reflect.deleteProperty(index.entries, cacheKey)
   await storage.removeItem(cacheKey)
 }
 
@@ -238,7 +239,8 @@ export const fetchWithWatchedCache = async (
     return parseResponseBody(cached.body, cached.contentType)
   }
 
-  const requestHeaders = sanitizeRequestHeaders(getRequestHeaders(event))
+  const sourceRequestHeaders = options.requestHeaders ?? getRequestHeaders(event)
+  const requestHeaders = sanitizeRequestHeaders(sourceRequestHeaders)
   if (cached?.etag) {
     requestHeaders['if-none-match'] = cached.etag
   }

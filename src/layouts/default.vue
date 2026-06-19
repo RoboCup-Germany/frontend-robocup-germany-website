@@ -101,15 +101,15 @@ const showBodyLoader = computed(() => isClient.value && (isApiLoading.value || !
   position: absolute;
   inset: 0;
   z-index: 50;
-  background: rgb(255 255 255 / 82%);
+  background: color-mix(in srgb, var(--color-background) 82%, transparent);
   backdrop-filter: blur(2px);
 }
 
 .body-loader__spinner {
   width: 56px;
   height: 56px;
-  border: 5px solid rgb(0 96 255 / 25%);
-  border-top-color: #0060ff;
+  border: 5px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
+  border-top-color: var(--color-primary);
   border-radius: 9999px;
   animation: body-loader-spin 0.8s linear infinite;
 }
