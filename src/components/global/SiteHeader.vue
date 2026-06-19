@@ -42,10 +42,6 @@ const globalConfig = computed<GlobalConfig | undefined>(() => {
     return siteGlobalConfig.value
   }
 
-  if (!isMounted.value) {
-    return initialData.value?.globalConfig as GlobalConfig | undefined
-  }
-
   return (
     (pageData.value?.globalConfig as GlobalConfig | undefined) ??
     (siteRootData.value?.globalConfig as GlobalConfig | undefined) ??

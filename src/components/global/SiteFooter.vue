@@ -54,10 +54,6 @@ const globalConfig = computed<GlobalConfig | undefined>(() => {
     return siteGlobalConfig.value
   }
 
-  if (!isMounted.value) {
-    return initialData.value?.globalConfig as GlobalConfig | undefined
-  }
-
   return (
     (pageData.value?.globalConfig as GlobalConfig | undefined) ??
     (siteRootData.value?.globalConfig as GlobalConfig | undefined) ??
@@ -123,15 +119,13 @@ const socialChannelConfig: Array<{ key: SocialChannel; label: string; icon: stri
 const socialUrls = computed<SocialUrls>(() => {
   type GlobalConfigSocials = { socials?: SocialUrls; socialUrls?: SocialUrls }
 
-  if (!isMounted.value) {
-    const globalConfig = initialData.value?.globalConfig as GlobalConfigSocials | undefined
-    return globalConfig?.socials ?? globalConfig?.socialUrls ?? {}
-  }
-
+  const siteGlobalConfigValue = globalConfig.value as GlobalConfigSocials | undefined
   const pageGlobalConfig = pageData.value?.globalConfig as GlobalConfigSocials | undefined
   const initialGlobalConfig = initialData.value?.globalConfig as GlobalConfigSocials | undefined
 
   return (
+    siteGlobalConfigValue?.socials ??
+    siteGlobalConfigValue?.socialUrls ??
     pageGlobalConfig?.socials ??
     pageGlobalConfig?.socialUrls ??
     initialGlobalConfig?.socials ??
