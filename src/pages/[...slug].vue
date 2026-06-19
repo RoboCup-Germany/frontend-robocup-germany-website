@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, watchEffect } from 'vue';
+import { computed, nextTick, onMounted, unref, watchEffect } from 'vue';
 import { resolveThemeFromTypo3SitePayload, type ResolvedSiteConfig } from '~/utils/site-config';
 
 const requestUrl = useRequestURL();
@@ -67,7 +67,7 @@ const { headData, pageData, backendLayout } = await useT3Page({
   fetchOnInit: true
 })
 const { initialData } = useT3Api()
-useHead(headData);
+const { normalize } = useCmsLink();
 
 const activeSite = useState<ResolvedSiteConfig | null>('active-site', () => null);
 const siteGlobalConfig = useState<GlobalConfig | null>('site-global-config', () => null);
@@ -87,6 +87,78 @@ const asRecord = (value: unknown): Record<string, unknown> | null => {
 const asTrimmedString = (value: unknown): string => {
   return typeof value === 'string' ? value.trim() : '';
 };
+
+const getFrontendBase = (): string => {
+  const pageRecord = asRecord(pageData.value);
+  const siteRecord = asRecord(pageRecord?.site);
+  const frontendBase = asTrimmedString(siteRecord?.frontendBase);
+
+  return frontendBase || requestUrl.origin;
+};
+
+const toFrontendAbsoluteUrl = (value: unknown): string | undefined => {
+  const href = asTrimmedString(value);
+  if (!href) {
+    return undefined;
+  }
+
+  try {
+    const parsed = new URL(href, getFrontendBase());
+    const prefixPath = activeSite.value?.typo3PathPrefix?.replace(/\/+$/, '');
+    if (prefixPath && prefixPath !== '/') {
+      if (parsed.pathname === prefixPath) {
+        parsed.pathname = '/';
+      } else if (parsed.pathname.startsWith(`${prefixPath}/`)) {
+        parsed.pathname = parsed.pathname.slice(prefixPath.length) || '/';
+      }
+    }
+
+    return new URL(`${parsed.pathname}${parsed.search}${parsed.hash}`, getFrontendBase()).toString();
+  }
+  catch {
+    return normalize(href) || href;
+  }
+};
+
+const getPayloadSeoLinks = (): unknown[] => {
+  const pageRecord = asRecord(pageData.value);
+  const seoRecord = asRecord(pageRecord?.seo);
+
+  return Array.isArray(seoRecord?.link) ? seoRecord.link : [];
+};
+
+const normalizedHeadData = computed(() => {
+  const source = unref(headData) as Record<string, unknown> | null | undefined;
+  if (!source) {
+    return source;
+  }
+
+  const sourceLinks = Array.isArray(source.link) ? source.link : [];
+  const rawLinks = sourceLinks.length ? sourceLinks : getPayloadSeoLinks();
+  const links = rawLinks.length
+    ? rawLinks.map((link) => {
+      const linkRecord = asRecord(link);
+      if (!linkRecord) {
+        return link;
+      }
+
+      const rel = asTrimmedString(linkRecord.rel).toLowerCase();
+      if (rel !== 'canonical' && rel !== 'alternate') {
+        return link;
+      }
+
+      const href = toFrontendAbsoluteUrl(linkRecord.href);
+      return href ? { ...linkRecord, href } : link;
+    })
+    : source.link;
+
+  return {
+    ...source,
+    link: links
+  };
+});
+
+useHead(normalizedHeadData);
 
 const resolvePayloadLogo = (value: unknown): { src: string; alt?: string } | null => {
   const file = asRecord(value);

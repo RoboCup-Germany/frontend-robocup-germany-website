@@ -54,23 +54,37 @@ export const useCmsLink = () => {
     }
   })
 
-  const stripBackendPathPrefix = (parsed: URL): string => {
-    const href = `${parsed.pathname}${parsed.search}${parsed.hash}` || '/'
+  const stripBackendPathPrefixFromParts = (pathname: string, search = '', hash = ''): string => {
+    const href = `${pathname}${search}${hash}` || '/'
     const prefixPath = activeSite.value?.typo3PathPrefix?.replace(/\/+$/, '')
     if (!prefixPath || prefixPath === '/') {
       return href
     }
 
-    if (parsed.pathname === prefixPath) {
-      return `/${parsed.search}${parsed.hash}`
+    if (pathname === prefixPath) {
+      return `/${search}${hash}`
     }
 
-    if (parsed.pathname.startsWith(`${prefixPath}/`)) {
-      const frontendPath = parsed.pathname.slice(prefixPath.length) || '/'
-      return `${frontendPath}${parsed.search}${parsed.hash}`
+    if (pathname.startsWith(`${prefixPath}/`)) {
+      const frontendPath = pathname.slice(prefixPath.length) || '/'
+      return `${frontendPath}${search}${hash}`
     }
 
     return href
+  }
+
+  const stripBackendPathPrefix = (parsed: URL): string => {
+    return stripBackendPathPrefixFromParts(parsed.pathname, parsed.search, parsed.hash)
+  }
+
+  const normalizeRootRelativeLink = (value: string): string => {
+    try {
+      const parsed = new URL(value, 'https://frontend.local')
+      return stripBackendPathPrefixFromParts(parsed.pathname, parsed.search, parsed.hash)
+    }
+    catch {
+      return value
+    }
   }
 
   const normalize = (href?: string | null): string | undefined => {
@@ -83,7 +97,11 @@ export const useCmsLink = () => {
       return undefined
     }
 
-    if (value.startsWith('/') || value.startsWith('#') || value.startsWith('?')) {
+    if (value.startsWith('//')) {
+      // Protocol-relative URLs are handled by URL parsing below.
+    } else if (value.startsWith('/')) {
+      return normalizeRootRelativeLink(value)
+    } else if (value.startsWith('#') || value.startsWith('?')) {
       return value
     }
 
