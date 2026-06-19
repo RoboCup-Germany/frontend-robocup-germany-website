@@ -225,7 +225,7 @@ watch(
           <img
             :src="headerLogoSrc"
             :alt="headerLogoAlt"
-            class="h-auto w-[210px] md:w-[260px]"
+            class="h-auto max-h-[115px] w-auto max-w-[210px] md:max-w-[260px]"
             width="260"
             height="110"
             loading="eager"
