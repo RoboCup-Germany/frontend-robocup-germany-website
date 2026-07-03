@@ -275,6 +275,7 @@ const socialLinks = computed(() => {
             <span class="sr-only">{{ channel.label }}</span>
           </a>
         </div>
+        <LanguageSwitcher variant="footer" />
       </div>
     </div>
   </footer>

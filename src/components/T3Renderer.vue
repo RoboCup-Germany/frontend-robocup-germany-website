@@ -28,6 +28,7 @@ const isFadeOnlyType = (type?: string) => {
   return normalized.includes('rcg_image')
     || normalized.includes('rcg_gallery')
     || normalized.includes('rcg_flickrgallery')
+    || normalized.includes('rcg_mediaplayer')
     || normalized === 'image'
     || normalized === 'gallery'
     || normalized === 'flickrgallery'
