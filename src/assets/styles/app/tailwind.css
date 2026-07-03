@@ -83,7 +83,7 @@
 	--color-primary: #d71920;
 	--color-secondary: #8f1117;
 	--color-accent: #ffe3e5;
-	--color-background: #fff8f8;
+	--color-background: var(--color-white);
 	--color-text: #191416;
 	--color-black: var(--color-text);
 	--color-junior: #ff6b35;
