@@ -23,6 +23,14 @@ type SocialChannel =
 
 type SocialUrls = Partial<Record<SocialChannel, string>>
 
+type LocaleItem = {
+  active?: number
+  title?: string
+  link?: string
+  twoLetterIsoCode?: string
+  hreflang?: string
+}
+
 const { initialData, pageData } = useT3Api()
 const requestUrl = useRequestURL()
 const { data: siteRootData } = useFetch<Record<string, unknown>>('/api/typo3', {
@@ -99,9 +107,27 @@ const siteTitle = computed(
   () => globalConfig.value?.title || 'RoboCup Germany'
 )
 const { isModalActive } = useCookieControl()
-const cookieSettingsLabel = computed(() =>
-  route.path.startsWith('/en') ? 'Cookie settings' : 'Cookie-Einstellungen'
-)
+const activeLocaleCode = computed<'de' | 'en'>(() => {
+  const locales = (
+    (pageData.value?.i18n as LocaleItem[] | undefined) ??
+    (initialData.value?.i18n as LocaleItem[] | undefined) ??
+    []
+  )
+  const activeLocale = locales.find((item) => item?.active === 1)
+  const iso = (activeLocale?.twoLetterIsoCode || '').toLowerCase()
+  const hreflang = (activeLocale?.hreflang || '').toLowerCase()
+  const title = (activeLocale?.title || '').toLowerCase()
+  const link = (activeLocale?.link || '').toLowerCase()
+
+  if (iso === 'en' || hreflang.startsWith('en') || title.includes('en') || /^\/en(\/|$)/.test(link)) {
+    return 'en'
+  }
+
+  return /^\/en(\/|$)/.test(route.path.toLowerCase()) ? 'en' : 'de'
+})
+const cookieSettingsLabel = computed(() => (
+  activeLocaleCode.value === 'en' ? 'Cookie settings' : 'Cookie-Einstellungen'
+))
 
 const { normalize, isExternal } = useCmsLink()
 
@@ -220,7 +246,7 @@ const socialLinks = computed(() => {
               <button
                 v-else-if="item.isCookieSettings"
                 type="button"
-                class="text-base leading-normal text-black no-underline hover:underline focus-visible:rounded-[2px] focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-primary"
+                class="max-w-full text-left text-base leading-normal text-black no-underline hover:underline focus-visible:rounded-[2px] focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-[3px] focus-visible:outline-primary"
                 @click="isModalActive = true"
               >
                 {{ item.title }}
