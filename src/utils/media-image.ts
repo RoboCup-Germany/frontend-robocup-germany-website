@@ -1,6 +1,8 @@
 export type DisplayImage = {
   urlDefault?: string | null;
   urlSmall?: string | null;
+  srcsetDefault?: string | null;
+  srcsetSmall?: string | null;
   alt?: string | null;
   title?: string | null;
   creator?: string | null;
@@ -32,6 +34,24 @@ type CropVariantsLike = {
   [key: string]: CropVariantLike | null | undefined;
 };
 
+type ResponsiveSourceLike = {
+  width?: number | string | null;
+  height?: number | string | null;
+  url?: string | null;
+  publicUrl?: string | null;
+};
+
+type ResponsiveVariantLike = {
+  srcset?: string | null;
+  sources?: ResponsiveSourceLike[] | null;
+};
+
+type ResponsiveLike = {
+  default?: ResponsiveVariantLike | null;
+  small?: ResponsiveVariantLike | null;
+  [key: string]: ResponsiveVariantLike | null | undefined;
+};
+
 type MediaObjectLike = {
   publicUrl?: string | null;
   url?: string | null;
@@ -44,6 +64,7 @@ type MediaObjectLike = {
   width?: number | string | null;
   height?: number | string | null;
   cropVariants?: CropVariantsLike | null;
+  responsive?: ResponsiveLike | null;
   properties?: {
     title?: string | null;
     alternative?: string | null;
@@ -87,15 +108,43 @@ const variantDimension = (
     || toPositiveIntOrNull(variant.properties?.dimensions?.[key]);
 };
 
+const responsiveSrcset = (variant: ResponsiveVariantLike | null | undefined): string | null => {
+  return toTextOrNull(variant?.srcset);
+};
+
+const responsiveFallbackUrl = (
+  variant: ResponsiveVariantLike | null | undefined,
+  minimumWidth = 0
+): string | null => {
+  if (!Array.isArray(variant?.sources) || variant.sources.length === 0) return null;
+
+  const sortedSources = variant.sources
+    .map((source) => ({
+      url: toTextOrNull(source.url) || toTextOrNull(source.publicUrl),
+      width: toPositiveIntOrNull(source.width) || Number.MAX_SAFE_INTEGER
+    }))
+    .filter((source): source is { url: string; width: number } => Boolean(source.url))
+    .sort((a, b) => a.width - b.width);
+
+  return sortedSources.find((source) => source.width >= minimumWidth)?.url
+    || sortedSources[sortedSources.length - 1]?.url
+    || null;
+};
+
 const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | null => {
+  const srcsetDefault = responsiveSrcset(media.responsive?.default);
+  const srcsetSmall = responsiveSrcset(media.responsive?.small);
   const urlDefault
-    = variantUrl(media.cropVariants?.default)
+    = responsiveFallbackUrl(media.responsive?.default, 768)
+      || variantUrl(media.cropVariants?.default)
       || toTextOrNull(media.publicUrl)
       || toTextOrNull(media.url)
       || toTextOrNull(media.originalUrl)
       || toTextOrNull(media.properties?.originalUrl);
   const urlSmall
-    = variantUrl(media.cropVariants?.small)
+    = responsiveFallbackUrl(media.responsive?.small, 320)
+      || responsiveFallbackUrl(media.responsive?.default, 320)
+      || variantUrl(media.cropVariants?.small)
       || variantUrl(media.cropVariants?.default)
       || urlDefault;
 
@@ -116,6 +165,8 @@ const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | n
   return {
     urlDefault,
     urlSmall,
+    srcsetDefault,
+    srcsetSmall,
     alt:
       toTextOrNull(media.alt)
       || toTextOrNull(media.alternative)

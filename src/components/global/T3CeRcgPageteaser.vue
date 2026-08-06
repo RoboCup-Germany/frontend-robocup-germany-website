@@ -139,6 +139,8 @@ const teaserItems = computed(() => {
             } as LinkRef
           : null,
         imageSrc: image?.urlDefault || image?.urlSmall || '',
+        imageSrcsetDefault: image?.srcsetDefault || '',
+        imageSrcsetSmall: image?.srcsetSmall || '',
         imageAlt: image?.alt || image?.title || title || 'Teaser Bild'
       }
     })
@@ -164,9 +166,29 @@ const teaserItems = computed(() => {
         >
           <article class="flex h-full overflow-hidden rounded-sm bg-white shadow-[0_16px_34px_rgba(0,0,0,0.12)]">
             <div class="relative aspect-square w-28 shrink-0 overflow-hidden bg-black/5 sm:w-36 lg:w-40">
+              <picture
+                v-if="item.imageSrcsetDefault || item.imageSrcsetSmall"
+                class="block h-full w-full"
+              >
+                <source
+                  v-if="item.imageSrcsetSmall"
+                  media="(max-width: 767px)"
+                  :srcset="item.imageSrcsetSmall"
+                >
+                <img
+                  :src="item.imageSrc"
+                  :srcset="item.imageSrcsetDefault || undefined"
+                  :alt="item.imageAlt"
+                  sizes="(max-width: 767px) 100vw, 33vw"
+                  class="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  fetchpriority="low"
+                >
+              </picture>
               <NuxtPicture
+                v-else-if="item.imageSrc"
                 provider="ipx"
-                v-if="item.imageSrc"
                 :src="item.imageSrc"
                 :alt="item.imageAlt"
                 class="block h-full w-full"

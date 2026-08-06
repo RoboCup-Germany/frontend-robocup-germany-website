@@ -2,6 +2,27 @@ export {ImageRef, LinkRef};
 
 declare global
 {
+    interface ResponsiveImageSource
+    {
+        width: number;
+        height: number;
+        url: string;
+        publicUrl: string;
+    }
+
+    interface ResponsiveImageVariant
+    {
+        srcset: string;
+        sources: ResponsiveImageSource[];
+    }
+
+    interface ResponsiveImageVariants
+    {
+        default?: ResponsiveImageVariant;
+        small?: ResponsiveImageVariant;
+        [cropVariant: string]: ResponsiveImageVariant | undefined;
+    }
+
     interface MediaRef
     {
         id?: number;
@@ -12,6 +33,7 @@ declare global
         url?: string;
         originalUrl?: string;
         creator?: string;
+        responsive?: ResponsiveImageVariants;
     }
     
     interface ImageRef
@@ -23,6 +45,7 @@ declare global
         description?: string;
         publicUrl?: string;
         creator?: string;
+        responsive?: ResponsiveImageVariants;
     }
 
     interface FileObject extends ImageRef

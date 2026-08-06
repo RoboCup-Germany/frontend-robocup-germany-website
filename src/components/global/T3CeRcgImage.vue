@@ -37,6 +37,8 @@ const imageDescription = computed(() => {
 const imageSrcDefault = computed(() => displayImage.value?.urlDefault || null);
 const imageSrcSmall = computed(() => displayImage.value?.urlSmall || null);
 const imageSrc = computed(() => imageSrcDefault.value || imageSrcSmall.value || null);
+const imageSrcsetDefault = computed(() => displayImage.value?.srcsetDefault || null);
+const imageSrcsetSmall = computed(() => displayImage.value?.srcsetSmall || null);
 
 const imageAlt = computed(() => displayImage.value?.alt ?? '');
 const imageTitle = computed(() => displayImage.value?.title ?? '');
@@ -58,7 +60,27 @@ const imageCreator = computed(() => {
   <UContainer>
     <div class="flex flex-col gap-3">
       <div v-if="imageSrc" class="rcg-image-fixed relative group overflow-hidden">
-        <picture class="block">
+        <picture v-if="imageSrcsetDefault || imageSrcsetSmall" class="block">
+          <source
+            v-if="imageSrcsetSmall"
+            :srcset="imageSrcsetSmall"
+            media="(max-width: 767px)"
+          >
+          <img
+            :src="imageSrc"
+            :srcset="imageSrcsetDefault || undefined"
+            :alt="imageAlt"
+            :title="imageTitle"
+            class="block h-auto w-full"
+            :width="imageWidth"
+            :height="imageHeight"
+            loading="lazy"
+            decoding="async"
+            fetchpriority="low"
+            sizes="100vw"
+          >
+        </picture>
+        <picture v-else class="block">
           <source
             v-if="imageSrcSmall"
             :srcset="imageSrcSmall"

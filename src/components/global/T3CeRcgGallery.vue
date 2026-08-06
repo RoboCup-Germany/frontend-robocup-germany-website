@@ -41,6 +41,8 @@ interface GalleryImageView {
   id: string
   srcMobile: string
   srcDesktop: string
+  srcsetMobile: string
+  srcsetDesktop: string
   alt: string
   title: string
 }
@@ -119,6 +121,8 @@ const galleryImages = computed<GalleryImageView[]>(() => normalizedImages.value
       id: srcDesktop || srcMobile || String(index),
       srcMobile,
       srcDesktop,
+      srcsetMobile: item.srcsetSmall || '',
+      srcsetDesktop: item.srcsetDefault || '',
       alt: item.alt || '',
       title: item.title || ''
     } satisfies GalleryImageView
@@ -160,6 +164,11 @@ const isLogoGallery = computed(() => galleryType.value === 0)
 const isSpaciousGallery = computed(() => galleryType.value === 1)
 const isLogoStandardCarouselLayout = computed(() => galleryLayout.value === 0 && isLogoGallery.value)
 const isChunkedCarouselLayout = computed(() => galleryLayout.value === 0 && isSpaciousGallery.value)
+const galleryImageSizes = computed(() => (
+  isGridLayout.value || isChunkedCarouselLayout.value
+    ? '(max-width: 767px) 100vw, 33vw'
+    : '(max-width: 767px) 100vw, 50vw'
+))
 const gridWrapperClass = computed(() => (
   isSpaciousGallery.value
     ? 'w-full columns-1 gap-10 px-2 py-4 md:columns-2 lg:columns-3'
@@ -502,9 +511,20 @@ const sectionClasses = computed(() => {
           :style="[galleryHeightStyle, logoBoxStyle]"
         >
           <picture class="block h-full w-full">
-            <source :srcset="image.srcDesktop" media="(min-width: 1024px)">
+            <source
+              v-if="image.srcsetMobile"
+              :srcset="image.srcsetMobile"
+              media="(max-width: 767px)"
+            >
+            <source
+              v-else-if="image.srcMobile"
+              :srcset="image.srcMobile"
+              media="(max-width: 767px)"
+            >
             <img
-              :src="image.srcMobile"
+              :src="image.srcDesktop || image.srcMobile"
+              :srcset="image.srcsetDesktop || undefined"
+              :sizes="image.srcsetDesktop ? galleryImageSizes : undefined"
               :alt="image.alt"
               :title="image.title"
               :class="isLogoGallery
@@ -577,9 +597,20 @@ const sectionClasses = computed(() => {
               class="overflow-hidden rounded bg-white"
             >
               <picture class="block aspect-[4/3] w-full">
-                <source :srcset="image.srcDesktop" media="(min-width: 1024px)">
+                <source
+                  v-if="image.srcsetMobile"
+                  :srcset="image.srcsetMobile"
+                  media="(max-width: 767px)"
+                >
+                <source
+                  v-else-if="image.srcMobile"
+                  :srcset="image.srcMobile"
+                  media="(max-width: 767px)"
+                >
                 <img
-                  :src="image.srcMobile"
+                  :src="image.srcDesktop || image.srcMobile"
+                  :srcset="image.srcsetDesktop || undefined"
+                  :sizes="image.srcsetDesktop ? galleryImageSizes : undefined"
                   :alt="image.alt"
                   :title="image.title"
                   class="rcg-image block h-full w-full object-contain p-4"
@@ -610,9 +641,20 @@ const sectionClasses = computed(() => {
         >
           <div class="rcg-slide-media flex w-full items-center justify-center overflow-hidden bg-white" :style="[galleryHeightStyle, logoBoxStyle]">
             <picture :class="isLogoGallery ? 'block h-full w-full' : 'block h-full w-full md:w-auto'">
-              <source :srcset="item.srcDesktop" media="(min-width: 1024px)">
+              <source
+                v-if="item.srcsetMobile"
+                :srcset="item.srcsetMobile"
+                media="(max-width: 767px)"
+              >
+              <source
+                v-else-if="item.srcMobile"
+                :srcset="item.srcMobile"
+                media="(max-width: 767px)"
+              >
               <img
-                :src="item.srcMobile"
+                :src="item.srcDesktop || item.srcMobile"
+                :srcset="item.srcsetDesktop || undefined"
+                :sizes="item.srcsetDesktop ? galleryImageSizes : undefined"
                 :alt="item.alt"
                 :title="item.title"
                 :class="isLogoGallery

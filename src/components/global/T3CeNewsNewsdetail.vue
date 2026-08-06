@@ -2,6 +2,7 @@
 import { NuxtPicture } from '#components';
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
+import { toDisplayImage } from '~/utils/media-image';
 
 defineOptions({
   inheritAttrs: false
@@ -9,8 +10,8 @@ defineOptions({
 
 type NewsMediaItem = {
   images?: {
-    detailViewImage?: { publicUrl?: string | null } | null;
-    defaultImage?: { publicUrl?: string | null } | null;
+    detailViewImage?: unknown;
+    defaultImage?: unknown;
   } | null;
   properties?: {
     title?: string | null;
@@ -139,15 +140,22 @@ const firstMedia = computed<NewsMediaItem>(() => {
 });
 
 const imageUrl = computed(() => {
-  const media = firstMedia.value;
-  if (!media) return '';
+  return imageDisplay.value?.urlDefault?.trim()
+    || imageDisplay.value?.urlSmall?.trim()
+    || firstMedia.value?.properties?.originalUrl?.trim()
+    || '';
+});
 
-  return (
-    media.images?.detailViewImage?.publicUrl?.trim()
-    || media.images?.defaultImage?.publicUrl?.trim()
-    || media.properties?.originalUrl?.trim()
-    || ''
-  );
+const imageSrcsetDefault = computed(() => imageDisplay.value?.srcsetDefault?.trim() || '');
+const imageSrcsetSmall = computed(() => imageDisplay.value?.srcsetSmall?.trim() || '');
+
+const imageDisplay = computed(() => {
+  const media = firstMedia.value;
+  if (!media) return null;
+
+  return toDisplayImage(media.images?.detailViewImage)
+    || toDisplayImage(media.images?.defaultImage)
+    || null;
 });
 
 const imageAlt = computed(() => {
@@ -253,7 +261,28 @@ const socialLinks = computed(() => {
       </p>
 
       <figure v-if="imageUrl" class="mb-8 overflow-hidden rounded-sm">
+        <picture
+          v-if="imageSrcsetDefault || imageSrcsetSmall"
+          class="block w-full"
+        >
+          <source
+            v-if="imageSrcsetSmall"
+            media="(max-width: 767px)"
+            :srcset="imageSrcsetSmall"
+          >
+          <img
+            :src="imageUrl"
+            :srcset="imageSrcsetDefault || undefined"
+            :alt="imageAlt"
+            sizes="100vw"
+            class="h-auto w-full object-cover"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          >
+        </picture>
         <NuxtPicture
+          v-else
           provider="ipx"
           :src="imageUrl"
           :alt="imageAlt"

@@ -2,6 +2,7 @@
 import { NuxtPicture } from '#components';
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed, ref } from 'vue';
+import { toDisplayImage, type DisplayImage } from '~/utils/media-image';
 
 defineOptions({
   inheritAttrs: false
@@ -9,10 +10,10 @@ defineOptions({
 
 type NewsMedia = {
   images?: {
-    listViewImage?: { publicUrl?: string | null } | null;
-    listViewFeaturedImage?: { publicUrl?: string | null } | null;
-    listViewVerticalImage?: { publicUrl?: string | null } | null;
-    defaultImage?: { publicUrl?: string | null } | null;
+    listViewImage?: unknown;
+    listViewFeaturedImage?: unknown;
+    listViewVerticalImage?: unknown;
+    defaultImage?: unknown;
   } | null;
   properties?: {
     title?: string | null;
@@ -147,16 +148,35 @@ const resolveSlug = (item: NewsItem): string => {
 };
 
 const resolveImageUrl = (item: NewsItem): string => {
-  const media = Array.isArray(item?.media) && item?.media.length > 0 ? item.media[0] : null;
-  if (!media) return '';
+  const image = resolveImageDisplay(item);
+  return image?.urlDefault?.trim() || image?.urlSmall?.trim() || '';
+};
 
-  return (
-    media.images?.listViewImage?.publicUrl?.trim()
-    || media.images?.listViewFeaturedImage?.publicUrl?.trim()
-    || media.images?.listViewVerticalImage?.publicUrl?.trim()
-    || media.images?.defaultImage?.publicUrl?.trim()
-    || ''
-  );
+const resolveImageSrcsetDefault = (item: NewsItem): string => {
+  return resolveImageDisplay(item)?.srcsetDefault?.trim() || '';
+};
+
+const resolveImageSrcsetSmall = (item: NewsItem): string => {
+  return resolveImageDisplay(item)?.srcsetSmall?.trim() || '';
+};
+
+const resolveImageDisplay = (item: NewsItem): DisplayImage | null => {
+  const media = Array.isArray(item?.media) && item?.media.length > 0 ? item.media[0] : null;
+  if (!media) return null;
+
+  const candidates = [
+    media.images?.listViewImage,
+    media.images?.listViewFeaturedImage,
+    media.images?.listViewVerticalImage,
+    media.images?.defaultImage
+  ];
+
+  for (const candidate of candidates) {
+    const image = toDisplayImage(candidate);
+    if (image?.urlDefault || image?.urlSmall) return image;
+  }
+
+  return null;
 };
 
 const resolveImageAlt = (item: NewsItem): string => {
@@ -268,9 +288,29 @@ const resolvePaginationHref = (link?: string | null): string => {
           >
             <article v-if="viewMode === 'image'" class="grid grid-cols-1 gap-5 md:grid-cols-12 md:items-start">
               <div class="overflow-hidden rounded-sm bg-black/5 md:col-span-4 lg:col-span-3">
+                <picture
+                  v-if="resolveImageSrcsetDefault(item) || resolveImageSrcsetSmall(item)"
+                  class="block w-full"
+                >
+                  <source
+                    v-if="resolveImageSrcsetSmall(item)"
+                    media="(max-width: 767px)"
+                    :srcset="resolveImageSrcsetSmall(item)"
+                  >
+                  <img
+                    :src="resolveImageUrl(item)"
+                    :srcset="resolveImageSrcsetDefault(item) || undefined"
+                    :alt="resolveImageAlt(item)"
+                    sizes="(max-width: 767px) 100vw, 33vw"
+                    class="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02] md:h-36"
+                    loading="lazy"
+                    decoding="async"
+                    fetchpriority="low"
+                  >
+                </picture>
                 <NuxtPicture
+                  v-else-if="resolveImageUrl(item)"
                   provider="ipx"
-                  v-if="resolveImageUrl(item)"
                   :src="resolveImageUrl(item)"
                   :alt="resolveImageAlt(item)"
                   class="block w-full"

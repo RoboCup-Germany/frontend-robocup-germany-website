@@ -38,6 +38,8 @@ type ContactCard = {
   phoneLabel?: string;
   imageUrlDefault?: string;
   imageUrlSmall?: string;
+  imageSrcsetDefault?: string;
+  imageSrcsetSmall?: string;
   imageAlt: string;
 };
 
@@ -89,6 +91,8 @@ const contactCards = computed<ContactCard[]>(() => {
       .find((item) => item?.urlDefault || item?.urlSmall) || null;
     const imageUrlDefault = portrait?.urlDefault || portrait?.urlSmall || undefined;
     const imageUrlSmall = portrait?.urlSmall || imageUrlDefault;
+    const imageSrcsetDefault = portrait?.srcsetDefault || undefined;
+    const imageSrcsetSmall = portrait?.srcsetSmall || undefined;
     const imageAlt = portrait?.alt?.trim()
       || portrait?.description?.trim()
       || `Porträt von ${fullName}`;
@@ -110,6 +114,8 @@ const contactCards = computed<ContactCard[]>(() => {
       phoneLabel,
       imageUrlDefault,
       imageUrlSmall,
+      imageSrcsetDefault,
+      imageSrcsetSmall,
       imageAlt
     };
   });
@@ -141,19 +147,23 @@ const contactCards = computed<ContactCard[]>(() => {
                   <div v-if="card.imageUrlDefault">
                     <picture class="contact-image-picture">
                       <source
-                        v-if="card.imageUrlSmall"
-                        :srcset="card.imageUrlSmall"
-                        media="(max-width: 1023px)"
+                        v-if="card.imageSrcsetSmall"
+                        :srcset="card.imageSrcsetSmall"
+                        media="(max-width: 767px)"
                       >
                       <source
-                        :srcset="card.imageUrlDefault"
-                        media="(min-width: 1024px)"
+                        v-else-if="card.imageUrlSmall"
+                        :srcset="card.imageUrlSmall"
+                        media="(max-width: 767px)"
                       >
                       <img
                         :src="card.imageUrlDefault"
+                        :srcset="card.imageSrcsetDefault"
+                        sizes="(max-width: 767px) 100vw, 33vw"
                         :alt="card.imageAlt"
                         loading="lazy"
                         decoding="async"
+                        fetchpriority="low"
                         class="contact-image"
                       >
                     </picture>

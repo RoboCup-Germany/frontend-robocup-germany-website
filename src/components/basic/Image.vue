@@ -27,6 +27,8 @@ const urlSmall = computed<string | null>(() => {
 const imageSrc = computed<string | null>(() => {
   return urlDefault.value || urlSmall.value;
 });
+const srcsetDefault = computed<string | null>(() => props.display?.srcsetDefault ?? null);
+const srcsetSmall = computed<string | null>(() => props.display?.srcsetSmall ?? null);
 
 const alt = computed(() => props.display?.alt ?? '');
 const title = computed(() => props.display?.title ?? '');
@@ -49,7 +51,31 @@ const resolvedFetchPriority = computed(() => {
 
 <template>
   <div v-if="imageSrc" class="relative group overflow-hidden">
+    <picture
+      v-if="srcsetDefault || srcsetSmall"
+      class="block w-full"
+    >
+      <source
+        v-if="srcsetSmall"
+        media="(max-width: 767px)"
+        :srcset="srcsetSmall"
+      >
+      <img
+        :src="imageSrc"
+        :srcset="srcsetDefault || undefined"
+        :sizes="props.sizes"
+        :alt="alt || ''"
+        :title="title || ''"
+        :width="width"
+        :height="height"
+        :loading="props.loading"
+        :decoding="props.decoding"
+        :fetchpriority="resolvedFetchPriority"
+        class="block h-auto w-full"
+      >
+    </picture>
     <NuxtPicture
+      v-else
       provider="ipx"
       :src="imageSrc || ''"
       :alt="alt || ''"

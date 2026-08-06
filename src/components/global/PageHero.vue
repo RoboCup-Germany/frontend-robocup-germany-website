@@ -79,6 +79,14 @@ const imageMobileUrl = computed(() => {
   return toUrl(mediaDisplay.value?.urlSmall || mediaDisplay.value?.urlDefault);
 });
 
+const imageDesktopSrcset = computed(() => {
+  return toUrl(mediaDisplay.value?.srcsetDefault);
+});
+
+const imageMobileSrcset = computed(() => {
+  return toUrl(mediaDisplay.value?.srcsetSmall);
+});
+
 const imageAlt = computed(() => {
   return mediaDisplay.value?.alt || props.title || 'Seitenbild';
 });
@@ -268,38 +276,44 @@ watch(
             :type="source.type"
           />
         </video>
-        <template v-else-if="hasImageSources">
-          <NuxtPicture
-            provider="ipx"
+        <picture
+          v-else-if="imageDesktopSrcset || imageMobileSrcset"
+          class="absolute inset-0 block h-full w-full"
+        >
+          <source
+            v-if="imageMobileSrcset"
+            media="(max-width: 767px)"
+            :srcset="imageMobileSrcset"
+          >
+          <img
+            :src="imageDesktopDisplayUrl || imageMobileDisplayUrl"
+            :srcset="imageDesktopSrcset || undefined"
+            :alt="imageAlt"
+            sizes="100vw"
+            class="h-full w-full object-cover"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          >
+        </picture>
+        <picture
+          v-else-if="hasImageSources"
+          class="absolute inset-0 block h-full w-full"
+        >
+          <source
             v-if="imageMobileDisplayUrl"
-            :src="imageMobileDisplayUrl"
+            media="(max-width: 767px)"
+            :srcset="imageMobileDisplayUrl"
+          >
+          <img
+            :src="imageDesktopDisplayUrl || imageMobileDisplayUrl"
             :alt="imageAlt"
-            class="absolute inset-0 block h-full w-full md:hidden"
+            class="h-full w-full object-cover"
             loading="eager"
             decoding="async"
             fetchpriority="high"
-            sizes="100vw"
-            format="avif,webp"
-            legacy-format="jpeg"
-            :quality="80"
-            :img-attrs="{ class: 'h-full w-full object-cover' }"
-          />
-          <NuxtPicture
-            provider="ipx"
-            v-if="imageDesktopDisplayUrl"
-            :src="imageDesktopDisplayUrl"
-            :alt="imageAlt"
-            class="absolute inset-0 hidden h-full w-full md:block"
-            loading="eager"
-            decoding="async"
-            fetchpriority="high"
-            sizes="100vw"
-            format="avif,webp"
-            legacy-format="jpeg"
-            :quality="80"
-            :img-attrs="{ class: 'h-full w-full object-cover' }"
-          />
-        </template>
+          >
+        </picture>
         </div>
 
         <div

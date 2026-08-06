@@ -2,6 +2,7 @@
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
 import SectionHeader from '~/components/basic/SectionHeader.vue';
+import { toDisplayImage } from '~/utils/media-image';
 
 interface SponsorImage {
   id?: number | string | null;
@@ -53,11 +54,23 @@ const secondaryItems = computed(() => toArray(props.secondary));
 const thirdItems = computed(() => toArray(props.third));
 
 const getImageUrl = (item: SponsorImage): string => {
-  return item.cropVariants?.default?.publicUrl
+  const image = toDisplayImage(item);
+
+  return image?.urlDefault
+    || image?.urlSmall
+    || item.cropVariants?.default?.publicUrl
     || item.cropVariants?.default?.url
     || item.publicUrl
     || item.originalUrl
     || '';
+};
+
+const getImageSrcsetDefault = (item: SponsorImage): string => {
+  return toDisplayImage(item)?.srcsetDefault || '';
+};
+
+const getImageSrcsetSmall = (item: SponsorImage): string => {
+  return toDisplayImage(item)?.srcsetSmall || '';
 };
 
 const getAlt = (item: SponsorImage): string => {
@@ -83,13 +96,23 @@ const getAlt = (item: SponsorImage): string => {
           :key="item.id ?? `main-${index}`"
           class="flex min-h-[220px] items-center justify-center rounded-xl bg-white p-6"
         >
-          <img
-            :src="getImageUrl(item)"
-            :alt="getAlt(item)"
-            class="block max-h-[400px] w-full object-contain"
-            loading="lazy"
-            decoding="async"
-          >
+          <picture class="block w-full">
+            <source
+              v-if="getImageSrcsetSmall(item)"
+              media="(max-width: 767px)"
+              :srcset="getImageSrcsetSmall(item)"
+            >
+            <img
+              :src="getImageUrl(item)"
+              :srcset="getImageSrcsetDefault(item) || undefined"
+              :sizes="getImageSrcsetDefault(item) ? '(max-width: 767px) 100vw, 50vw' : undefined"
+              :alt="getAlt(item)"
+              class="block max-h-[400px] w-full object-contain"
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
+            >
+          </picture>
         </div>
       </div>
 
@@ -99,13 +122,23 @@ const getAlt = (item: SponsorImage): string => {
           :key="item.id ?? `secondary-${index}`"
           class="flex min-h-[200px] items-center justify-center rounded-xl bg-white p-6"
         >
-          <img
-            :src="getImageUrl(item)"
-            :alt="getAlt(item)"
-            class="block max-h-[350px] w-full object-contain"
-            loading="lazy"
-            decoding="async"
-          >
+          <picture class="block w-full">
+            <source
+              v-if="getImageSrcsetSmall(item)"
+              media="(max-width: 767px)"
+              :srcset="getImageSrcsetSmall(item)"
+            >
+            <img
+              :src="getImageUrl(item)"
+              :srcset="getImageSrcsetDefault(item) || undefined"
+              :sizes="getImageSrcsetDefault(item) ? '(max-width: 767px) 100vw, 50vw' : undefined"
+              :alt="getAlt(item)"
+              class="block max-h-[350px] w-full object-contain"
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
+            >
+          </picture>
         </div>
       </div>
 
@@ -115,13 +148,23 @@ const getAlt = (item: SponsorImage): string => {
           :key="item.id ?? `third-${index}`"
           class="flex h-[200px] items-center justify-center rounded-xl bg-white p-4"
         >
-          <img
-            :src="getImageUrl(item)"
-            :alt="getAlt(item)"
-            class="block max-h-[200px] w-full object-contain"
-            loading="lazy"
-            decoding="async"
-          >
+          <picture class="block w-full">
+            <source
+              v-if="getImageSrcsetSmall(item)"
+              media="(max-width: 767px)"
+              :srcset="getImageSrcsetSmall(item)"
+            >
+            <img
+              :src="getImageUrl(item)"
+              :srcset="getImageSrcsetDefault(item) || undefined"
+              :sizes="getImageSrcsetDefault(item) ? '(max-width: 767px) 100vw, 33vw' : undefined"
+              :alt="getAlt(item)"
+              class="block max-h-[200px] w-full object-contain"
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
+            >
+          </picture>
         </div>
       </div>
     </section>

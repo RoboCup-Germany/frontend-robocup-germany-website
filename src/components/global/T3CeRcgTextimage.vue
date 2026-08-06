@@ -135,8 +135,14 @@ const normalizedButtons = computed(() => {
 const hasButtons = computed(() => normalizedButtons.value.length > 0);
 
 const displayImage = computed<DisplayImage | null>(() => {
+  const fromImageList = pickFirstDisplayImage(normalizedImageList.value);
+
   if (normalizedMediaList.value.length > 0) {
-    return pickFirstDisplayImage(normalizedMediaList.value) || pickFirstDisplayImage(normalizedImageList.value);
+    return fromImageList || pickFirstDisplayImage(normalizedMediaList.value);
+  }
+
+  if (fromImageList) {
+    return fromImageList;
   }
 
   if (normalizedMediaRecord.value) {
@@ -146,7 +152,7 @@ const displayImage = computed<DisplayImage | null>(() => {
     }
   }
 
-  return pickFirstDisplayImage(normalizedImageList.value);
+  return null;
 });
 
 const imageColumnClass = computed(() => {
@@ -164,6 +170,8 @@ const textColumnClass = computed(() => {
 const imageSrcDefault = computed(() => displayImage.value?.urlDefault || null);
 const imageSrcSmall = computed(() => displayImage.value?.urlSmall || null);
 const imageSrc = computed(() => imageSrcDefault.value || imageSrcSmall.value || null);
+const imageSrcsetDefault = computed(() => displayImage.value?.srcsetDefault || null);
+const imageSrcsetSmall = computed(() => displayImage.value?.srcsetSmall || null);
 
 const imageAlt = computed(() => displayImage.value?.alt ?? '');
 const imageTitle = computed(() => displayImage.value?.title ?? '');
@@ -187,7 +195,33 @@ const imageCreator = computed(() => {
     <UContainer class="grid grid-cols-1 gap-6 xl:grid-cols-12 xl:items-center xl:gap-10">
       <div :class="['xl:col-span-6', imageColumnClass]">
         <div v-if="imageSrc" class="rcg-textimage-fixed relative group overflow-hidden">
-          <picture class="block">
+          <picture v-if="imageSrcsetDefault || imageSrcsetSmall" class="block">
+            <source
+              v-if="imageSrcsetSmall"
+              :srcset="imageSrcsetSmall"
+              media="(max-width: 767px)"
+            >
+            <source
+              v-if="imageSrcsetDefault"
+              :srcset="imageSrcsetDefault"
+              media="(min-width: 768px)"
+              sizes="50vw"
+            >
+            <img
+              :src="imageSrc"
+              :srcset="imageSrcsetDefault || undefined"
+              :alt="imageAlt"
+              :title="imageTitle"
+              class="block h-auto w-full"
+              :width="imageWidth"
+              :height="imageHeight"
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
+              sizes="(max-width: 767px) 100vw, 50vw"
+            >
+          </picture>
+          <picture v-else class="block">
             <source
               v-if="imageSrcSmall"
               :srcset="imageSrcSmall"
@@ -204,7 +238,7 @@ const imageCreator = computed(() => {
               loading="lazy"
               decoding="async"
               fetchpriority="low"
-              sizes="100vw lg:1200px"
+              sizes="(max-width: 767px) 100vw, 50vw"
               format="webp"
               :quality="80"
             />
