@@ -81,8 +81,10 @@ const normalizedButtons = computed(() => {
 });
 
 const logoImage = computed(() => pickFirstDisplayImage(props.image));
-const logoSrc = computed(() => logoImage.value?.urlDefault || '/assets/RCgermany_Logo.png');
+const logoSrc = computed(() => logoImage.value?.urlDefault || '/assets/RCgermany_Logo.webp');
 const logoAlt = computed(() => logoImage.value?.alt || logoImage.value?.title || 'RoboCup Germany');
+const logoWidth = computed(() => logoImage.value?.width || 562);
+const logoHeight = computed(() => logoImage.value?.height || 319);
 
 const spacingClasses = computed(() => {
   return [props.space_before_class, props.space_after_class].filter(Boolean);
@@ -125,6 +127,8 @@ const spacingClasses = computed(() => {
               loading="lazy"
               decoding="async"
               fetchpriority="low"
+              :width="logoWidth"
+              :height="logoHeight"
               class="rcg-cta-logo"
             />
           </div>

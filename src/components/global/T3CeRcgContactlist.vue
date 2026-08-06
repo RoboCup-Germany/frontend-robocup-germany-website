@@ -41,6 +41,8 @@ type ContactCard = {
   imageSrcsetDefault?: string;
   imageSrcsetSmall?: string;
   imageAlt: string;
+  imageWidth?: number;
+  imageHeight?: number;
 };
 
 const props = withDefaults(defineProps<T3CeRcgContactlist>(), {
@@ -93,6 +95,8 @@ const contactCards = computed<ContactCard[]>(() => {
     const imageUrlSmall = portrait?.urlSmall || imageUrlDefault;
     const imageSrcsetDefault = portrait?.srcsetDefault || undefined;
     const imageSrcsetSmall = portrait?.srcsetSmall || undefined;
+    const imageWidth = portrait?.width || undefined;
+    const imageHeight = portrait?.height || undefined;
     const imageAlt = portrait?.alt?.trim()
       || portrait?.description?.trim()
       || `Porträt von ${fullName}`;
@@ -116,7 +120,9 @@ const contactCards = computed<ContactCard[]>(() => {
       imageUrlSmall,
       imageSrcsetDefault,
       imageSrcsetSmall,
-      imageAlt
+      imageAlt,
+      imageWidth,
+      imageHeight
     };
   });
 });
@@ -159,8 +165,10 @@ const contactCards = computed<ContactCard[]>(() => {
                       <img
                         :src="card.imageUrlDefault"
                         :srcset="card.imageSrcsetDefault"
-                        sizes="(max-width: 767px) 100vw, 33vw"
+                        sizes="(max-width: 767px) 100vw, 273px"
                         :alt="card.imageAlt"
+                        :width="card.imageWidth"
+                        :height="card.imageHeight"
                         loading="lazy"
                         decoding="async"
                         fetchpriority="low"

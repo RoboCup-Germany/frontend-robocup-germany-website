@@ -45,7 +45,7 @@ onMounted(() => {
   isMounted.value = true
 })
 
-const fallbackFooterLogoSrc = '/assets/RCgermany_Logo.png'
+const fallbackFooterLogoSrc = '/assets/RCgermany_Logo.webp'
 
 const firstNonEmptyNavigation = (...items: Array<unknown>): FooterNavItem[] => {
   for (const item of items) {
@@ -265,8 +265,8 @@ const socialLinks = computed(() => {
           loading="lazy"
           decoding="async"
           fetchpriority="low"
-          width="340"
-          height="150"
+          width="562"
+          height="319"
         >
         <address v-if="hasContact" class="not-italic text-center text-sm leading-relaxed text-black">
           <p v-if="contactName" class="font-semibold">{{ contactName }}</p>

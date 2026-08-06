@@ -90,6 +90,8 @@ const imageMobileSrcset = computed(() => {
 const imageAlt = computed(() => {
   return mediaDisplay.value?.alt || props.title || 'Seitenbild';
 });
+const imageWidth = computed(() => mediaDisplay.value?.width || undefined);
+const imageHeight = computed(() => mediaDisplay.value?.height || undefined);
 
 const imageMobileDisplayUrl = computed(() => imageMobileUrl.value || imageDesktopUrl.value);
 const imageDesktopDisplayUrl = computed(() => imageDesktopUrl.value || imageMobileUrl.value);
@@ -261,7 +263,7 @@ watch(
           playsinline
           webkit-playsinline
           loop
-          preload="auto"
+          preload="metadata"
           :poster="videoPosterUrl || undefined"
           aria-hidden="true"
           tabindex="-1"
@@ -289,6 +291,8 @@ watch(
             :src="imageDesktopDisplayUrl || imageMobileDisplayUrl"
             :srcset="imageDesktopSrcset || undefined"
             :alt="imageAlt"
+            :width="imageWidth"
+            :height="imageHeight"
             sizes="100vw"
             class="h-full w-full object-cover"
             loading="eager"
@@ -308,6 +312,8 @@ watch(
           <img
             :src="imageDesktopDisplayUrl || imageMobileDisplayUrl"
             :alt="imageAlt"
+            :width="imageWidth"
+            :height="imageHeight"
             class="h-full w-full object-cover"
             loading="eager"
             decoding="async"

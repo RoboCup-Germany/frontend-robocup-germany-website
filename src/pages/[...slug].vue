@@ -283,6 +283,10 @@ const findNewsDetail = (input: unknown): NewsDetailRecord | null => {
 
 const newsDetail = computed(() => findNewsDetail(pageData.value));
 
+const parseString = (value: unknown): string => {
+  return typeof value === 'string' ? value.trim() : '';
+};
+
 const pageTitle = computed(() => {
   const pageRecord = asRecord(pageData.value);
   const metaRecord = asRecord(pageRecord?.meta);
@@ -303,14 +307,32 @@ const pageSubtitle = computed(() => {
     || '';
 });
 
+const pageDescription = computed(() => {
+  const pageRecord = asRecord(pageData.value);
+  const metaRecord = asRecord(pageRecord?.meta);
+  const seoRecord = asRecord(pageRecord?.seo);
+
+  return parseString(seoRecord?.description)
+    || parseString(metaRecord?.description)
+    || parseString(newsDetail.value?.teaser)
+    || parseString(metaRecord?.subtitle)
+    || parseString(pageRecord?.subtitle)
+    || parseString(pageRecord?.description)
+    || parseString(pageRecord?.title)
+    || 'RoboCup Germany: Informationen zu Events, Ligen, Workshops und News rund um Robotik-Wettbewerbe in Deutschland.';
+});
+
+useSeoMeta({
+  title: () => pageTitle.value || 'RoboCup Germany',
+  ogTitle: () => pageTitle.value || 'RoboCup Germany',
+  description: () => pageDescription.value,
+  ogDescription: () => pageDescription.value
+});
+
 const pageMedia = computed(() => {
   const media = (pageData.value as { media?: unknown } | null)?.media;
   return media ?? null;
 });
-
-const parseString = (value: unknown): string => {
-  return typeof value === 'string' ? value.trim() : '';
-};
 
 const mediaButtonText = computed(() => {
   const source = pageData.value as {

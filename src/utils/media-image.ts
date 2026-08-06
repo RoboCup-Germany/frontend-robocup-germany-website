@@ -131,18 +131,40 @@ const responsiveFallbackUrl = (
     || null;
 };
 
+const responsiveFallbackSource = (
+  variant: ResponsiveVariantLike | null | undefined,
+  minimumWidth = 0
+): { url: string; width: number | null; height: number | null } | null => {
+  if (!Array.isArray(variant?.sources) || variant.sources.length === 0) return null;
+
+  const sortedSources = variant.sources
+    .map((source) => ({
+      url: toTextOrNull(source.url) || toTextOrNull(source.publicUrl),
+      width: toPositiveIntOrNull(source.width),
+      height: toPositiveIntOrNull(source.height)
+    }))
+    .filter((source): source is { url: string; width: number | null; height: number | null } => Boolean(source.url))
+    .sort((a, b) => (a.width || Number.MAX_SAFE_INTEGER) - (b.width || Number.MAX_SAFE_INTEGER));
+
+  return sortedSources.find((source) => (source.width || Number.MAX_SAFE_INTEGER) >= minimumWidth)
+    || sortedSources[sortedSources.length - 1]
+    || null;
+};
+
 const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | null => {
   const srcsetDefault = responsiveSrcset(media.responsive?.default);
   const srcsetSmall = responsiveSrcset(media.responsive?.small);
+  const responsiveDefault = responsiveFallbackSource(media.responsive?.default, 768);
+  const responsiveSmall = responsiveFallbackSource(media.responsive?.small, 320);
   const urlDefault
-    = responsiveFallbackUrl(media.responsive?.default, 768)
+    = responsiveDefault?.url
       || variantUrl(media.cropVariants?.default)
       || toTextOrNull(media.publicUrl)
       || toTextOrNull(media.url)
       || toTextOrNull(media.originalUrl)
       || toTextOrNull(media.properties?.originalUrl);
   const urlSmall
-    = responsiveFallbackUrl(media.responsive?.small, 320)
+    = responsiveSmall?.url
       || responsiveFallbackUrl(media.responsive?.default, 320)
       || variantUrl(media.cropVariants?.small)
       || variantUrl(media.cropVariants?.default)
@@ -155,10 +177,14 @@ const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | n
   const description = toTextOrNull(media.description) || toTextOrNull(media.properties?.description);
   const width
     = variantDimension(media.cropVariants?.default, 'width')
+      || responsiveDefault?.width
+      || responsiveSmall?.width
       || toPositiveIntOrNull(media.width)
       || toPositiveIntOrNull(media.properties?.width);
   const height
     = variantDimension(media.cropVariants?.default, 'height')
+      || responsiveDefault?.height
+      || responsiveSmall?.height
       || toPositiveIntOrNull(media.height)
       || toPositiveIntOrNull(media.properties?.height);
 

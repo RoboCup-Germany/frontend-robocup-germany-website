@@ -45,6 +45,8 @@ interface GalleryImageView {
   srcsetDesktop: string
   alt: string
   title: string
+  width?: number
+  height?: number
 }
 
 const props = withDefaults(defineProps<T3CeRcgGallery>(), {})
@@ -124,7 +126,9 @@ const galleryImages = computed<GalleryImageView[]>(() => normalizedImages.value
       srcsetMobile: item.srcsetSmall || '',
       srcsetDesktop: item.srcsetDefault || '',
       alt: item.alt || '',
-      title: item.title || ''
+      title: item.title || '',
+      width: item.width || undefined,
+      height: item.height || undefined
     } satisfies GalleryImageView
   })
   .filter((item): item is GalleryImageView => Boolean(item)))
@@ -171,8 +175,8 @@ const isLogoStandardCarouselLayout = computed(() => galleryLayout.value === 0 &&
 const isChunkedCarouselLayout = computed(() => galleryLayout.value === 0 && isSpaciousGallery.value)
 const galleryImageSizes = computed(() => (
   isGridLayout.value || isChunkedCarouselLayout.value
-    ? '(max-width: 767px) 100vw, 33vw'
-    : '(max-width: 767px) 100vw, 50vw'
+    ? '(max-width: 767px) 100vw, 360px'
+    : '(max-width: 767px) 100vw, 720px'
 ))
 const gridWrapperClass = computed(() => (
   isFlickrLikeGridLayout.value
@@ -536,6 +540,8 @@ const sectionClasses = computed(() => {
               :sizes="image.srcsetDesktop ? galleryImageSizes : undefined"
               :alt="image.alt"
               :title="image.title"
+              :width="image.width"
+              :height="image.height"
               :class="isLogoGallery && !isFlickrLikeGridLayout
                 ? 'rcg-image block h-full w-full object-contain p-4'
                 : 'rcg-image block h-auto w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]'"
@@ -622,6 +628,8 @@ const sectionClasses = computed(() => {
                   :sizes="image.srcsetDesktop ? galleryImageSizes : undefined"
                   :alt="image.alt"
                   :title="image.title"
+                  :width="image.width"
+                  :height="image.height"
                   class="rcg-image block h-full w-full object-contain p-4"
                   loading="lazy"
                   decoding="async"
@@ -666,6 +674,8 @@ const sectionClasses = computed(() => {
                 :sizes="item.srcsetDesktop ? galleryImageSizes : undefined"
                 :alt="item.alt"
                 :title="item.title"
+                :width="item.width"
+                :height="item.height"
                 :class="isLogoGallery
                   ? 'rcg-image mx-auto block h-full w-full object-contain p-4'
                   : 'rcg-image mx-auto block h-auto w-full object-contain md:h-full md:w-auto md:max-w-none md:object-cover'"

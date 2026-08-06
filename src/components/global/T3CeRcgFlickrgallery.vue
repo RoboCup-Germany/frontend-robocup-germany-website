@@ -296,7 +296,8 @@ const fetchPhotos = async (pageToLoad: number, append = false) => {
         photosetId: albumId.value,
         userId: flickrUserId.value,
         perPage: effectivePerPage.value,
-        page: pageToLoad
+        page: pageToLoad,
+        preferredSize: isGridLayout.value ? 'grid' : 'carousel'
       }
     })
 
@@ -408,6 +409,7 @@ onUnmounted(() => {
                 loading="lazy"
                 decoding="async"
                 fetchpriority="low"
+                sizes="(max-width: 767px) 100vw, 376px"
               />
               <span
                 class="pointer-events-none absolute bottom-2 right-2 rounded bg-primary/80 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"

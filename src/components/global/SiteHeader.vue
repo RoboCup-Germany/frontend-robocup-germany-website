@@ -28,7 +28,7 @@ onMounted(() => {
   isMounted.value = true
 })
 
-const fallbackHeaderLogoSrc = '/assets/RCgermany_Logo.png'
+const fallbackHeaderLogoSrc = '/assets/RCgermany_Logo.webp'
 const globalConfig = computed<GlobalConfig | undefined>(() => {
   if (siteGlobalConfig.value) {
     return siteGlobalConfig.value
@@ -148,8 +148,8 @@ watch(
             :src="headerLogoSrc"
             :alt="headerLogoAlt"
             class="h-auto max-h-[115px] w-auto max-w-[210px] md:max-w-[260px]"
-            width="260"
-            height="110"
+            width="562"
+            height="319"
             loading="eager"
             decoding="async"
             fetchpriority="high"

@@ -137,15 +137,19 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
       loading="lazy"
       decoding="async"
       fetchpriority="low"
+      width="1080"
+      height="401"
     />
     <img
-      src="/assets/RCgermany_element3.webp"
+      src="/assets/RCgermany_element3-optimized.webp"
       alt=""
       aria-hidden="true"
       class="pointer-events-none absolute right-0 top-1/2 z-0 hidden h-auto w-auto max-w-none -translate-y-1/2 object-contain object-right md:block"
-      loading="lazy"
+      loading="eager"
       decoding="async"
-      fetchpriority="low"
+      fetchpriority="high"
+      width="1081"
+      height="401"
     />
 
     <UContainer class="relative z-10">

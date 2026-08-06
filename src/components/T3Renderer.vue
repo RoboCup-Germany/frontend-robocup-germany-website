@@ -20,6 +20,7 @@ const props = defineProps({
 const itemRefs = ref<Array<HTMLElement | undefined>>([]);
 const mediaQuery = ref<MediaQueryList | null>(null);
 const reduceMotion = ref(false);
+const revealEnhanced = ref(false);
 const visibleIndexes = ref(new Set<number>());
 let observer: IntersectionObserver | null = null;
 
@@ -37,7 +38,7 @@ const isFadeOnlyType = (type?: string) => {
 
 const isScheduleType = (type?: string) => String(type || '').toLowerCase().includes('schedule');
 
-const isVisible = (index: number, type?: string) => props.disableReveal || isScheduleType(type) || visibleIndexes.value.has(index);
+const isVisible = (index: number, type?: string) => !revealEnhanced.value || props.disableReveal || isScheduleType(type) || visibleIndexes.value.has(index);
 
 const setItemRef = (el: Element | null, index: number) => {
   if (el instanceof HTMLElement) {
@@ -91,6 +92,25 @@ const revealAll = () => {
   for (let i = 0; i < props.content.length; i += 1) {
     next.add(i);
   }
+  visibleIndexes.value = next;
+};
+
+const revealInitiallyVisibleItems = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const viewportBottom = window.innerHeight * 1.15;
+  const next = new Set(visibleIndexes.value);
+
+  itemRefs.value.forEach((el, index) => {
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.top < viewportBottom && rect.bottom > 0) {
+      next.add(index);
+    }
+  });
+
   visibleIndexes.value = next;
 };
 
@@ -167,9 +187,12 @@ onMounted(async () => {
 
   if (reduceMotion.value || props.disableReveal) {
     revealAll();
+    revealEnhanced.value = false;
     return;
   }
 
+  revealInitiallyVisibleItems();
+  revealEnhanced.value = true;
   setupObserver();
 });
 
@@ -180,8 +203,11 @@ watch(
     await nextTick();
     if (reduceMotion.value || props.disableReveal) {
       revealAll();
+      revealEnhanced.value = false;
       return;
     }
+    revealInitiallyVisibleItems();
+    revealEnhanced.value = true;
     setupObserver();
   },
   { deep: true }
@@ -194,6 +220,7 @@ watch(
 
     if (disabled) {
       revealAll();
+      revealEnhanced.value = false;
       observer?.disconnect();
       return;
     }
@@ -202,9 +229,12 @@ watch(
 
     if (reduceMotion.value) {
       revealAll();
+      revealEnhanced.value = false;
       return;
     }
 
+    revealInitiallyVisibleItems();
+    revealEnhanced.value = true;
     setupObserver();
   }
 );
@@ -220,7 +250,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="t3-reveal-list">
+  <div class="t3-reveal-list" :class="{ 'is-enhanced': revealEnhanced }">
     <div
       v-for="(component, index) in content"
       :key="index"
@@ -253,38 +283,38 @@ onBeforeUnmount(() => {
   }
 }
 
-.t3-reveal-item {
+.t3-reveal-list.is-enhanced .t3-reveal-item {
   opacity: 0;
   transform: translate3d(0, 32px, 0);
   transition: opacity 1050ms cubic-bezier(0.16, 1, 0.3, 1), transform 1250ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
-.t3-reveal-item.reveal-from-left {
+.t3-reveal-list.is-enhanced .t3-reveal-item.reveal-from-left {
   transform: translate3d(-84px, 0, 0);
 }
 
-.t3-reveal-item.reveal-from-right {
+.t3-reveal-list.is-enhanced .t3-reveal-item.reveal-from-right {
   transform: translate3d(84px, 0, 0);
 }
 
-.t3-reveal-item.reveal-fade-only {
+.t3-reveal-list.is-enhanced .t3-reveal-item.reveal-fade-only {
   transform: translate3d(0, 16px, 0);
 }
 
-.t3-reveal-item.no-reveal {
+.t3-reveal-list.is-enhanced .t3-reveal-item.no-reveal {
   opacity: 1;
   transform: none;
   transition: none;
 }
 
-.t3-reveal-item.is-visible {
+.t3-reveal-list.is-enhanced .t3-reveal-item.is-visible {
   opacity: 1;
   transform: translate3d(0, 0, 0);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .t3-reveal-item {
+  .t3-reveal-list.is-enhanced .t3-reveal-item {
     opacity: 1;
     transform: none;
     transition: none;
@@ -292,7 +322,7 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 767px) {
-  .t3-reveal-item {
+  .t3-reveal-list.is-enhanced .t3-reveal-item {
     opacity: 1;
     transform: none !important;
     transition: none;

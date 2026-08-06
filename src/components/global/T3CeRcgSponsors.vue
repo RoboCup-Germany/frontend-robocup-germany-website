@@ -73,6 +73,14 @@ const getImageSrcsetSmall = (item: SponsorImage): string => {
   return toDisplayImage(item)?.srcsetSmall || '';
 };
 
+const getImageWidth = (item: SponsorImage): number | undefined => {
+  return toDisplayImage(item)?.width || undefined;
+};
+
+const getImageHeight = (item: SponsorImage): number | undefined => {
+  return toDisplayImage(item)?.height || undefined;
+};
+
 const getAlt = (item: SponsorImage): string => {
   return item.alt?.trim()
     || item.title?.trim()
@@ -107,6 +115,8 @@ const getAlt = (item: SponsorImage): string => {
               :srcset="getImageSrcsetDefault(item) || undefined"
               :sizes="getImageSrcsetDefault(item) ? '(max-width: 767px) 100vw, 50vw' : undefined"
               :alt="getAlt(item)"
+              :width="getImageWidth(item)"
+              :height="getImageHeight(item)"
               class="block max-h-[400px] w-full object-contain"
               loading="lazy"
               decoding="async"
@@ -133,6 +143,8 @@ const getAlt = (item: SponsorImage): string => {
               :srcset="getImageSrcsetDefault(item) || undefined"
               :sizes="getImageSrcsetDefault(item) ? '(max-width: 767px) 100vw, 50vw' : undefined"
               :alt="getAlt(item)"
+              :width="getImageWidth(item)"
+              :height="getImageHeight(item)"
               class="block max-h-[350px] w-full object-contain"
               loading="lazy"
               decoding="async"
@@ -159,6 +171,8 @@ const getAlt = (item: SponsorImage): string => {
               :srcset="getImageSrcsetDefault(item) || undefined"
               :sizes="getImageSrcsetDefault(item) ? '(max-width: 767px) 100vw, 33vw' : undefined"
               :alt="getAlt(item)"
+              :width="getImageWidth(item)"
+              :height="getImageHeight(item)"
               class="block max-h-[200px] w-full object-contain"
               loading="lazy"
               decoding="async"

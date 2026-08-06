@@ -8,16 +8,19 @@ interface FlickrApiPhoto {
   farm: number
   url_q?: string
   url_m?: string
+  url_c?: string
   url_z?: string
   url_l?: string
   url_o?: string
   width_q?: number | string
   width_m?: number | string
+  width_c?: number | string
   width_z?: number | string
   width_l?: number | string
   width_o?: number | string
   height_q?: number | string
   height_m?: number | string
+  height_c?: number | string
   height_z?: number | string
   height_l?: number | string
   height_o?: number | string
@@ -79,6 +82,7 @@ export default defineEventHandler(async (event) => {
   const userId = String(query.userId ?? fallbackUserId).trim()
   const perPage = parsePositiveInt(query.perPage, 30, 200)
   const page = parsePositiveInt(query.page, 1, 4000)
+  const preferredSize = String(query.preferredSize ?? '').trim().toLowerCase()
   const apiKey = String(
     config.flickrApiKey
     || process.env.NUXT_FLICKR_API_KEY
@@ -105,7 +109,7 @@ export default defineEventHandler(async (event) => {
       api_key: apiKey,
       photoset_id: photosetId,
       user_id: userId,
-      extras: 'url_q,url_m,url_z,url_l,url_o,o_dims',
+      extras: 'url_q,url_m,url_z,url_c,url_l,url_o,o_dims',
       per_page: perPage,
       page,
       format: 'json',
@@ -121,10 +125,16 @@ export default defineEventHandler(async (event) => {
   }
 
   const photos = (payload.photoset?.photo ?? []).map((photo, index) => {
-    const src = pickFirst(photo.url_l, photo.url_z, photo.url_m, photo.url_o, buildPhotoUrl(photo, 'b'))
+    const src = preferredSize === 'grid'
+      ? pickFirst(photo.url_c, photo.url_z, photo.url_m, photo.url_l, photo.url_o, buildPhotoUrl(photo, 'c'))
+      : pickFirst(photo.url_l, photo.url_c, photo.url_z, photo.url_m, photo.url_o, buildPhotoUrl(photo, 'b'))
     const thumb = pickFirst(photo.url_q, photo.url_m, photo.url_z, src)
-    const width = pickFirstPositiveInt(photo.width_l, photo.width_z, photo.width_m, photo.width_o, photo.o_width)
-    const height = pickFirstPositiveInt(photo.height_l, photo.height_z, photo.height_m, photo.height_o, photo.o_height)
+    const width = preferredSize === 'grid'
+      ? pickFirstPositiveInt(photo.width_c, photo.width_z, photo.width_m, photo.width_l, photo.width_o, photo.o_width)
+      : pickFirstPositiveInt(photo.width_l, photo.width_c, photo.width_z, photo.width_m, photo.width_o, photo.o_width)
+    const height = preferredSize === 'grid'
+      ? pickFirstPositiveInt(photo.height_c, photo.height_z, photo.height_m, photo.height_l, photo.height_o, photo.o_height)
+      : pickFirstPositiveInt(photo.height_l, photo.height_c, photo.height_z, photo.height_m, photo.height_o, photo.o_height)
     const title = (photo.title || '').trim()
 
     return {

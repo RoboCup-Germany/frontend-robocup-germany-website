@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 const nuxtApp = useNuxtApp()
 const route = useRoute()
@@ -20,17 +20,6 @@ const queryFlagEnabled = (value: unknown): boolean => {
 const hideChrome = computed(() => queryFlagEnabled(route.query.download))
 const isClient = ref(false)
 const isApiLoading = ref(false)
-const isDomReady = ref(false)
-
-const updateDomReady = () => {
-  if (import.meta.client) {
-    isDomReady.value = document.readyState === 'complete'
-  }
-}
-
-const onDomLoaded = () => {
-  isDomReady.value = true
-}
 
 if (import.meta.client) {
   isApiLoading.value = Boolean(nuxtApp.isHydrating)
@@ -45,15 +34,9 @@ if (import.meta.client) {
 
 onMounted(() => {
   isClient.value = true
-  updateDomReady()
-  window.addEventListener('load', onDomLoaded, { once: true })
 })
 
-onBeforeUnmount(() => {
-  window.removeEventListener('load', onDomLoaded)
-})
-
-const showBodyLoader = computed(() => isClient.value && (isApiLoading.value || !isDomReady.value))
+const showBodyLoader = computed(() => isClient.value && isApiLoading.value)
 </script>
 
 <template>
