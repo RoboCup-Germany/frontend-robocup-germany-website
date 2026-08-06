@@ -155,13 +155,18 @@ const galleryType = computed(() => {
   const blockContent = (b as { content?: Record<string, unknown> } | null)?.content
   const value = props.gallery_type
     ?? attrs.gallery_type
+    ?? attrs.type
+    ?? attrs.typ
     ?? blockContent?.gallery_type
+    ?? blockContent?.type
+    ?? blockContent?.typ
     ?? b?.gallery_type
     ?? b?.appearance?.galleryType
   return toPositiveInt(value, 0)
 })
 const isLogoGallery = computed(() => galleryType.value === 0)
 const isSpaciousGallery = computed(() => galleryType.value === 1)
+const isFlickrLikeGridLayout = computed(() => galleryLayout.value === 1 && isLogoGallery.value)
 const isLogoStandardCarouselLayout = computed(() => galleryLayout.value === 0 && isLogoGallery.value)
 const isChunkedCarouselLayout = computed(() => galleryLayout.value === 0 && isSpaciousGallery.value)
 const galleryImageSizes = computed(() => (
@@ -170,12 +175,16 @@ const galleryImageSizes = computed(() => (
     : '(max-width: 767px) 100vw, 50vw'
 ))
 const gridWrapperClass = computed(() => (
-  isSpaciousGallery.value
+  isFlickrLikeGridLayout.value
+    ? 'w-full rounded-md bg-neutral-100 p-4 columns-1 md:columns-2 lg:columns-3'
+    : isSpaciousGallery.value
     ? 'w-full columns-1 gap-10 px-2 py-4 md:columns-2 lg:columns-3'
     : 'w-full columns-1 gap-4 px-2 py-4 md:columns-2 lg:columns-3'
 ))
 const gridItemClass = computed(() => (
-  isSpaciousGallery.value
+  isFlickrLikeGridLayout.value
+    ? 'group mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white'
+    : isSpaciousGallery.value
     ? 'mb-10 w-full break-inside-avoid overflow-hidden rounded bg-white'
     : 'mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white'
 ))
@@ -356,7 +365,7 @@ const isMobileViewport = computed(() => {
 })
 
 const logoBoxStyle = computed<Record<string, string>>(() => {
-  if (!isLogoGallery.value) return {}
+  if (!isLogoGallery.value || isFlickrLikeGridLayout.value) return {}
 
   let height = isMobileViewport.value ? LOGO_BOX_HEIGHT_MOBILE : LOGO_BOX_HEIGHT_DESKTOP
   if (isLogoStandardCarouselLayout.value) {
@@ -374,7 +383,7 @@ const logoBoxStyle = computed<Record<string, string>>(() => {
 })
 
 const galleryHeightStyle = computed<Record<string, string>>(() => {
-  if (isLogoGallery.value) return {}
+  if (isLogoGallery.value && !isFlickrLikeGridLayout.value) return {}
   if (isGridLayout.value) return {}
   if (isChunkedCarouselLayout.value) return {}
   if (isMobileViewport.value) return {}
@@ -527,9 +536,9 @@ const sectionClasses = computed(() => {
               :sizes="image.srcsetDesktop ? galleryImageSizes : undefined"
               :alt="image.alt"
               :title="image.title"
-              :class="isLogoGallery
+              :class="isLogoGallery && !isFlickrLikeGridLayout
                 ? 'rcg-image block h-full w-full object-contain p-4'
-                : 'rcg-image block h-auto w-full object-cover'"
+                : 'rcg-image block h-auto w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]'"
               loading="lazy"
               decoding="async"
               fetchpriority="low"
