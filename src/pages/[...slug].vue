@@ -127,6 +127,91 @@ const getPayloadSeoLinks = (): unknown[] => {
   return Array.isArray(seoRecord?.link) ? seoRecord.link : [];
 };
 
+type NewsDetailRecord = {
+  title?: string;
+  subtitle?: string;
+  teaser?: string;
+};
+
+const findNewsDetail = (input: unknown): NewsDetailRecord | null => {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const source = input as { content?: Record<string, unknown[]> };
+  const content = source.content;
+  if (!content || typeof content !== 'object') {
+    return null;
+  }
+
+  for (const colElements of Object.values(content)) {
+    if (!Array.isArray(colElements)) continue;
+    const newsDetailElement = colElements.find((item) => {
+      if (!item || typeof item !== 'object') return false;
+      return (item as { type?: string }).type === 'news_newsdetail';
+    });
+
+    if (!newsDetailElement || typeof newsDetailElement !== 'object') {
+      continue;
+    }
+
+    const detail = (newsDetailElement as {
+      content?: { data?: { detail?: NewsDetailRecord } };
+    }).content?.data?.detail;
+
+    if (detail && typeof detail === 'object') {
+      return detail;
+    }
+  }
+
+  return null;
+};
+
+const newsDetail = computed(() => findNewsDetail(pageData.value));
+
+const parseString = (value: unknown): string => {
+  return typeof value === 'string' ? value.trim() : '';
+};
+
+const newsDetailSubtitle = computed(() => {
+  return parseString(newsDetail.value?.subtitle)
+    || parseString(newsDetail.value?.teaser);
+});
+
+const newsDetailSocialMetaKeys = new Set([
+  'description',
+  'og:title',
+  'ogtitle',
+  'og:description',
+  'ogdescription',
+  'twitter:title',
+  'twittertitle',
+  'twitter:description',
+  'twitterdescription',
+  'twitter:card',
+  'twittercard'
+]);
+
+const shouldRemoveNewsDetailMeta = (meta: unknown): boolean => {
+  if (!newsDetail.value) {
+    return false;
+  }
+
+  const metaRecord = asRecord(meta);
+  if (!metaRecord) {
+    return false;
+  }
+
+  const identifier = (
+    asTrimmedString(metaRecord.property)
+    || asTrimmedString(metaRecord.name)
+    || asTrimmedString(metaRecord.hid)
+    || asTrimmedString(metaRecord.key)
+  ).toLowerCase();
+
+  return newsDetailSocialMetaKeys.has(identifier);
+};
+
 const normalizedHeadData = computed(() => {
   const source = unref(headData) as Record<string, unknown> | null | undefined;
   if (!source) {
@@ -151,10 +236,15 @@ const normalizedHeadData = computed(() => {
       return href ? { ...linkRecord, href } : link;
     })
     : source.link;
+  const sourceMeta = Array.isArray(source.meta) ? source.meta : [];
+  const meta = sourceMeta.length && newsDetail.value
+    ? sourceMeta.filter((item) => !shouldRemoveNewsDetailMeta(item))
+    : source.meta;
 
   return {
     ...source,
-    link: links
+    link: links,
+    meta
   };
 });
 
@@ -242,51 +332,6 @@ const toUidSet = (values: unknown[]): Set<number> => {
   return set;
 };
 
-type NewsDetailRecord = {
-  title?: string;
-  teaser?: string;
-};
-
-const findNewsDetail = (input: unknown): NewsDetailRecord | null => {
-  if (!input || typeof input !== 'object') {
-    return null;
-  }
-
-  const source = input as { content?: Record<string, unknown[]> };
-  const content = source.content;
-  if (!content || typeof content !== 'object') {
-    return null;
-  }
-
-  for (const colElements of Object.values(content)) {
-    if (!Array.isArray(colElements)) continue;
-    const newsDetailElement = colElements.find((item) => {
-      if (!item || typeof item !== 'object') return false;
-      return (item as { type?: string }).type === 'news_newsdetail';
-    });
-
-    if (!newsDetailElement || typeof newsDetailElement !== 'object') {
-      continue;
-    }
-
-    const detail = (newsDetailElement as {
-      content?: { data?: { detail?: NewsDetailRecord } };
-    }).content?.data?.detail;
-
-    if (detail && typeof detail === 'object') {
-      return detail;
-    }
-  }
-
-  return null;
-};
-
-const newsDetail = computed(() => findNewsDetail(pageData.value));
-
-const parseString = (value: unknown): string => {
-  return typeof value === 'string' ? value.trim() : '';
-};
-
 const pageTitle = computed(() => {
   const pageRecord = asRecord(pageData.value);
   const metaRecord = asRecord(pageRecord?.meta);
@@ -301,7 +346,7 @@ const pageSubtitle = computed(() => {
   const pageRecord = asRecord(pageData.value);
   const metaRecord = asRecord(pageRecord?.meta);
 
-  return parseString(newsDetail.value?.teaser)
+  return newsDetailSubtitle.value
     || parseString(metaRecord?.subtitle)
     || parseString(pageRecord?.subtitle)
     || '';
@@ -312,9 +357,9 @@ const pageDescription = computed(() => {
   const metaRecord = asRecord(pageRecord?.meta);
   const seoRecord = asRecord(pageRecord?.seo);
 
-  return parseString(seoRecord?.description)
+  return newsDetailSubtitle.value
+    || parseString(seoRecord?.description)
     || parseString(metaRecord?.description)
-    || parseString(newsDetail.value?.teaser)
     || parseString(metaRecord?.subtitle)
     || parseString(pageRecord?.subtitle)
     || parseString(pageRecord?.description)
@@ -326,7 +371,10 @@ useSeoMeta({
   title: () => pageTitle.value || 'RoboCup Germany',
   ogTitle: () => pageTitle.value || 'RoboCup Germany',
   description: () => pageDescription.value,
-  ogDescription: () => pageDescription.value
+  ogDescription: () => pageDescription.value,
+  twitterTitle: () => pageTitle.value || 'RoboCup Germany',
+  twitterDescription: () => pageDescription.value,
+  twitterCard: 'summary_large_image'
 });
 
 const pageMedia = computed(() => {
