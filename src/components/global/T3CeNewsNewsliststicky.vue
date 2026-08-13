@@ -528,12 +528,14 @@ const hasNextAvailable = computed(() => {
       <div v-if="newsItems.length > 0" class="news-stage relative mx-auto mb-20 w-full max-w-[1200px] overflow-visible px-5 pb-32 lg:px-8 lg:pb-40">
         <img
           class="news-stage-bg"
-          src="/assets/RCgermany_element2.webp"
+          src="/assets/RCgermany_element2.avif"
           alt=""
           aria-hidden="true"
           loading="lazy"
           decoding="async"
           fetchpriority="low"
+          width="1080"
+          height="401"
         />
 
         <button
@@ -607,7 +609,7 @@ const hasNextAvailable = computed(() => {
                       :src="resolveImageUrl(item)"
                       :srcset="resolveImageSrcsetDefault(item) || undefined"
                       :alt="resolveImageAlt(item)"
-                      sizes="(max-width: 767px) 100vw, 33vw"
+                      sizes="(max-width: 767px) calc(100vw - 60px), (max-width: 991px) 50vw, 376px"
                       class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                       loading="lazy"
                       decoding="async"

@@ -37,7 +37,7 @@ export default defineAppConfig({
                 {
                     color: 'junior',
                     variant: 'solid',
-                    class: 'text-white bg-junior hover:bg-junior/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junior'
+                    class: 'text-black bg-junior hover:bg-junior/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-junior'
                 },
                 {
                     color: 'junior',

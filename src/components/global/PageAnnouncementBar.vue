@@ -129,28 +129,39 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
 
 <template>
   <section v-if="hasContent" class="relative overflow-hidden">
-    <img
-      src="/assets/RCgermany_element2.webp"
-      alt=""
-      aria-hidden="true"
-      class="pointer-events-none absolute bottom-0 left-1/2 z-0 h-full w-screen -translate-x-1/2 object-cover object-bottom md:object-top md:hidden"
-      loading="lazy"
-      decoding="async"
-      fetchpriority="low"
-      width="1080"
-      height="401"
-    />
-    <img
-      src="/assets/RCgermany_element3-optimized.webp"
-      alt=""
-      aria-hidden="true"
-      class="pointer-events-none absolute right-0 top-1/2 z-0 hidden h-auto w-auto max-w-none -translate-y-1/2 object-contain object-right md:block"
-      loading="eager"
-      decoding="async"
-      fetchpriority="high"
-      width="1081"
-      height="401"
-    />
+    <picture>
+      <source
+        media="(min-width: 768px)"
+        type="image/avif"
+        srcset="/assets/RCgermany_element3-optimized.avif"
+        width="1081"
+        height="401"
+      >
+      <source
+        media="(min-width: 768px)"
+        type="image/webp"
+        srcset="/assets/RCgermany_element3-optimized.webp"
+        width="1081"
+        height="401"
+      >
+      <source
+        type="image/avif"
+        srcset="/assets/RCgermany_element2.avif"
+        width="1080"
+        height="401"
+      >
+      <img
+        src="/assets/RCgermany_element2.webp"
+        alt=""
+        aria-hidden="true"
+        class="pointer-events-none absolute bottom-0 left-1/2 z-0 h-full w-screen -translate-x-1/2 object-cover object-bottom md:bottom-auto md:left-auto md:right-0 md:top-1/2 md:h-auto md:w-auto md:max-w-none md:translate-x-0 md:-translate-y-1/2 md:object-contain md:object-right"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+        width="1080"
+        height="401"
+      >
+    </picture>
 
     <UContainer class="relative z-10">
       <div class="py-6 lg:py-8">

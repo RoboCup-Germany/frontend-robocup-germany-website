@@ -174,7 +174,9 @@ const isFlickrLikeGridLayout = computed(() => galleryLayout.value === 1 && isLog
 const isLogoStandardCarouselLayout = computed(() => galleryLayout.value === 0 && isLogoGallery.value)
 const isChunkedCarouselLayout = computed(() => galleryLayout.value === 0 && isSpaciousGallery.value)
 const galleryImageSizes = computed(() => (
-  isGridLayout.value || isChunkedCarouselLayout.value
+  isLogoStandardCarouselLayout.value
+    ? '(max-width: 767px) 220px, (max-width: 991px) 360px, 520px'
+    : isGridLayout.value || isChunkedCarouselLayout.value
     ? '(max-width: 767px) 100vw, 360px'
     : '(max-width: 767px) 100vw, 720px'
 ))

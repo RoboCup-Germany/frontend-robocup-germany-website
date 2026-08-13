@@ -186,12 +186,6 @@ const subheader = computed(() => pickString(
   attrs.subheader
 ))
 
-const bodytext = computed(() => pickString(
-  contentData.value.bodytext,
-  props.bodytext,
-  attrs.bodytext
-))
-
 const albumName = computed(() => pickString(
   contentData.value.album_name,
   props.album_name,
@@ -200,6 +194,11 @@ const albumName = computed(() => pickString(
 
 const photoLinkTitle = (photo: FlickrSlide): string => {
   return photo.title || albumName.value || photosetTitle.value || 'Öffnen auf flickr.de'
+}
+
+const photoLinkLabel = (photo: FlickrSlide): string => {
+  const title = photo.title || albumName.value || photosetTitle.value || 'Foto'
+  return `${title} auf flickr.de öffnen (Foto ${photo.id})`
 }
 
 const currentIndex = ref(0)
@@ -396,6 +395,7 @@ onUnmounted(() => {
               :key="photo.id"
               :href="photoLink(photo.id)"
               :title="photoLinkTitle(photo)"
+              :aria-label="photoLinkLabel(photo)"
               target="_blank"
               rel="noopener noreferrer"
               class="group relative mb-4 block w-full break-inside-avoid overflow-hidden rounded bg-white"
@@ -439,6 +439,7 @@ onUnmounted(() => {
               v-if="activePhoto"
               :href="photoLink(activePhoto.id)"
               :title="photoLinkTitle(activePhoto)"
+              :aria-label="photoLinkLabel(activePhoto)"
               target="_blank"
               rel="noopener noreferrer"
               class="absolute right-3 top-3 z-40 rounded bg-primary/80 px-3 py-1.5 text-xs text-white transition-all duration-200 ease-out hover:bg-primary hover:scale-[1.04] md:top-auto md:bottom-3"

@@ -80,9 +80,60 @@ export default defineNuxtConfig({
             tsconfigRaw: {}
         }
     },
+    nitro: {
+        // Generate pre-compressed variants for client assets and public files.
+        // Dynamic HTML should additionally be compressed by the reverse proxy/CDN.
+        compressPublicAssets: {
+            gzip: true,
+            brotli: true
+        }
+    },
+    fonts: {
+        defaults: {
+            preload: false,
+            subsets: ['latin']
+        },
+        families: [
+            {
+                name: 'IBM Plex Sans',
+                provider: 'google',
+                weights: [400, 600, 700],
+                styles: ['normal', 'italic'],
+                subsets: ['latin'],
+                preload: false
+            },
+            {
+                name: 'IBM Plex Mono',
+                provider: 'google',
+                weights: [600],
+                styles: ['normal'],
+                subsets: ['latin'],
+                preload: false
+            },
+            {
+                name: 'Degular',
+                provider: 'none'
+            }
+        ]
+    },
     routeRules: {
         '/**': {
             ssr: true
+        },
+        '/_nuxt/**': {
+            headers: {
+                'cache-control': 'public, max-age=31536000, immutable'
+            }
+        },
+        '/_fonts/**': {
+            headers: {
+                'cache-control': 'public, max-age=31536000, immutable'
+            }
+        },
+        '/assets/**': {
+            headers: {
+                'cache-control': 'public, max-age=604800, stale-while-revalidate=86400'
+            }
         },
         '/api/typo3': {
             swr: false,

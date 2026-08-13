@@ -94,15 +94,20 @@ const spacingClasses = computed(() => {
 <template>
   <section :class="spacingClasses">
     <div class="rcg-cta-wrapper">
-      <img
-        src="/assets/RCgermany_element1.png"
-        alt=""
-        aria-hidden="true"
-        class="rcg-cta-bg"
-        loading="lazy"
-        decoding="async"
-        fetchpriority="low"
-      />
+      <picture>
+        <source type="image/avif" srcset="/assets/RCgermany_element1.avif">
+        <img
+          src="/assets/RCgermany_element1.png"
+          alt=""
+          aria-hidden="true"
+          class="rcg-cta-bg"
+          loading="lazy"
+          decoding="async"
+          fetchpriority="low"
+          width="1920"
+          height="334"
+        >
+      </picture>
       <UContainer>
         <div class="rcg-cta-grid">
           <div class="rcg-cta-content">

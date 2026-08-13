@@ -121,6 +121,7 @@ html {
 	border-radius: 9999px;
 	font-family: var(--font-sans);
 	font-weight: 600;
+	transition: transform 160ms ease, opacity 160ms ease;
 }
 
 /* =========================================

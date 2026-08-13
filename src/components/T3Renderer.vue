@@ -95,25 +95,6 @@ const revealAll = () => {
   visibleIndexes.value = next;
 };
 
-const revealInitiallyVisibleItems = () => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const viewportBottom = window.innerHeight * 1.15;
-  const next = new Set(visibleIndexes.value);
-
-  itemRefs.value.forEach((el, index) => {
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.top < viewportBottom && rect.bottom > 0) {
-      next.add(index);
-    }
-  });
-
-  visibleIndexes.value = next;
-};
-
 const setupObserver = () => {
   if (typeof window === 'undefined') {
     return;
@@ -148,6 +129,10 @@ const setupObserver = () => {
 
       if (changed) {
         visibleIndexes.value = next;
+      }
+
+      if (!revealEnhanced.value) {
+        revealEnhanced.value = true;
       }
     },
     {
@@ -191,14 +176,13 @@ onMounted(async () => {
     return;
   }
 
-  revealInitiallyVisibleItems();
-  revealEnhanced.value = true;
   setupObserver();
 });
 
 watch(
   () => props.content,
   async () => {
+    revealEnhanced.value = false;
     visibleIndexes.value = new Set();
     await nextTick();
     if (reduceMotion.value || props.disableReveal) {
@@ -206,8 +190,6 @@ watch(
       revealEnhanced.value = false;
       return;
     }
-    revealInitiallyVisibleItems();
-    revealEnhanced.value = true;
     setupObserver();
   },
   { deep: true }
@@ -233,8 +215,7 @@ watch(
       return;
     }
 
-    revealInitiallyVisibleItems();
-    revealEnhanced.value = true;
+    revealEnhanced.value = false;
     setupObserver();
   }
 );

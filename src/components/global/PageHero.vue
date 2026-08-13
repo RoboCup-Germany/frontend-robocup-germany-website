@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { NuxtPicture } from '#components';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Button from '~/components/basic/Button.vue';
 import { toDisplayImage } from '~/utils/media-image';
@@ -146,14 +145,6 @@ const mediaIsVideo = computed(() => {
   );
 });
 
-const mediaIsImage = computed(() => {
-  if (mediaIsVideo.value) return false;
-  if (imageMobileDisplayUrl.value || imageDesktopDisplayUrl.value) {
-    return true;
-  }
-  return mediaMimeType.value.startsWith('image/');
-});
-
 const hasImage = computed(() => Boolean(imageMobileUrl.value || imageDesktopUrl.value));
 const hasVideo = computed(() => Boolean(videoDefaultUrl.value || videoMobileUrl.value || videoDesktopUrl.value));
 const hasImageSources = computed(() => Boolean(imageMobileDisplayUrl.value || imageDesktopDisplayUrl.value));
@@ -209,7 +200,7 @@ const tryStartVideo = async () => {
 
   element.muted = true;
   element.defaultMuted = true;
-  element.load();
+  if (!element.paused && element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return;
 
   try {
     await element.play();
@@ -258,7 +249,6 @@ watch(
         <video
           v-if="canPlayVideo"
           ref="videoElement"
-          autoplay
           muted
           playsinline
           webkit-playsinline
@@ -267,7 +257,8 @@ watch(
           :poster="videoPosterUrl || undefined"
           aria-hidden="true"
           tabindex="-1"
-          role="presentation"
+          width="1920"
+          height="1080"
           class="absolute inset-0 h-full w-full object-cover"
           @error="markVideoAsFailed"
         >
@@ -276,7 +267,7 @@ watch(
             :key="source.src"
             :src="source.src"
             :type="source.type"
-          />
+          >
         </video>
         <picture
           v-else-if="imageDesktopSrcset || imageMobileSrcset"

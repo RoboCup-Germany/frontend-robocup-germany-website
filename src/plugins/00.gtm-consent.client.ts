@@ -68,7 +68,6 @@ export default defineNuxtPlugin(() => {
 
   const { cookiesEnabledIds } = useCookieControl()
   setConsentDefaults()
-  ensureGoogleTagManager(gtmId)
 
   watch(
     cookiesEnabledIds,
@@ -76,6 +75,9 @@ export default defineNuxtPlugin(() => {
       const hasTagManagerConsent = (enabledIds ?? []).includes('google-tag-manager')
       ensureGtag()
       window.gtag?.('consent', 'update', hasTagManagerConsent ? CONSENT_GRANTED : CONSENT_DENIED)
+      if (hasTagManagerConsent) {
+        ensureGoogleTagManager(gtmId)
+      }
     },
     { immediate: true, deep: true }
   )

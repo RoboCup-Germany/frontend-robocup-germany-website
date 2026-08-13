@@ -119,13 +119,15 @@ const hasBackgroundElement = computed(() => Number(props.background) === 1);
   <div class="relative overflow-visible">
     <img
       v-if="hasBackgroundElement"
-      src="/assets/RCgermany_element2.webp"
+      src="/assets/RCgermany_element2.avif"
       alt=""
       aria-hidden="true"
       class="pointer-events-none absolute bottom-0 left-1/2 z-0 h-full w-screen -translate-x-1/2 object-cover object-bottom md:object-top"
       loading="lazy"
       decoding="async"
       fetchpriority="low"
+      width="1080"
+      height="401"
     />
 
     <UContainer :class="{ 'pb-14': hasBackgroundElement }">

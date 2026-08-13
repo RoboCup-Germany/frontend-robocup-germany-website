@@ -56,14 +56,14 @@ const showBodyLoader = computed(() => isClient.value && isApiLoading.value)
   </main>
   <img
     v-if="!hideChrome"
-    src="/assets/RCgermany_element2.webp"
+    src="/assets/RCgermany_element2.avif"
     alt=""
     aria-hidden="true"
-    class="block h-auto w-full"
+    class="block aspect-[1080/401] h-auto w-full"
     loading="lazy"
     decoding="async"
-    width="2000"
-    height="741"
+    width="1080"
+    height="401"
   />
   <SiteFooter v-if="!hideChrome" />
 </template>

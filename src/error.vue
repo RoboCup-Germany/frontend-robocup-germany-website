@@ -197,14 +197,14 @@ watchEffect(() => {
     </div>
   </main>
   <img
-    src="/assets/RCgermany_element2.webp"
+    src="/assets/RCgermany_element2.avif"
     alt=""
     aria-hidden="true"
-    class="block h-auto w-full"
+    class="block aspect-[1080/401] h-auto w-full"
     loading="lazy"
     decoding="async"
-    width="2000"
-    height="741"
+    width="1080"
+    height="401"
   />
   <SiteFooter />
 </template>
