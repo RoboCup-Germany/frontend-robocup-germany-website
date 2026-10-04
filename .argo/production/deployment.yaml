@@ -19,6 +19,9 @@ spec:
       containers:
         - image: registry.robocup.de/website/frontend:2.7.0
           name: website-frontend
+          env:
+            - name: NUXT_RELEASE_SHA
+              value: "7f14dac979e65c27a47a971fef366820e6dae654"
           envFrom:
             - secretRef:
                 name: website-frontend

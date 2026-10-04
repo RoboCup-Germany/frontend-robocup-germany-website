@@ -28,6 +28,7 @@ const flickrApiKey = process.env.NUXT_FLICKR_API_KEY ?? ''
 const flickrUserId = process.env.NUXT_FLICKR_USER_ID ?? '200186101@N05'
 const gtmId = process.env.NUXT_PUBLIC_GTM_ID ?? 'GTM-KLQ9QQCX'
 const siteConfig = process.env.NUXT_PUBLIC_SITE_CONFIG ?? ''
+const releaseSha = process.env.NUXT_RELEASE_SHA ?? 'development'
 const toHostname = (value: string): string | null => {
     try {
         return new URL(value).hostname || null
@@ -218,6 +219,7 @@ export default defineNuxtConfig({
         }
     },
     runtimeConfig: {
+        releaseSha,
         typo3ApiOrigin: typo3BackendOrigin,
         flickrApiKey,
         flickrUserId,

@@ -1,0 +1,110 @@
+name: Staging
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging
+  cancel-in-progress: true
+
+jobs:
+  build-image:
+    if: github.ref_name == 'staging'
+    name: staging / build image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Validate registry configuration
+        env:
+          DOCKER_URL: ${{ secrets.DOCKER_URL }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          test -n "$DOCKER_URL"
+          test -n "$DOCKER_USERNAME"
+          test -n "$DOCKER_PASSWORD"
+
+      - name: Log in to container registry
+        env:
+          DOCKER_URL: ${{ secrets.DOCKER_URL }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: printf '%s' "$DOCKER_PASSWORD" | docker login "$DOCKER_URL" --username "$DOCKER_USERNAME" --password-stdin
+
+      - name: Build and push immutable image
+        env:
+          DOCKER_URL: ${{ secrets.DOCKER_URL }}
+        run: |
+          image="${DOCKER_URL}/website/frontend:sha-${GITHUB_SHA}"
+          docker build --label "org.opencontainers.image.revision=${GITHUB_SHA}" --tag "$image" .
+          docker push "$image"
+
+  deploy-and-smoke-test:
+    name: staging / deployed and tested
+    needs: build-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: staging
+      url: https://test.robocup.de
+    permissions:
+      contents: write
+    steps:
+      - name: Check out source and deployment history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish desired state for Argo CD
+        env:
+          DOCKER_URL: ${{ secrets.DOCKER_URL }}
+        run: ./scripts/publish-deployment-branch.sh staging "$GITHUB_SHA" "${DOCKER_URL}/website/frontend:sha-${GITHUB_SHA}" "$GITHUB_SHA"
+
+      - name: Wait for rollout and run smoke tests
+        env:
+          FRONTEND_URLS: https://test.robocup.de,https://testwm.robocup.de
+          BACKEND_URL: https://testapi.robocup.de/?type=834
+          EXPECTED_RELEASE_SHA: ${{ github.sha }}
+        run: node src/scripts/smoke-test.mjs
+
+  release-candidate:
+    name: release gate / staging candidate
+    needs: deploy-and-smoke-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out release PR template
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create release pull request when necessary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pending_commits="$(git rev-list --count origin/main..origin/staging)"
+          existing_pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head staging --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing_pr" ]; then
+            echo "Release pull request #${existing_pr} is already open"
+          elif [ "$pending_commits" = "0" ]; then
+            echo "staging does not contain changes that need a release pull request"
+          else
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head staging \
+              --title "Release: staging nach main" \
+              --body-file .github/release-pr.md
+          fi

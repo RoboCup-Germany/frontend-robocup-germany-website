@@ -1,0 +1,77 @@
+name: Production
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'staging' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    name: production / promote tested image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://robocup.de
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the merged production revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Verify main contains exactly the tested source tree
+        env:
+          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if ! git cat-file -e "${RELEASE_SHA}^{commit}"; then
+            git fetch --no-tags origin "$RELEASE_SHA"
+          fi
+          test "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "${RELEASE_SHA}^{tree}")"
+
+      - name: Log in to container registry
+        env:
+          DOCKER_URL: ${{ secrets.DOCKER_URL }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          test -n "$DOCKER_URL"
+          test -n "$DOCKER_USERNAME"
+          test -n "$DOCKER_PASSWORD"
+          printf '%s' "$DOCKER_PASSWORD" | docker login "$DOCKER_URL" --username "$DOCKER_USERNAME" --password-stdin
+
+      - name: Verify the tested image exists
+        env:
+          DOCKER_URL: ${{ secrets.DOCKER_URL }}
+          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: docker manifest inspect "${DOCKER_URL}/website/frontend:sha-${RELEASE_SHA}"
+
+      - name: Publish desired production state for Argo CD
+        env:
+          DOCKER_URL: ${{ secrets.DOCKER_URL }}
+          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          manifest_ref="$(git rev-parse HEAD)"
+          image="${DOCKER_URL}/website/frontend:sha-${RELEASE_SHA}"
+          ./scripts/publish-deployment-branch.sh production "$manifest_ref" "$image" "$RELEASE_SHA"
+
+      - name: Wait for rollout and verify production
+        env:
+          FRONTEND_URLS: https://robocup.de,https://wm.robocup.de
+          EXPECTED_RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node src/scripts/smoke-test.mjs
