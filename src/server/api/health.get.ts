@@ -7,6 +7,7 @@ export default defineEventHandler((event) => {
 
   return {
     status: 'ok',
+    version: String(config.releaseVersion || 'development'),
     release: String(config.releaseSha || 'development')
   }
 })

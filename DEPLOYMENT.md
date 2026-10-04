@@ -5,7 +5,7 @@
 ```text
 feature/* -> Pull Request -> staging
                             |
-                            +-> Image sha-<commit>
+                            +-> Image <version>-sha-<commit>
                             +-> deploy/staging -> Argo CD
                             +-> test.robocup.de
                             +-> testwm.robocup.de
@@ -81,7 +81,7 @@ ein erfolgreiches GitHub-Deployment tatsächlich eine getestete Staging-Version.
 
 Ein Environment `production` anlegen:
 
-- Deployment branch: nur `main`
+- Deployment branches: `main` und `refs/pull/*/merge`
 - Environment URL: `https://robocup.de`
 - Required reviewers: zuständige Release-Verantwortliche
 - `Prevent self-review` aktivieren
@@ -225,7 +225,8 @@ werden.
 Das Produktions-Deployment besitzt jetzt:
 
 - eine Release-SHA zur eindeutigen Rollout-Prüfung
-- immutable `sha-<commit>`-Images nach der ersten Promotion
+- eine automatisch aus den Commit-Typen berechnete SemVer-Version
+- immutable `<version>-sha-<commit>`-Images
 
 ## DNS, TLS und Backend
 
@@ -268,12 +269,19 @@ offener PR `staging -> main` existiert:
   erscheinen automatisch im bestehenden PR
 - neue Commits verwerfen durch das Ruleset alte Freigaben
 - nach dem Merge promoted der Produktions-Workflow das Image
-  `sha-<staging-commit>`
+  `<version>-sha-<staging-commit>`
 
-Das bisherige Version-Bumping und der direkte Push durch
-`ACTIONS_DEPLOY_TOKEN` wurden entfernt. Versionen und Release-Tags können später
-in einem getrennten, PR-basierten Release-Schritt ergänzt werden; sie sind nicht
-mehr Teil des Deployments.
+Die Version wird wie im bisherigen Workflow aus den Commit-Typen bestimmt:
+`BREAKING CHANGE` beziehungsweise `!` erhöht Major, `feat` oder `feature`
+erhöht Minor und alle übrigen Änderungen erhöhen Patch. Staging baut und testet
+bereits das kombinierte, unveränderliche Image. Nach erfolgreichen
+Staging-Smoke-Tests reserviert `candidate-v<version>` diese Nummer, sodass ein
+späterer Staging-Commit auch während einer laufenden Freigabe bereits die
+nächste Version erhält. Produktion übernimmt exakt das getestete Image und setzt
+erst nach erfolgreichen Produktions-Smoke-Tests das endgültige, annotierte
+Git-Tag `v<version>`. Die Tags bilden die Basis für die nächste automatisch
+berechnete Version; ein Bot-Push nach `main` oder `staging` ist nicht
+erforderlich.
 
 ## Zweites Frontend
 
@@ -300,8 +308,9 @@ eingerichtete Freigabegarantie umgehen.
    promoted exakt das getestete Image.
 8. Der Workflow prüft abschließend `robocup.de` und `wm.robocup.de`.
 
-Ein Rollback erfolgt durch erneutes Setzen eines zuvor erfolgreichen Image-Tags
-im Deployment-Branch oder durch Revert des betreffenden Deployment-Commits.
+Ein Rollback erfolgt durch erneutes Setzen eines zuvor erfolgreichen,
+unveränderlichen Versions-SHA-Tags im Deployment-Branch oder durch Revert des
+betreffenden Deployment-Commits.
 
 ## Bootstrap-Reihenfolge
 

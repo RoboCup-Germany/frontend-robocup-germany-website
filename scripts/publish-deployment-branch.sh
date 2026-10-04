@@ -5,6 +5,7 @@ environment_name="${1:-}"
 manifest_ref="${2:-}"
 image="${3:-}"
 release_sha="${4:-}"
+release_version="${5:-}"
 
 case "$environment_name" in
   staging|production) ;;
@@ -16,6 +17,11 @@ esac
 
 if [[ ! "$manifest_ref" =~ ^[a-f0-9]{40}$ ]] || [[ ! "$release_sha" =~ ^[a-f0-9]{40}$ ]]; then
   echo "Manifest ref and release SHA must be full Git commit SHAs" >&2
+  exit 1
+fi
+
+if [[ ! "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Release version must use the MAJOR.MINOR.PATCH format" >&2
   exit 1
 fi
 
@@ -32,7 +38,8 @@ git archive "$manifest_ref" ".argo/${environment_name}" | tar -x -C "$temporary_
 node "$repository_root/src/scripts/render-deployment-manifest.mjs" \
   "$temporary_directory/.argo/${environment_name}/deployment.yaml" \
   "$image" \
-  "$release_sha"
+  "$release_sha" \
+  "$release_version"
 
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git config user.name "github-actions[bot]"
