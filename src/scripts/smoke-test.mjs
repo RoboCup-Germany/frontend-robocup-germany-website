@@ -7,7 +7,7 @@ const frontendUrls = String(process.env.FRONTEND_URLS || '')
 const backendUrl = String(process.env.BACKEND_URL || '').trim().replace(/\/+$/, '')
 const expectedRelease = String(process.env.EXPECTED_RELEASE_SHA || '').trim()
 const expectedVersion = String(process.env.EXPECTED_RELEASE_VERSION || '').trim()
-const attempts = Number.parseInt(process.env.SMOKE_ATTEMPTS || '30', 10)
+const attempts = Number.parseInt(process.env.SMOKE_ATTEMPTS || '60', 10)
 const delayMs = Number.parseInt(process.env.SMOKE_DELAY_MS || '10000', 10)
 
 if (frontendUrls.length === 0) {
@@ -72,8 +72,9 @@ const waitForRelease = async (baseUrl) => {
   throw lastError
 }
 
+await Promise.all(frontendUrls.map(waitForRelease))
+
 for (const frontendUrl of frontendUrls) {
-  await waitForRelease(frontendUrl)
   const page = await request(`${frontendUrl}/`, {
     headers: { 'cache-control': 'no-cache' }
   })
