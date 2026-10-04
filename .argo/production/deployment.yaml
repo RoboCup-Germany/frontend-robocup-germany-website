@@ -17,11 +17,13 @@ spec:
         workload.user.cattle.io/workloadselector: apps.deployment-main-website-frontend
     spec:
       containers:
-        - image: registry.robocup.de/website/frontend:sha-063e3e1dfa62b7fdde3fb3eaa5cc9ce0098b56ad
+        - image: registry.robocup.de/website/frontend:2.7.3-sha-5cf63ba16435788f8e8c07e57c4d59d125b45ab2
           name: website-frontend
           env:
+            - name: NUXT_RELEASE_VERSION
+              value: "2.7.3"
             - name: NUXT_RELEASE_SHA
-              value: "063e3e1dfa62b7fdde3fb3eaa5cc9ce0098b56ad"
+              value: "5cf63ba16435788f8e8c07e57c4d59d125b45ab2"
           envFrom:
             - secretRef:
                 name: website-frontend
