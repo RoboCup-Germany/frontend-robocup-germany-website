@@ -158,9 +158,12 @@ Die Branches dürfen nicht als Entwicklungsbranches verwendet werden.
 Die beiden Application-Manifeste liegen unter `.argo/applications`:
 
 - `frontend-staging.yaml` folgt `deploy/staging` und `.argo/staging`
-- `frontend-production.yaml` folgt `deploy/production` und `.argo/production`
+- `frontend-production.yaml` aktualisiert die bestehende Anwendung
+  `website-rc-germany-frontend` auf `deploy/production` und `.argo/production`
 
-Beide Anwendungen verwenden Auto-Sync, Pruning, Self-Healing und Retry. Die
+Beide Anwendungen liegen im vorhandenen Argo-CD-Namespace `argo`, verwenden die
+bereits konfigurierte SSH-Repository-Verbindung und aktivieren Auto-Sync,
+Pruning, Self-Healing und Retry. Die
 Staging-Anwendung vor dem ersten Push auf `staging` einmalig im Argo-CD-Cluster
 anlegen. Dass `deploy/staging` zu diesem Zeitpunkt noch fehlt, ist beim
 Bootstrap erwartbar; der erste Staging-Workflow erzeugt den Branch:
@@ -169,11 +172,10 @@ Bootstrap erwartbar; der erste Staging-Workflow erzeugt den Branch:
 kubectl apply -f .argo/applications/frontend-staging.yaml
 ```
 
-Falls die bestehende Produktions-Anwendung derzeit direkt `main` verfolgt, darf
-keine zweite Anwendung parallel dieselben Ressourcen verwalten. Vor dem ersten
-Merge des Release-PRs die bestehende Anwendung auf `deploy/production` und den
-Pfad `.argo/production` umstellen oder, falls noch keine Produktions-Anwendung
-existiert, folgendes Manifest anwenden:
+Die bestehende Produktions-Anwendung `website-rc-germany-frontend` verfolgt
+zunächst noch `main`. Vor dem ersten Merge des Release-PRs folgendes Manifest
+anwenden. Es aktualisiert genau diese Anwendung auf `deploy/production` und
+`.argo/production`; es wird keine zweite Produktions-Anwendung erzeugt:
 
 ```bash
 kubectl apply -f .argo/applications/frontend-production.yaml
