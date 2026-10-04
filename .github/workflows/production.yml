@@ -44,6 +44,15 @@ jobs:
           fi
           test "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "${RELEASE_SHA}^{tree}")"
 
+      - name: Determine tested release version
+        id: release_version
+        env:
+          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          release_version="$(node scripts/derive-release-version.mjs "$RELEASE_SHA")"
+          echo "release_version=${release_version}" >> "$GITHUB_OUTPUT"
+          echo "Release version: ${release_version}"
+
       - name: Log in to container registry
         env:
           DOCKER_URL: ${{ secrets.DOCKER_URL }}
@@ -59,19 +68,37 @@ jobs:
         env:
           DOCKER_URL: ${{ secrets.DOCKER_URL }}
           RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
-        run: docker manifest inspect "${DOCKER_URL}/website/frontend:sha-${RELEASE_SHA}"
+          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
+        run: docker manifest inspect "${DOCKER_URL}/website/frontend:${RELEASE_VERSION}-sha-${RELEASE_SHA}"
 
       - name: Publish desired production state for Argo CD
         env:
           DOCKER_URL: ${{ secrets.DOCKER_URL }}
           RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
         run: |
           manifest_ref="$(git rev-parse HEAD)"
-          image="${DOCKER_URL}/website/frontend:sha-${RELEASE_SHA}"
-          ./scripts/publish-deployment-branch.sh production "$manifest_ref" "$image" "$RELEASE_SHA"
+          image="${DOCKER_URL}/website/frontend:${RELEASE_VERSION}-sha-${RELEASE_SHA}"
+          ./scripts/publish-deployment-branch.sh production "$manifest_ref" "$image" "$RELEASE_SHA" "$RELEASE_VERSION"
 
       - name: Wait for rollout and verify production
         env:
           FRONTEND_URLS: https://robocup.de,https://wm.robocup.de
           EXPECTED_RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
         run: node src/scripts/smoke-test.mjs
+
+      - name: Tag successful production release
+        env:
+          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
+        run: |
+          tag="v${RELEASE_VERSION}"
+          if git rev-parse --verify --quiet "refs/tags/${tag}" >/dev/null; then
+            test "$(git rev-list -n 1 "$tag")" = "$RELEASE_SHA"
+          else
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            git tag --annotate "$tag" "$RELEASE_SHA" --message "Version ${RELEASE_VERSION}"
+            git push origin "refs/tags/${tag}"
+          fi

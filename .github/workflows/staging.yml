@@ -19,9 +19,20 @@ jobs:
     name: staging / build image
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      release_version: ${{ steps.release_version.outputs.release_version }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine release version
+        id: release_version
+        run: |
+          release_version="$(node scripts/derive-release-version.mjs "$GITHUB_SHA")"
+          echo "release_version=${release_version}" >> "$GITHUB_OUTPUT"
+          echo "Release version: ${release_version}"
 
       - name: Validate registry configuration
         env:
@@ -40,12 +51,22 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: printf '%s' "$DOCKER_PASSWORD" | docker login "$DOCKER_URL" --username "$DOCKER_USERNAME" --password-stdin
 
+      - name: Apply release version to build metadata
+        working-directory: src
+        env:
+          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+
       - name: Build and push immutable image
         env:
           DOCKER_URL: ${{ secrets.DOCKER_URL }}
+          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
         run: |
-          image="${DOCKER_URL}/website/frontend:sha-${GITHUB_SHA}"
-          docker build --label "org.opencontainers.image.revision=${GITHUB_SHA}" --tag "$image" .
+          image="${DOCKER_URL}/website/frontend:${RELEASE_VERSION}-sha-${GITHUB_SHA}"
+          docker build \
+            --label "org.opencontainers.image.version=${RELEASE_VERSION}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --tag "$image" .
           docker push "$image"
 
   deploy-and-smoke-test:
@@ -67,14 +88,30 @@ jobs:
       - name: Publish desired state for Argo CD
         env:
           DOCKER_URL: ${{ secrets.DOCKER_URL }}
-        run: ./scripts/publish-deployment-branch.sh staging "$GITHUB_SHA" "${DOCKER_URL}/website/frontend:sha-${GITHUB_SHA}" "$GITHUB_SHA"
+          RELEASE_VERSION: ${{ needs.build-image.outputs.release_version }}
+        run: ./scripts/publish-deployment-branch.sh staging "$GITHUB_SHA" "${DOCKER_URL}/website/frontend:${RELEASE_VERSION}-sha-${GITHUB_SHA}" "$GITHUB_SHA" "$RELEASE_VERSION"
 
       - name: Wait for rollout and run smoke tests
         env:
           FRONTEND_URLS: https://test.robocup.de,https://testwm.robocup.de
           BACKEND_URL: https://testapi.robocup.de/?type=834
           EXPECTED_RELEASE_SHA: ${{ github.sha }}
+          EXPECTED_RELEASE_VERSION: ${{ needs.build-image.outputs.release_version }}
         run: node src/scripts/smoke-test.mjs
+
+      - name: Reserve tested release version
+        env:
+          RELEASE_VERSION: ${{ needs.build-image.outputs.release_version }}
+        run: |
+          tag="candidate-v${RELEASE_VERSION}"
+          if git rev-parse --verify --quiet "refs/tags/${tag}" >/dev/null; then
+            test "$(git rev-list -n 1 "$tag")" = "$GITHUB_SHA"
+          else
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            git tag --annotate "$tag" "$GITHUB_SHA" --message "Tested staging candidate ${RELEASE_VERSION}"
+            git push origin "refs/tags/${tag}"
+          fi
 
   release-candidate:
     name: release gate / staging candidate
