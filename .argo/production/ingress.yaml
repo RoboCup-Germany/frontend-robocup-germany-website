@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: my-letsencrypt-prod
+  name: frontend-ingress
+  namespace: main-website
+spec:
+  rules:
+    - host: robocup.de
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: "/"
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+    - host: wm.robocup.de
+      http:
+        paths:
+          - pathType: ImplementationSpecific
+            path: "/"
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+  tls:
+    - hosts:
+        - robocup.de
+      secretName: website-frontend-secret
+    - hosts:
+        - wm.robocup.de
+      secretName: website-frontend-wm-secret

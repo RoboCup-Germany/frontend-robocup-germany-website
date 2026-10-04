@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    workload.user.cattle.io/workloadselector: apps.deployment-main-website-frontend
+  name: frontend
+  namespace: main-website
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      workload.user.cattle.io/workloadselector: apps.deployment-main-website-frontend
+  template:
+    metadata:
+      labels:
+        workload.user.cattle.io/workloadselector: apps.deployment-main-website-frontend
+    spec:
+      containers:
+        - image: registry.robocup.de/website/frontend:sha-063e3e1dfa62b7fdde3fb3eaa5cc9ce0098b56ad
+          name: website-frontend
+          env:
+            - name: NUXT_RELEASE_SHA
+              value: "063e3e1dfa62b7fdde3fb3eaa5cc9ce0098b56ad"
+          envFrom:
+            - secretRef:
+                name: website-frontend
+                optional: false
+          imagePullPolicy: Always
+      imagePullSecrets:
+        - name: registry
