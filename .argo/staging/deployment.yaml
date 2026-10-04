@@ -19,13 +19,13 @@ spec:
         app.kubernetes.io/instance: staging
     spec:
       containers:
-        - image: registry.robocup.de/website/frontend:2.7.1-sha-31a5ad7ca36ca5bbebe32e75edff849a79802ad9
+        - image: registry.robocup.de/website/frontend:2.7.1-sha-377fcbec06331c32200264da6b5be615aac2da1b
           name: website-frontend
           env:
             - name: NUXT_RELEASE_VERSION
               value: "2.7.1"
             - name: NUXT_RELEASE_SHA
-              value: "31a5ad7ca36ca5bbebe32e75edff849a79802ad9"
+              value: "377fcbec06331c32200264da6b5be615aac2da1b"
           envFrom:
             - configMapRef:
                 name: website-frontend-config
