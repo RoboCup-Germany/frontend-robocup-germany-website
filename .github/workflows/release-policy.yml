@@ -1,0 +1,32 @@
+name: Release policy
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  staging-only:
+    name: release policy / staging only
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify the release pull request source
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          TARGET_REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_BRANCH" != "staging" ] || [ "$HEAD_REPOSITORY" != "$TARGET_REPOSITORY" ]; then
+            echo "Pull requests to main are only allowed from this repository's staging branch."
+            exit 1
+          fi
+
+          echo "Verified release pull request from staging to main."
