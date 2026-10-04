@@ -1,12 +1,12 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: website-frontend-production
-  namespace: argocd
+  name: website-rc-germany-frontend
+  namespace: argo
 spec:
   project: default
   source:
-    repoURL: https://github.com/RoboCup-Germany/frontend-robocup-germany-website.git
+    repoURL: git@github.com:RoboCup-Germany/frontend-robocup-germany-website.git
     targetRevision: deploy/production
     path: .argo/production
   destination:
