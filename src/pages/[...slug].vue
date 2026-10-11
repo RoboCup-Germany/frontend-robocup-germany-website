@@ -518,6 +518,34 @@ const matchingAnnouncement = computed<AnnouncementBar | null>(() => {
   }) || null;
 });
 
+type EventNavigationItem = {
+  title?: string;
+  link?: string;
+  active?: boolean | number;
+  current?: boolean | number;
+  children?: EventNavigationItem[];
+};
+
+type EventNavigation = {
+  event?: {
+    id?: number | string;
+    title?: string;
+    link?: string;
+  };
+  items?: EventNavigationItem[];
+};
+
+const eventNavigation = computed<EventNavigation | null>(() => {
+  const navigation = asRecord(asRecord(pageData.value)?.eventNavigation);
+  const event = asRecord(navigation?.event);
+
+  if (!navigation || !event) {
+    return null;
+  }
+
+  return navigation as EventNavigation;
+});
+
 onMounted(async () => {
   if (!isDownloadView.value || !shouldAutoPrint.value) {
     return;
@@ -529,24 +557,42 @@ onMounted(async () => {
 </script>
 
 <template>
-  <PageAnnouncementBar
-    v-if="matchingAnnouncement && !isDownloadView"
-    :announcement="matchingAnnouncement"
-  />
-  <PageHero
-    v-if="!isDownloadView"
-    :title="pageTitle"
-    :subtitle="pageSubtitle"
-    :media="pageMedia"
-    :media-button-text="mediaButtonText"
-    :media-button-link="mediaButtonLink"
-  />
-  <T3BackendLayout
-      :key="route.fullPath"
+  <div>
+    <PageAnnouncementBar
+      v-if="matchingAnnouncement && !isDownloadView"
+      :announcement="matchingAnnouncement"
+    />
+    <PageHero
+      v-if="!isDownloadView"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
+      :media="pageMedia"
+      :media-button-text="mediaButtonText"
+      :media-button-link="mediaButtonLink"
+    />
+    <EventNavigation
+      v-if="eventNavigation && !isDownloadView"
+      :navigation="eventNavigation"
+      variant="mobile"
+    />
+    <div
       v-if="pageData?.content"
-      :name="backendLayout"
-      :content="pageData.content"
-  />
+      :class="eventNavigation && !isDownloadView ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_260px] xl:items-start xl:gap-10' : ''"
+    >
+      <div class="min-w-0">
+        <T3BackendLayout
+          :key="route.fullPath"
+          :name="backendLayout"
+          :content="pageData.content"
+        />
+      </div>
+      <EventNavigation
+        v-if="eventNavigation && !isDownloadView"
+        :navigation="eventNavigation"
+        variant="desktop"
+      />
+    </div>
+  </div>
 </template>
 
 <style scoped>
