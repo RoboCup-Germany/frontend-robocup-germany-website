@@ -573,25 +573,13 @@ onMounted(async () => {
     <EventNavigation
       v-if="eventNavigation && !isDownloadView"
       :navigation="eventNavigation"
-      variant="mobile"
     />
-    <div
+    <T3BackendLayout
       v-if="pageData?.content"
-      :class="eventNavigation && !isDownloadView ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_260px] xl:items-start xl:gap-10' : ''"
-    >
-      <div class="min-w-0">
-        <T3BackendLayout
-          :key="route.fullPath"
-          :name="backendLayout"
-          :content="pageData.content"
-        />
-      </div>
-      <EventNavigation
-        v-if="eventNavigation && !isDownloadView"
-        :navigation="eventNavigation"
-        variant="desktop"
-      />
-    </div>
+      :key="route.fullPath"
+      :name="backendLayout"
+      :content="pageData.content"
+    />
   </div>
 </template>
 
