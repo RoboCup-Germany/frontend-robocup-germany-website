@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, unref, watchEffect } from 'vue';
+import { toDisplayImage } from '~/utils/media-image';
 import { resolveThemeFromTypo3SitePayload, type ResolvedSiteConfig } from '~/utils/site-config';
 
 const requestUrl = useRequestURL();
@@ -131,6 +132,15 @@ type NewsDetailRecord = {
   title?: string;
   subtitle?: string;
   teaser?: string;
+  media?: Array<{
+    images?: {
+      detailViewImage?: unknown;
+      defaultImage?: unknown;
+    } | null;
+    properties?: {
+      originalUrl?: string | null;
+    } | null;
+  } | null>;
 };
 
 const findNewsDetail = (input: unknown): NewsDetailRecord | null => {
@@ -178,16 +188,58 @@ const newsDetailSubtitle = computed(() => {
     || parseString(newsDetail.value?.teaser);
 });
 
+const newsDetailPreviewImage = computed(() => {
+  const media = newsDetail.value?.media;
+  const firstMedia = Array.isArray(media) && media.length > 0 ? media[0] : null;
+  if (!firstMedia) {
+    return null;
+  }
+
+  return toDisplayImage(firstMedia.images?.detailViewImage)
+    || toDisplayImage(firstMedia.images?.defaultImage)
+    || toDisplayImage(firstMedia)
+    || null;
+});
+
+const newsDetailPreviewImageUrl = computed(() => {
+  const image = newsDetailPreviewImage.value;
+  const url = image?.urlDefault?.trim()
+    || image?.urlSmall?.trim()
+    || newsDetail.value?.media?.[0]?.properties?.originalUrl?.trim()
+    || '';
+
+  return url ? toFrontendAbsoluteUrl(url) : undefined;
+});
+
+const newsDetailPreviewImageAlt = computed(() => {
+  return newsDetailPreviewImage.value?.alt?.trim()
+    || newsDetailPreviewImage.value?.title?.trim()
+    || pageTitle.value
+    || 'RoboCup Germany';
+});
+
 const newsDetailSocialMetaKeys = new Set([
   'description',
   'og:title',
   'ogtitle',
   'og:description',
   'ogdescription',
+  'og:image',
+  'ogimage',
+  'og:image:alt',
+  'ogimagealt',
+  'og:image:height',
+  'ogimageheight',
+  'og:image:width',
+  'ogimagewidth',
   'twitter:title',
   'twittertitle',
   'twitter:description',
   'twitterdescription',
+  'twitter:image',
+  'twitterimage',
+  'twitter:image:alt',
+  'twitterimagealt',
   'twitter:card',
   'twittercard'
 ]);
@@ -372,8 +424,12 @@ useSeoMeta({
   ogTitle: () => pageTitle.value || 'RoboCup Germany',
   description: () => pageDescription.value,
   ogDescription: () => pageDescription.value,
+  ogImage: () => newsDetailPreviewImageUrl.value,
+  ogImageAlt: () => newsDetailPreviewImageUrl.value ? newsDetailPreviewImageAlt.value : undefined,
   twitterTitle: () => pageTitle.value || 'RoboCup Germany',
   twitterDescription: () => pageDescription.value,
+  twitterImage: () => newsDetailPreviewImageUrl.value,
+  twitterImageAlt: () => newsDetailPreviewImageUrl.value ? newsDetailPreviewImageAlt.value : undefined,
   twitterCard: 'summary_large_image'
 });
 

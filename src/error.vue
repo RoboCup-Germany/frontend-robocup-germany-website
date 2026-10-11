@@ -2,6 +2,7 @@
 import { computed, watchEffect } from 'vue'
 import type { H3Error } from 'h3'
 import Button from '~/components/basic/Button.vue'
+import { resolveThemeFromTypo3SitePayload, type ResolvedSiteConfig } from '~/utils/site-config'
 
 interface ErrorPageRef {
   source?: string
@@ -14,6 +15,15 @@ interface InitialDataGlobalConfig {
   }
 }
 
+type ErrorPagePayload = {
+  appearance?: { backendLayout?: string }
+  content?: unknown
+  globalConfig?: GlobalConfig
+  headerNavigation?: unknown
+  footerNavigation?: unknown
+  i18n?: unknown
+}
+
 const props = defineProps<{
   error: H3Error
 }>()
@@ -23,6 +33,35 @@ const route = useRoute()
 const safePath = `${requestUrl.pathname}${requestUrl.search || ''}` || '/'
 const { initialData, pageData } = useT3Api(safePath)
 const nuxtError = useError()
+const activeSite = useState<ResolvedSiteConfig | null>('active-site', () => null)
+const siteGlobalConfig = useState<GlobalConfig | null>('site-global-config', () => null)
+const siteHeaderLogo = useState<{ src: string; alt?: string } | null>('site-header-logo', () => null)
+const siteFooterLogo = useState<{ src: string; alt?: string } | null>('site-footer-logo', () => null)
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null
+}
+
+const asTrimmedString = (value: unknown): string => {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+const resolvePayloadLogo = (value: unknown): { src: string; alt?: string } | null => {
+  const file = asRecord(value)
+  if (!file) {
+    return null
+  }
+
+  const src = asTrimmedString(file.publicUrl) || asTrimmedString(file.url) || asTrimmedString(file.originalUrl)
+  if (!src) {
+    return null
+  }
+
+  const alt = asTrimmedString(file.alt) || asTrimmedString(file.alternative)
+  return alt ? { src, alt } : { src }
+}
 
 const extractT3PageUid = (value?: string): number | null => {
   if (!value) return null
@@ -49,9 +88,29 @@ const parseUid = (value: unknown): number | null => {
   return null
 }
 
+const pageDataFallback = computed(() => {
+  const errorData = nuxtError.value?.data
+  if (!errorData) {
+    return null
+  }
+
+  try {
+    if (typeof errorData === 'string') {
+      return JSON.parse(errorData) as ErrorPagePayload
+    }
+    return errorData as ErrorPagePayload
+  }
+  catch {
+    return null
+  }
+})
+const errorGlobalConfig = computed(() => (
+  pageDataFallback.value?.globalConfig ??
+  pageData.value?.globalConfig ??
+  initialData.value?.globalConfig
+) as (GlobalConfig & InitialDataGlobalConfig) | undefined)
 const configuredNotFoundUid = computed(() => {
-  const globalConfig = initialData.value?.globalConfig as InitialDataGlobalConfig | undefined
-  const notFoundPage = globalConfig?.errorHandling?.notFoundPage
+  const notFoundPage = errorGlobalConfig.value?.errorHandling?.notFoundPage
   if (!notFoundPage) return null
 
   return extractT3PageUid(notFoundPage.source) ?? parseUid(notFoundPage.uid)
@@ -90,23 +149,28 @@ const primaryLink = computed(() => (isNotFound.value ? (resolvedNotFoundLink.val
 const primaryLabel = computed(() => (isNotFound.value ? 'Zur passenden Seite' : 'Zur Startseite'))
 const homeLink: LinkRef = { url: '/' }
 const primaryButtonLink = computed<LinkRef>(() => ({ url: primaryLink.value }))
-const pageDataFallback = computed(() => {
-  const errorData = nuxtError.value?.data
-  if (!errorData) {
-    return null
-  }
-
-  try {
-    if (typeof errorData === 'string') {
-      return JSON.parse(errorData) as { appearance?: { backendLayout?: string }, content?: unknown }
-    }
-    return errorData as { appearance?: { backendLayout?: string }, content?: unknown }
-  }
-  catch {
-    return null
-  }
-})
 const backendLayout = computed(() => pageDataFallback.value?.appearance?.backendLayout || 'default')
+const resolvedTheme = computed(() => resolveThemeFromTypo3SitePayload(
+  pageDataFallback.value ?? pageData.value,
+  activeSite.value?.theme || 'default'
+))
+const errorLogo = computed(() => {
+  const logo = errorGlobalConfig.value?.siteConfig?.headerLogo
+  return (
+    siteHeaderLogo.value ??
+    resolvePayloadLogo(logo) ??
+    {
+      src: '/assets/RCgermany_Logo.png',
+      alt: 'RoboCup Germany Logo'
+    }
+  )
+})
+
+useHead(() => ({
+  htmlAttrs: {
+    'data-theme': resolvedTheme.value
+  }
+}))
 
 watchEffect(() => {
   const fallback = pageDataFallback.value as Record<string, unknown> | null
@@ -115,19 +179,41 @@ watchEffect(() => {
   }
 
   // Make TYPO3 error payload available to SiteHeader/SiteFooter that read useT3Api state.
-  if (!pageData.value) {
+  if (pageData.value !== fallback) {
     pageData.value = fallback
   }
 
   const currentInitial = (initialData.value ?? {}) as Record<string, unknown>
   const mergedInitial = {
     ...currentInitial,
-    globalConfig: currentInitial.globalConfig ?? fallback.globalConfig,
-    headerNavigation: currentInitial.headerNavigation ?? fallback.headerNavigation,
-    footerNavigation: currentInitial.footerNavigation ?? fallback.footerNavigation,
-    i18n: currentInitial.i18n ?? fallback.i18n
+    globalConfig: fallback.globalConfig ?? currentInitial.globalConfig,
+    headerNavigation: fallback.headerNavigation ?? currentInitial.headerNavigation,
+    footerNavigation: fallback.footerNavigation ?? currentInitial.footerNavigation,
+    i18n: fallback.i18n ?? currentInitial.i18n
   }
-  initialData.value = mergedInitial
+  const shouldUpdateInitial = (
+    currentInitial.globalConfig !== mergedInitial.globalConfig ||
+    currentInitial.headerNavigation !== mergedInitial.headerNavigation ||
+    currentInitial.footerNavigation !== mergedInitial.footerNavigation ||
+    currentInitial.i18n !== mergedInitial.i18n
+  )
+  if (shouldUpdateInitial) {
+    initialData.value = mergedInitial
+  }
+
+  if (activeSite.value) {
+    activeSite.value = {
+      ...activeSite.value,
+      theme: resolvedTheme.value
+    }
+  }
+
+  if (fallback.globalConfig) {
+    const globalConfig = fallback.globalConfig as GlobalConfig
+    siteGlobalConfig.value = globalConfig
+    siteHeaderLogo.value = resolvePayloadLogo(globalConfig.siteConfig?.headerLogo)
+    siteFooterLogo.value = resolvePayloadLogo(globalConfig.siteConfig?.footerLogo)
+  }
 })
 </script>
 
@@ -176,8 +262,8 @@ watchEffect(() => {
 
           <div class="flex items-center justify-center lg:justify-end">
             <img
-              src="/assets/RCgermany_Logo.png"
-              alt="RoboCup Germany Logo"
+              :src="errorLogo.src"
+              :alt="errorLogo.alt || 'RoboCup Germany Logo'"
               class="h-auto w-full max-w-sm object-contain"
               width="640"
               height="286"
