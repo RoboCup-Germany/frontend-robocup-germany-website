@@ -1,4 +1,4 @@
-name: Staging
+name: Frontend staging release
 
 on:
   push:
@@ -7,141 +7,215 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  actions: write
+  contents: write
+  pull-requests: write
 
 concurrency:
-  group: staging
-  cancel-in-progress: true
+  group: frontend-staging-release
+  cancel-in-progress: false
+
+env:
+  IMAGE_REPOSITORY: registry.robocup.de/website/frontend
 
 jobs:
-  build-image:
-    if: github.ref_name == 'staging'
-    name: staging / build image
+  frontend-ci:
+    name: Frontend CI
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    outputs:
-      release_version: ${{ steps.release_version.outputs.release_version }}
+    defaults:
+      run:
+        working-directory: src
     steps:
-      - name: Check out source
+      - name: Check out tested source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.29.1 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm build
+
+  version:
+    name: Determine release version
+    needs: frontend-ci
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      image: ${{ steps.release.outputs.image }}
+    steps:
+      - name: Check out complete release history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Determine release version
-        id: release_version
+      - name: Validate source branch and determine version
+        id: release
         run: |
-          release_version="$(node scripts/derive-release-version.mjs "$GITHUB_SHA")"
-          echo "release_version=${release_version}" >> "$GITHUB_OUTPUT"
-          echo "Release version: ${release_version}"
+          if [[ "$GITHUB_REF" != 'refs/heads/staging' ]]; then
+            echo 'Staging releases must run from refs/heads/staging.' >&2
+            exit 1
+          fi
+          version="$(node scripts/derive-release-version.mjs "$GITHUB_SHA")"
+          image="${IMAGE_REPOSITORY}:${version}-sha-${GITHUB_SHA}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
 
-      - name: Validate registry configuration
+  build:
+    name: Build immutable image
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tested source
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the existing registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.DOCKER_URL }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Check for an existing immutable image
+        id: existing-image
         env:
-          DOCKER_URL: ${{ secrets.DOCKER_URL }}
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          RELEASE_IMAGE: ${{ needs.version.outputs.image }}
         run: |
-          test -n "$DOCKER_URL"
-          test -n "$DOCKER_USERNAME"
-          test -n "$DOCKER_PASSWORD"
-
-      - name: Log in to container registry
-        env:
-          DOCKER_URL: ${{ secrets.DOCKER_URL }}
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: printf '%s' "$DOCKER_PASSWORD" | docker login "$DOCKER_URL" --username "$DOCKER_USERNAME" --password-stdin
+          if docker manifest inspect "$RELEASE_IMAGE" > /dev/null 2>&1; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Apply release version to build metadata
+        if: steps.existing-image.outputs.exists != 'true'
         working-directory: src
         env:
-          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
         run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
 
       - name: Build and push immutable image
-        env:
-          DOCKER_URL: ${{ secrets.DOCKER_URL }}
-          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
-        run: |
-          image="${DOCKER_URL}/website/frontend:${RELEASE_VERSION}-sha-${GITHUB_SHA}"
-          docker build \
-            --label "org.opencontainers.image.version=${RELEASE_VERSION}" \
-            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
-            --tag "$image" .
-          docker push "$image"
+        if: steps.existing-image.outputs.exists != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ needs.version.outputs.image }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
-  deploy-and-smoke-test:
-    name: staging / deployed and tested
-    needs: build-image
+      - name: Verify image manifest
+        env:
+          RELEASE_IMAGE: ${{ needs.version.outputs.image }}
+        run: docker manifest inspect "$RELEASE_IMAGE" > /dev/null
+
+  deploy-staging:
+    name: Deploy and verify staging
+    needs:
+      - version
+      - build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     environment:
       name: staging
       url: https://test.robocup.de
-    permissions:
-      contents: write
     steps:
-      - name: Check out source and deployment history
+      - name: Check out tested source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          path: source
+          ref: ${{ github.sha }}
+          token: ${{ secrets.ACTIONS_DEPLOY_TOKEN }}
 
       - name: Publish desired state for Argo CD
         env:
-          DOCKER_URL: ${{ secrets.DOCKER_URL }}
-          RELEASE_VERSION: ${{ needs.build-image.outputs.release_version }}
-        run: ./scripts/publish-deployment-branch.sh staging "$GITHUB_SHA" "${DOCKER_URL}/website/frontend:${RELEASE_VERSION}-sha-${GITHUB_SHA}" "$GITHUB_SHA" "$RELEASE_VERSION"
+          RELEASE_IMAGE: ${{ needs.version.outputs.image }}
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_SHA: ${{ github.sha }}
+        working-directory: source
+        run: |
+          ./scripts/publish-deployment-branch.sh \
+            staging "$RELEASE_SHA" "$RELEASE_IMAGE" "$RELEASE_SHA" "$RELEASE_VERSION"
 
       - name: Wait for rollout and run smoke tests
         env:
           FRONTEND_URLS: https://test.robocup.de,https://testwm.robocup.de
           BACKEND_URL: https://testapi.robocup.de/?type=834
           EXPECTED_RELEASE_SHA: ${{ github.sha }}
-          EXPECTED_RELEASE_VERSION: ${{ needs.build-image.outputs.release_version }}
+          EXPECTED_RELEASE_VERSION: ${{ needs.version.outputs.version }}
+        working-directory: source
         run: node src/scripts/smoke-test.mjs
 
-      - name: Reserve tested release version
+      - name: Reserve candidate version on the tested commit
         env:
-          RELEASE_VERSION: ${{ needs.build-image.outputs.release_version }}
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_SHA: ${{ github.sha }}
+        working-directory: source
         run: |
           tag="candidate-v${RELEASE_VERSION}"
-          if git rev-parse --verify --quiet "refs/tags/${tag}" >/dev/null; then
-            test "$(git rev-list -n 1 "$tag")" = "$GITHUB_SHA"
-          else
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git config user.name "github-actions[bot]"
-            git tag --annotate "$tag" "$GITHUB_SHA" --message "Tested staging candidate ${RELEASE_VERSION}"
-            git push origin "refs/tags/${tag}"
+          existing_sha="$(git rev-list -n 1 "$tag" 2>/dev/null || true)"
+          if [[ -n "$existing_sha" && "$existing_sha" != "$RELEASE_SHA" ]]; then
+            echo "$tag already points at another commit." >&2
+            exit 1
+          fi
+          if [[ -z "$existing_sha" ]]; then
+            git config user.email '161652136165+github-actions[bot]@users.noreply.github.com'
+            git config user.name 'github-actions[bot]'
+            git tag "$tag" "$RELEASE_SHA"
+            git push origin "refs/tags/$tag"
           fi
 
-  release-candidate:
-    name: release gate / staging candidate
-    needs: deploy-and-smoke-test
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Check out release PR template
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Create release pull request when necessary
+      - name: Create or reuse staging to main release PR
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_IMAGE: ${{ needs.version.outputs.image }}
+        working-directory: source
         run: |
-          pending_commits="$(git rev-list --count origin/main..origin/staging)"
-          existing_pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head staging --state open --json number --jq '.[0].number // empty')"
-          if [ -n "$existing_pr" ]; then
-            echo "Release pull request #${existing_pr} is already open"
-          elif [ "$pending_commits" = "0" ]; then
-            echo "staging does not contain changes that need a release pull request"
+          existing_pr="$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head staging \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')"
+          if [[ -n "$existing_pr" ]]; then
+            echo "Reusing release PR #${existing_pr}."
+            pr_number="$existing_pr"
           else
-            gh pr create \
+            pr_url="$(gh pr create \
               --repo "$GITHUB_REPOSITORY" \
               --base main \
               --head staging \
-              --title "Release: staging nach main" \
-              --body-file .github/release-pr.md
+              --title "chore(release): promote frontend ${RELEASE_VERSION}" \
+              --body "Promotes tested frontend image \`${RELEASE_IMAGE}\` from commit \`${RELEASE_SHA}\`.")"
+            pr_number="${pr_url##*/}"
+          fi
+
+          if gh workflow view release-policy.yml --repo "$GITHUB_REPOSITORY" --ref main > /dev/null 2>&1 \
+            && gh workflow view release-gate.yml --repo "$GITHUB_REPOSITORY" --ref main > /dev/null 2>&1; then
+            gh workflow run release-policy.yml \
+              --repo "$GITHUB_REPOSITORY" \
+              --ref staging \
+              --field "pr_number=$pr_number"
+            gh workflow run release-gate.yml \
+              --repo "$GITHUB_REPOSITORY" \
+              --ref staging \
+              --field "pr_number=$pr_number"
+          else
+            echo 'Release checks are not on main yet; trigger them once for the bootstrap PR.'
           fi
