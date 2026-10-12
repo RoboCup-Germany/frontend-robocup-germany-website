@@ -518,6 +518,34 @@ const matchingAnnouncement = computed<AnnouncementBar | null>(() => {
   }) || null;
 });
 
+type EventNavigationItem = {
+  title?: string;
+  link?: string;
+  active?: boolean | number;
+  current?: boolean | number;
+  children?: EventNavigationItem[];
+};
+
+type EventNavigation = {
+  event?: {
+    id?: number | string;
+    title?: string;
+    link?: string;
+  };
+  items?: EventNavigationItem[];
+};
+
+const eventNavigation = computed<EventNavigation | null>(() => {
+  const navigation = asRecord(asRecord(pageData.value)?.eventNavigation);
+  const event = asRecord(navigation?.event);
+
+  if (!navigation || !event) {
+    return null;
+  }
+
+  return navigation as EventNavigation;
+});
+
 onMounted(async () => {
   if (!isDownloadView.value || !shouldAutoPrint.value) {
     return;
@@ -529,24 +557,30 @@ onMounted(async () => {
 </script>
 
 <template>
-  <PageAnnouncementBar
-    v-if="matchingAnnouncement && !isDownloadView"
-    :announcement="matchingAnnouncement"
-  />
-  <PageHero
-    v-if="!isDownloadView"
-    :title="pageTitle"
-    :subtitle="pageSubtitle"
-    :media="pageMedia"
-    :media-button-text="mediaButtonText"
-    :media-button-link="mediaButtonLink"
-  />
-  <T3BackendLayout
-      :key="route.fullPath"
+  <div>
+    <PageAnnouncementBar
+      v-if="matchingAnnouncement && !isDownloadView"
+      :announcement="matchingAnnouncement"
+    />
+    <PageHero
+      v-if="!isDownloadView"
+      :title="pageTitle"
+      :subtitle="pageSubtitle"
+      :media="pageMedia"
+      :media-button-text="mediaButtonText"
+      :media-button-link="mediaButtonLink"
+    />
+    <EventNavigation
+      v-if="eventNavigation && !isDownloadView"
+      :navigation="eventNavigation"
+    />
+    <T3BackendLayout
       v-if="pageData?.content"
+      :key="route.fullPath"
       :name="backendLayout"
       :content="pageData.content"
-  />
+    />
+  </div>
 </template>
 
 <style scoped>
