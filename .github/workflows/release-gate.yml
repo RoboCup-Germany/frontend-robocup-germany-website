@@ -27,9 +27,6 @@ jobs:
   staging-candidate:
     name: staging candidate
     runs-on: ubuntu-latest
-    environment:
-      name: staging
-      url: https://test.robocup.de
     steps:
       - name: Resolve pull request
         id: pull-request
