@@ -306,7 +306,7 @@ eingerichtete Freigabegarantie umgehen.
    genehmigt den PR.
 7. Nach dem Merge wartet das Production-Environment auf seine Freigabe und
    promoted exakt das getestete Image.
-8. Der Workflow prüft abschließend `robocup.de` und `wm.robocup.de`.
+8. Der Workflow prüft abschließend `robocup.de` und `2027.robocup.org`.
 
 Ein Rollback erfolgt durch erneutes Setzen eines zuvor erfolgreichen,
 unveränderlichen Versions-SHA-Tags im Deployment-Branch oder durch Revert des
