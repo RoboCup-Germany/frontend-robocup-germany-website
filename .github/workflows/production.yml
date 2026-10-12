@@ -6,9 +6,16 @@ on:
       - main
     types:
       - closed
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Merged staging to main release PR to deploy
+        required: true
+        type: string
 
 permissions:
   contents: write
+  pull-requests: read
 
 concurrency:
   group: frontend-production-release
@@ -25,14 +32,39 @@ jobs:
       name: production
       url: https://robocup.de
     steps:
+      # Resolve the PR through the API so a manual dispatch can replace a lost closed event.
+      - name: Resolve release pull request
+        id: pull-request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+        run: |
+          # Retry transient GitHub API errors (5xx) instead of failing the required check.
+          for attempt in 1 2 3 4 5; do
+            pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")" && break
+            if (( attempt == 5 )); then
+              exit 1
+            fi
+            sleep $(( attempt * 10 ))
+          done
+          echo "merged=$(jq -r '.merged' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "base_ref=$(jq -r '.base.ref' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$(jq -r '.head.ref' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "head_repository=$(jq -r '.head.repo.full_name' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "base_repository=$(jq -r '.base.repo.full_name' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "merge_commit_sha=$(jq -r '.merge_commit_sha' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(jq -r '.head.sha' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+
       - name: Validate merged release PR origin
         env:
-          PR_MERGED: ${{ github.event.pull_request.merged }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
-          BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+          PR_MERGED: ${{ steps.pull-request.outputs.merged }}
+          BASE_REF: ${{ steps.pull-request.outputs.base_ref }}
+          HEAD_REF: ${{ steps.pull-request.outputs.head_ref }}
+          HEAD_REPOSITORY: ${{ steps.pull-request.outputs.head_repository }}
+          BASE_REPOSITORY: ${{ steps.pull-request.outputs.base_repository }}
         run: |
           if [[ "$PR_MERGED" != 'true' \
+            || "$BASE_REF" != 'main' \
             || "$HEAD_REF" != 'staging' \
             || "$HEAD_REPOSITORY" != "$BASE_REPOSITORY" ]]; then
             echo 'Production requires a merged PR from staging in this repository.' >&2
@@ -44,14 +76,14 @@ jobs:
         with:
           fetch-depth: 0
           path: source
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ steps.pull-request.outputs.merge_commit_sha }}
           token: ${{ secrets.ACTIONS_DEPLOY_TOKEN }}
 
       - name: Verify merged tree and resolve candidate
         id: release
         env:
-          MERGED_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+          MERGED_SHA: ${{ steps.pull-request.outputs.merge_commit_sha }}
+          RELEASE_SHA: ${{ steps.pull-request.outputs.head_sha }}
         working-directory: source
         run: |
           git cat-file -e "${RELEASE_SHA}^{commit}" 2>/dev/null \
@@ -89,7 +121,7 @@ jobs:
         env:
           RELEASE_IMAGE: ${{ steps.release.outputs.image }}
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
-          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+          RELEASE_SHA: ${{ steps.pull-request.outputs.head_sha }}
         working-directory: source
         run: |
           manifest_ref="$(git rev-parse HEAD)"
@@ -98,8 +130,8 @@ jobs:
 
       - name: Wait for rollout and verify production
         env:
-          FRONTEND_URLS: https://robocup.de,https://wm.robocup.de
-          EXPECTED_RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+          FRONTEND_URLS: https://robocup.de,https://2027.robocup.org
+          EXPECTED_RELEASE_SHA: ${{ steps.pull-request.outputs.head_sha }}
           EXPECTED_RELEASE_VERSION: ${{ steps.release.outputs.version }}
         working-directory: source
         run: node src/scripts/smoke-test.mjs
@@ -107,7 +139,7 @@ jobs:
       - name: Publish final version tag on the tested commit
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
-          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+          RELEASE_SHA: ${{ steps.pull-request.outputs.head_sha }}
         working-directory: source
         run: |
           tag="v${RELEASE_VERSION}"
