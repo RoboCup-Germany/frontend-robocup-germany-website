@@ -206,16 +206,21 @@ jobs:
             pr_number="${pr_url##*/}"
           fi
 
-          if gh workflow view release-policy.yml --repo "$GITHUB_REPOSITORY" --ref main > /dev/null 2>&1 \
-            && gh workflow view release-gate.yml --repo "$GITHUB_REPOSITORY" --ref main > /dev/null 2>&1; then
-            gh workflow run release-policy.yml \
-              --repo "$GITHUB_REPOSITORY" \
-              --ref staging \
-              --field "pr_number=$pr_number"
-            gh workflow run release-gate.yml \
-              --repo "$GITHUB_REPOSITORY" \
-              --ref staging \
-              --field "pr_number=$pr_number"
+          if gh workflow view release-policy.yml --repo "$GITHUB_REPOSITORY" --ref main --yaml > /dev/null 2>&1 \
+            && gh workflow view release-gate.yml --repo "$GITHUB_REPOSITORY" --ref main --yaml > /dev/null 2>&1; then
+            # The pull_request runs start before the candidate tag exists; rerun both checks now.
+            for workflow in release-policy.yml release-gate.yml; do
+              for attempt in 1 2 3 4 5; do
+                gh workflow run "$workflow" \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --ref staging \
+                  --field "pr_number=$pr_number" && break
+                if (( attempt == 5 )); then
+                  exit 1
+                fi
+                sleep $(( attempt * 10 ))
+              done
+            done
           else
             echo 'Release checks are not on main yet; trigger them once for the bootstrap PR.'
           fi

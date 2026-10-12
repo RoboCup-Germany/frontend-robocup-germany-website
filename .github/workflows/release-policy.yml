@@ -31,7 +31,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
         run: |
-          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          # Retry transient GitHub API errors (5xx) instead of failing the required check.
+          for attempt in 1 2 3 4 5; do
+            pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")" && break
+            if (( attempt == 5 )); then
+              exit 1
+            fi
+            sleep $(( attempt * 10 ))
+          done
           echo "base_ref=$(jq -r '.base.ref' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
           echo "head_ref=$(jq -r '.head.ref' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
           echo "head_repository=$(jq -r '.head.repo.full_name' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
