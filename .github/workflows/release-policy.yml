@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   staging-only:
-    name: staging only
+    name: release policy / staging only
     runs-on: ubuntu-latest
     steps:
       - name: Resolve pull request
