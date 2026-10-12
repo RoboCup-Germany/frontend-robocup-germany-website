@@ -1,0 +1,104 @@
+name: release gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  IMAGE_REPOSITORY: registry.robocup.de/website/frontend
+
+jobs:
+  staging-candidate:
+    name: staging candidate
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://test.robocup.de
+    steps:
+      - name: Resolve pull request
+        id: pull-request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+        run: |
+          pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+          echo "base_ref=$(jq -r '.base.ref' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$(jq -r '.head.ref' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "head_repository=$(jq -r '.head.repo.full_name' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "base_repository=$(jq -r '.base.repo.full_name' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$(jq -r '.head.sha' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+
+      - name: Require the same-repository staging branch
+        env:
+          BASE_REF: ${{ steps.pull-request.outputs.base_ref }}
+          HEAD_REF: ${{ steps.pull-request.outputs.head_ref }}
+          HEAD_REPOSITORY: ${{ steps.pull-request.outputs.head_repository }}
+          BASE_REPOSITORY: ${{ steps.pull-request.outputs.base_repository }}
+        run: |
+          if [[ "$BASE_REF" != 'main' \
+            || "$HEAD_REF" != 'staging' \
+            || "$HEAD_REPOSITORY" != "$BASE_REPOSITORY" ]]; then
+            echo 'Release candidates must come from staging in this repository.' >&2
+            exit 1
+          fi
+
+      - name: Check out tested staging source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: source
+          ref: ${{ steps.pull-request.outputs.source_sha }}
+
+      - name: Resolve the reserved candidate
+        id: release
+        env:
+          RELEASE_SHA: ${{ steps.pull-request.outputs.source_sha }}
+        working-directory: source
+        run: |
+          mapfile -t candidate_tags < <(git tag --points-at "$RELEASE_SHA" --list 'candidate-v*')
+          if (( ${#candidate_tags[@]} != 1 )) \
+            || [[ ! "${candidate_tags[0]}" =~ ^candidate-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo 'The staging commit must have exactly one valid candidate version tag.' >&2
+            exit 1
+          fi
+          version="${BASH_REMATCH[1]}"
+          image="${IMAGE_REPOSITORY}:${version}-sha-${RELEASE_SHA}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to the existing registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.DOCKER_URL }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Verify immutable image and public staging release
+        env:
+          RELEASE_IMAGE: ${{ steps.release.outputs.image }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_SHA: ${{ steps.pull-request.outputs.source_sha }}
+        working-directory: source
+        run: |
+          docker manifest inspect "$RELEASE_IMAGE" > /dev/null
+          FRONTEND_URLS=https://test.robocup.de,https://testwm.robocup.de \
+          BACKEND_URL=https://testapi.robocup.de/?type=834 \
+          EXPECTED_RELEASE_SHA="$RELEASE_SHA" \
+          EXPECTED_RELEASE_VERSION="$RELEASE_VERSION" \
+          node src/scripts/smoke-test.mjs

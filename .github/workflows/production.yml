@@ -1,4 +1,4 @@
-name: Production
+name: Frontend production release
 
 on:
   pull_request:
@@ -8,97 +8,115 @@ on:
       - closed
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: production
+  group: frontend-production-release
   cancel-in-progress: false
 
+env:
+  IMAGE_REPOSITORY: registry.robocup.de/website/frontend
+
 jobs:
-  promote:
-    if: >-
-      github.event.pull_request.merged == true &&
-      github.event.pull_request.head.ref == 'staging' &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    name: production / promote tested image
+  deploy-production:
+    name: Validate and deploy tested image
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     environment:
       name: production
       url: https://robocup.de
-    permissions:
-      contents: write
     steps:
-      - name: Check out the merged production revision
+      - name: Validate merged release PR origin
+        env:
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+        run: |
+          if [[ "$PR_MERGED" != 'true' \
+            || "$HEAD_REF" != 'staging' \
+            || "$HEAD_REPOSITORY" != "$BASE_REPOSITORY" ]]; then
+            echo 'Production requires a merged PR from staging in this repository.' >&2
+            exit 1
+          fi
+
+      - name: Check out merged main source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
+          path: source
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          token: ${{ secrets.ACTIONS_DEPLOY_TOKEN }}
 
-      - name: Verify main contains exactly the tested source tree
+      - name: Verify merged tree and resolve candidate
+        id: release
         env:
+          MERGED_SHA: ${{ github.event.pull_request.merge_commit_sha }}
           RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+        working-directory: source
         run: |
-          if ! git cat-file -e "${RELEASE_SHA}^{commit}"; then
-            git fetch --no-tags origin "$RELEASE_SHA"
+          git cat-file -e "${RELEASE_SHA}^{commit}" 2>/dev/null \
+            || git fetch origin "$RELEASE_SHA"
+          merged_tree="$(git rev-parse "${MERGED_SHA}^{tree}")"
+          staging_tree="$(git rev-parse "${RELEASE_SHA}^{tree}")"
+          if [[ "$merged_tree" != "$staging_tree" ]]; then
+            echo 'Merged main tree differs from the tested staging tree.' >&2
+            exit 1
           fi
-          test "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "${RELEASE_SHA}^{tree}")"
+          mapfile -t candidate_tags < <(git tag --points-at "$RELEASE_SHA" --list 'candidate-v*')
+          if (( ${#candidate_tags[@]} != 1 )) \
+            || [[ ! "${candidate_tags[0]}" =~ ^candidate-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo 'The tested staging commit must have exactly one valid candidate version tag.' >&2
+            exit 1
+          fi
+          version="${BASH_REMATCH[1]}"
+          image="${IMAGE_REPOSITORY}:${version}-sha-${RELEASE_SHA}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
 
-      - name: Determine tested release version
-        id: release_version
-        env:
-          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          release_version="$(node scripts/derive-release-version.mjs "$RELEASE_SHA")"
-          echo "release_version=${release_version}" >> "$GITHUB_OUTPUT"
-          echo "Release version: ${release_version}"
+      - name: Log in to the existing registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.DOCKER_URL }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Log in to container registry
+      - name: Verify the tested immutable image
         env:
-          DOCKER_URL: ${{ secrets.DOCKER_URL }}
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: |
-          test -n "$DOCKER_URL"
-          test -n "$DOCKER_USERNAME"
-          test -n "$DOCKER_PASSWORD"
-          printf '%s' "$DOCKER_PASSWORD" | docker login "$DOCKER_URL" --username "$DOCKER_USERNAME" --password-stdin
-
-      - name: Verify the tested image exists
-        env:
-          DOCKER_URL: ${{ secrets.DOCKER_URL }}
-          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
-          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
-        run: docker manifest inspect "${DOCKER_URL}/website/frontend:${RELEASE_VERSION}-sha-${RELEASE_SHA}"
+          RELEASE_IMAGE: ${{ steps.release.outputs.image }}
+        run: docker manifest inspect "$RELEASE_IMAGE" > /dev/null
 
       - name: Publish desired production state for Argo CD
         env:
-          DOCKER_URL: ${{ secrets.DOCKER_URL }}
+          RELEASE_IMAGE: ${{ steps.release.outputs.image }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
           RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
-          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
+        working-directory: source
         run: |
           manifest_ref="$(git rev-parse HEAD)"
-          image="${DOCKER_URL}/website/frontend:${RELEASE_VERSION}-sha-${RELEASE_SHA}"
-          ./scripts/publish-deployment-branch.sh production "$manifest_ref" "$image" "$RELEASE_SHA" "$RELEASE_VERSION"
+          ./scripts/publish-deployment-branch.sh \
+            production "$manifest_ref" "$RELEASE_IMAGE" "$RELEASE_SHA" "$RELEASE_VERSION"
 
       - name: Wait for rollout and verify production
         env:
           FRONTEND_URLS: https://robocup.de,https://wm.robocup.de
           EXPECTED_RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
-          EXPECTED_RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
+          EXPECTED_RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        working-directory: source
         run: node src/scripts/smoke-test.mjs
 
-      - name: Tag successful production release
+      - name: Publish final version tag on the tested commit
         env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
           RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
-          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
+        working-directory: source
         run: |
           tag="v${RELEASE_VERSION}"
-          if git rev-parse --verify --quiet "refs/tags/${tag}" >/dev/null; then
-            test "$(git rev-list -n 1 "$tag")" = "$RELEASE_SHA"
-          else
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git config user.name "github-actions[bot]"
-            git tag --annotate "$tag" "$RELEASE_SHA" --message "Version ${RELEASE_VERSION}"
-            git push origin "refs/tags/${tag}"
+          existing_sha="$(git rev-list -n 1 "$tag" 2>/dev/null || true)"
+          if [[ -n "$existing_sha" && "$existing_sha" != "$RELEASE_SHA" ]]; then
+            echo "$tag already points at another commit." >&2
+            exit 1
+          fi
+          if [[ -z "$existing_sha" ]]; then
+            git tag "$tag" "$RELEASE_SHA"
+            git push origin "refs/tags/$tag"
           fi
