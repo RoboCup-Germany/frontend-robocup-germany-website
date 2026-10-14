@@ -3,6 +3,7 @@ kind: Ingress
 metadata:
   annotations:
     cert-manager.io/cluster-issuer: my-letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.middlewares: main-website-redirect-https@kubernetescrd
   name: frontend-ingress
   namespace: main-website
 spec:
@@ -17,7 +18,7 @@ spec:
                 name: frontend
                 port:
                   number: 3000
-    - host: wm.robocup.de
+    - host: 2027.robocup.org
       http:
         paths:
           - pathType: ImplementationSpecific
@@ -32,5 +33,5 @@ spec:
         - robocup.de
       secretName: website-frontend-secret
     - hosts:
-        - wm.robocup.de
-      secretName: website-frontend-wm-secret
+        - 2027.robocup.org
+      secretName: um-cert
