@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: staging-website
+  labels:
+    app.kubernetes.io/name: website-frontend
+    app.kubernetes.io/instance: staging
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: website-frontend
+    app.kubernetes.io/instance: staging
+  ports:
+    - name: http
+      port: 3000
+      protocol: TCP
+      targetPort: http

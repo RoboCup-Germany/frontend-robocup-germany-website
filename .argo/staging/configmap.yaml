@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: website-frontend-config
+  namespace: staging-website
+data:
+  NUXT_TYPO3_API_ORIGIN: https://testapi.robocup.de
+  NUXT_PUBLIC_TYPO3_API_BASE_URL: https://testapi.robocup.de
+  NUXT_PUBLIC_TYPO3_PROXY_BASE_URL: /api/typo3
+  NUXT_PUBLIC_TYPO3_INTERNAL_HOSTS: testapi.robocup.de
+  NUXT_PUBLIC_SITE_CONFIG: >-
+    [{"key":"default","domains":["test.robocup.de"],"theme":"default","isDefault":true,"typo3ApiOrigin":"https://testapi.robocup.de","typo3Host":"testapi.robocup.de"},{"key":"wm27","domains":["testwm.robocup.de"],"theme":"wm27","typo3ApiOrigin":"https://testapi.robocup.de","typo3PathPrefix":"/wm27","typo3Host":"testapi.robocup.de"}]
