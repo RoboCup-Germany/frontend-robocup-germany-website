@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import Button from '~/components/basic/Button.vue';
 import Headline from '~/components/basic/Headline.vue';
 import { pickFirstDisplayImage, toDisplayImage, type DisplayImage } from '~/utils/media-image';
+import { vLightbox } from '~/directives/lightbox';
 
 defineOptions({
   inheritAttrs: false
@@ -219,6 +220,7 @@ const imageCreator = computed(() => {
               decoding="async"
               fetchpriority="low"
               sizes="(max-width: 767px) 100vw, 50vw"
+              v-lightbox="{ src: imageSrc, alt: imageAlt, width: imageWidth, height: imageHeight }"
             >
           </picture>
           <picture v-else class="block">
