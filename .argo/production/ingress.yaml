@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   annotations:
     cert-manager.io/cluster-issuer: my-letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.middlewares: main-website-redirect-https@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: main-website-redirect-https@kubernetescrd,main-website-compress@kubernetescrd
   name: frontend-ingress
   namespace: main-website
 spec:
