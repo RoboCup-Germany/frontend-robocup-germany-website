@@ -317,7 +317,7 @@ const resolvePaginationHref = (link?: string | null): string => {
                   loading="lazy"
                   decoding="async"
                   fetchpriority="low"
-                  sizes="100vw md:33vw lg:25vw"
+                  sizes="xs:100vw sm:100vw md:33vw lg:25vw"
                   format="avif,webp"
                   legacy-format="jpeg"
                   :quality="80"
