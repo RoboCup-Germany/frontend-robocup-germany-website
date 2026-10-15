@@ -97,7 +97,7 @@ const imageCreator = computed(() => {
             loading="lazy"
             decoding="async"
             fetchpriority="low"
-            sizes="100vw lg:1200px"
+            sizes="xs:100vw sm:100vw md:100vw lg:1200px"
             format="webp"
             :quality="80"
           />
