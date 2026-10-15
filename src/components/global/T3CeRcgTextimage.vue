@@ -456,7 +456,7 @@ const textColumnClass = computed(() => {
                 loading="lazy"
                 decoding="async"
                 fetchpriority="low"
-                sizes="100vw lg:1200px"
+                sizes="xs:100vw sm:100vw md:50vw"
                 format="webp"
                 :quality="80"
                 v-lightbox="{ src: imageSrc, alt: imageAlt, width: imageWidth, height: imageHeight }"
