@@ -50,9 +50,12 @@ const typo3InternalHosts = Array.from(
         ].filter((host): host is string => Boolean(host))
     )
 )
+// The Docker build runs without the runtime env, so the known backend hosts must be listed explicitly.
 const imageDomains = Array.from(
     new Set(
         [
+            'api.robocup.de',
+            'testapi.robocup.de',
             toHostname(typo3BackendOrigin),
             toHostname(process.env.NUXT_PUBLIC_TYPO3_API_BASE_URL ?? ''),
             toHostname(process.env.NUXT_PUBLIC_TYPO3_PROXY_BASE_URL ?? '')
@@ -85,6 +88,17 @@ export default defineNuxtConfig({
     routeRules: {
         '/**': {
             ssr: true
+        },
+        // Public files carry no content hash, so replaced files need a new name to bypass this cache.
+        '/assets/**': {
+            headers: {
+                'cache-control': 'public, max-age=2592000, stale-while-revalidate=86400'
+            }
+        },
+        '/favicon.ico': {
+            headers: {
+                'cache-control': 'public, max-age=2592000, stale-while-revalidate=86400'
+            }
         },
         '/api/typo3': {
             swr: false,
@@ -125,7 +139,16 @@ export default defineNuxtConfig({
         },
         format: ['webp'],
         quality: 80,
-        densities: [1, 2]
+        densities: [1, 2],
+        // IPX takes the browser cache lifetime from its storages (default 300s).
+        ipx: {
+            http: {
+                maxAge: 2592000
+            },
+            fs: {
+                maxAge: 2592000
+            }
+        }
     },
     typo3: {
         api: {
