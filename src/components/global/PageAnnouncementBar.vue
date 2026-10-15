@@ -140,7 +140,7 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
       width="1080"
       height="401"
     />
-    <!-- Desktop-only decoration: the picture source keeps mobile from downloading it at all. -->
+    <!-- Desktop-only decoration and desktop LCP: the picture source keeps mobile from downloading it at all. -->
     <picture>
       <source
         media="(min-width: 768px)"
@@ -153,6 +153,7 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
         class="pointer-events-none absolute right-0 top-1/2 z-0 hidden h-auto w-auto max-w-none -translate-y-1/2 object-contain object-right md:block"
         loading="eager"
         decoding="async"
+        fetchpriority="high"
         width="1081"
         height="401"
       >
