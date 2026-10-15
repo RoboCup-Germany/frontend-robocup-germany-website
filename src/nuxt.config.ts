@@ -162,6 +162,32 @@ export default defineNuxtConfig({
     css: [
         resolve("assets/styles/app/tailwind.css")
     ],
+    // @nuxt/ui registers @nuxt/fonts with every subset and style; the @font-face rules land in the render-blocking entry CSS.
+    fonts: {
+        defaults: {
+            subsets: ['latin']
+        },
+        families: [
+            {
+                // 500 is used by the contact list titles, 600/700 by Tailwind's font-semibold/font-bold, italic by subheaders and RTE <em>.
+                name: 'IBM Plex Sans',
+                provider: 'google',
+                weights: [400, 500, 600, 700],
+                styles: ['normal', 'italic']
+            },
+            {
+                // Only the button base style (font-display font-semibold) uses the mono family.
+                name: 'IBM Plex Mono',
+                provider: 'google',
+                weights: [600],
+                styles: ['normal']
+            },
+            {
+                name: 'Degular',
+                provider: 'none'
+            }
+        ]
+    },
     cookieControl: {
         isAcceptNecessaryButtonEnabled: true,
         isControlButtonEnabled: false,
@@ -226,6 +252,34 @@ export default defineNuxtConfig({
         },
     },
     hooks: {
+        // The Google provider also fetches a legacy woff copy of each face without unicode-range; keep only the woff2 faces.
+        'fonts:providers'(providers) {
+            const google = providers.google
+            if (typeof google !== 'function') return
+
+            type FontSource = { format?: string }
+            type ResolvedFonts = { fonts: Array<{ src: FontSource[] }> }
+            type ProviderInstance = { resolveFont: (family: string, options: unknown) => Promise<ResolvedFonts | undefined> }
+            const createGoogle = google as (options: unknown) => (ctx: unknown) => Promise<ProviderInstance | undefined>
+
+            providers.google = ((options: unknown) => Object.assign(async (ctx: unknown) => {
+                const provider = await createGoogle(options)(ctx)
+                if (!provider) return provider
+
+                return {
+                    ...provider,
+                    async resolveFont(family: string, resolveOptions: unknown) {
+                        const result = await provider.resolveFont(family, resolveOptions)
+                        if (!result) return result
+
+                        return {
+                            ...result,
+                            fonts: result.fonts.filter((font) => font.src.some((source) => source.format === 'woff2'))
+                        }
+                    }
+                }
+            }, { _name: 'google' })) as typeof google
+        },
         async 'build:before'() {
             const candidates = [
                 resolvePath(resolve('.nuxt'), 'route-rules.mjs'),
