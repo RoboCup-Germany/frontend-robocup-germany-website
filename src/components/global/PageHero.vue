@@ -71,6 +71,14 @@ const mediaItem = computed<MediaItem | null>(() => {
 const mediaDisplay = computed(() => toDisplayImage(mediaItem.value));
 const mediaSource = computed(() => mediaItem.value?.content || mediaItem.value || null);
 
+// An additional image next to a hero video is used as its poster (LCP candidate and mobile fallback).
+const posterItem = computed<MediaItem | null>(() => {
+  if (!Array.isArray(props.media)) return null;
+  const items = props.media.filter((item): item is MediaItem => Boolean(item) && typeof item === 'object');
+  return items.find((item) => item !== mediaItem.value && isImageMediaItem(item)) || null;
+});
+const posterDisplay = computed(() => toDisplayImage(posterItem.value));
+
 const imageDesktopUrl = computed(() => {
   return toUrl(mediaDisplay.value?.urlDefault);
 });
@@ -119,15 +127,27 @@ const videoFallbackUrl = computed(() => {
   return videoDesktopUrl.value || videoMobileUrl.value || videoDefaultUrl.value;
 });
 
-const videoPosterUrl = computed(() => {
-  if (imageMobileDisplayUrl.value && !isVideoUrl(imageMobileDisplayUrl.value)) {
-    return imageMobileDisplayUrl.value;
-  }
+const posterDesktopUrl = computed(() => {
+  const poster = posterDisplay.value;
+  if (poster) return toUrl(poster.urlDefault || poster.urlSmall);
   if (imageDesktopDisplayUrl.value && !isVideoUrl(imageDesktopDisplayUrl.value)) {
     return imageDesktopDisplayUrl.value;
   }
   return '';
 });
+
+const posterMobileUrl = computed(() => {
+  const poster = posterDisplay.value;
+  if (poster) return toUrl(poster.urlSmall || poster.urlDefault);
+  if (imageMobileDisplayUrl.value && !isVideoUrl(imageMobileDisplayUrl.value)) {
+    return imageMobileDisplayUrl.value;
+  }
+  return posterDesktopUrl.value;
+});
+
+const posterDesktopSrcset = computed(() => toUrl(posterDisplay.value?.srcsetDefault));
+const posterMobileSrcset = computed(() => toUrl(posterDisplay.value?.srcsetSmall) || posterMobileUrl.value);
+const hasPoster = computed(() => Boolean(posterDesktopUrl.value || posterMobileUrl.value));
 
 const mediaMimeType = computed(() => {
   const media = mediaSource.value;
@@ -136,6 +156,15 @@ const mediaMimeType = computed(() => {
 });
 
 const isVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(url);
+
+function isImageMediaItem(item: MediaItem): boolean {
+  const source = item.content || item;
+  const mimeType = toUrl(source.mimeType || source.properties?.mimeType || item.type).toLowerCase();
+  if (mimeType.startsWith('image')) return true;
+  if (mimeType.startsWith('video')) return false;
+  const url = toUrl(source.publicUrl || source.url || source.originalUrl);
+  return Boolean(url) && !isVideoUrl(url);
+}
 
 const mediaIsVideo = computed(() => {
   return Boolean(
@@ -197,13 +226,44 @@ const videoSources = computed<VideoSource[]>(() => {
 });
 
 const canPlayVideo = computed(() => mediaIsVideo.value && hasVideo.value && !videoPlaybackFailed.value);
+// Sources are only attached after the page has loaded, so the video never competes with critical resources.
+const videoActivated = ref(false);
+const videoPlaying = ref(false);
 
 const markVideoAsFailed = () => {
   videoPlaybackFailed.value = true;
 };
 
+const markVideoAsPlaying = () => {
+  videoPlaying.value = true;
+};
+
+// Mobile, data saver and reduced motion get the poster only, as long as there is one to show.
+const shouldSkipVideo = (): boolean => {
+  if (!hasPoster.value) return false;
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  return Boolean(connection?.saveData)
+    || window.matchMedia('(max-width: 767px)').matches
+    || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+};
+
+const afterPageLoad = (callback: () => void) => {
+  const schedule = () => {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(callback, { timeout: 2000 });
+    } else {
+      setTimeout(callback, 200);
+    }
+  };
+  if (document.readyState === 'complete') {
+    schedule();
+  } else {
+    window.addEventListener('load', schedule, { once: true });
+  }
+};
+
 const tryStartVideo = async () => {
-  if (!import.meta.client || !canPlayVideo.value) return;
+  if (!import.meta.client || !canPlayVideo.value || !videoActivated.value) return;
   const element = videoElement.value;
   if (!element) return;
 
@@ -216,6 +276,16 @@ const tryStartVideo = async () => {
   } catch {
     markVideoAsFailed();
   }
+};
+
+const activateVideo = () => {
+  if (!import.meta.client || !mediaIsVideo.value || shouldSkipVideo()) return;
+  afterPageLoad(() => {
+    videoActivated.value = true;
+    nextTick(() => {
+      void tryStartVideo();
+    });
+  });
 };
 const hasVisual = computed(() => {
   if (mediaIsVideo.value) return hasVideo.value || hasImageSources.value;
@@ -230,22 +300,16 @@ const hasMediaButton = computed(() => {
 });
 
 onMounted(() => {
-  if (mediaIsVideo.value) {
-    nextTick(() => {
-      void tryStartVideo();
-    });
-  }
+  activateVideo();
 });
 
 watch(
   () => `${mediaIsVideo.value}-${videoSources.value.map((item) => item.src).join('|')}`,
   () => {
     videoPlaybackFailed.value = false;
-    if (mediaIsVideo.value) {
-      nextTick(() => {
-        void tryStartVideo();
-      });
-    }
+    videoActivated.value = false;
+    videoPlaying.value = false;
+    activateVideo();
   }
 );
 </script>
@@ -255,29 +319,54 @@ watch(
     <template v-if="hasVisual">
       <div class="relative">
         <div class="relative h-[clamp(260px,56vw,680px)] w-full overflow-hidden md:h-[clamp(320px,50vw,760px)]">
-        <video
-          v-if="canPlayVideo"
-          ref="videoElement"
-          autoplay
-          muted
-          playsinline
-          webkit-playsinline
-          loop
-          preload="metadata"
-          :poster="videoPosterUrl || undefined"
-          aria-hidden="true"
-          tabindex="-1"
-          role="presentation"
-          class="absolute inset-0 h-full w-full object-cover"
-          @error="markVideoAsFailed"
-        >
-          <source
-            v-for="source in videoSources"
-            :key="source.src"
-            :src="source.src"
-            :type="source.type"
-          />
-        </video>
+        <template v-if="mediaIsVideo">
+          <picture
+            v-if="hasPoster"
+            class="absolute inset-0 block h-full w-full"
+          >
+            <source
+              v-if="posterMobileSrcset"
+              media="(max-width: 767px)"
+              :srcset="posterMobileSrcset"
+            >
+            <img
+              :src="posterDesktopUrl || posterMobileUrl"
+              :srcset="posterDesktopSrcset || undefined"
+              alt=""
+              aria-hidden="true"
+              sizes="100vw"
+              class="h-full w-full object-cover"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+            >
+          </picture>
+          <video
+            v-if="canPlayVideo"
+            ref="videoElement"
+            muted
+            playsinline
+            webkit-playsinline
+            loop
+            preload="none"
+            aria-hidden="true"
+            tabindex="-1"
+            role="presentation"
+            class="absolute inset-0 h-full w-full object-cover transition-opacity duration-500"
+            :class="hasPoster && !videoPlaying ? 'opacity-0' : 'opacity-100'"
+            @playing="markVideoAsPlaying"
+            @error="markVideoAsFailed"
+          >
+            <template v-if="videoActivated">
+              <source
+                v-for="source in videoSources"
+                :key="source.src"
+                :src="source.src"
+                :type="source.type"
+              />
+            </template>
+          </video>
+        </template>
         <picture
           v-else-if="imageDesktopSrcset || imageMobileSrcset"
           class="absolute inset-0 block h-full w-full"

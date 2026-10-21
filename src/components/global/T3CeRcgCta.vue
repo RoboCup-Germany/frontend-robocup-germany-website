@@ -95,7 +95,7 @@ const spacingClasses = computed(() => {
   <section :class="spacingClasses">
     <div class="rcg-cta-wrapper">
       <img
-        src="/assets/RCgermany_element1.png"
+        src="/assets/RCgermany_element1.webp"
         alt=""
         aria-hidden="true"
         class="rcg-cta-bg"

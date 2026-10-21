@@ -1,6 +1,7 @@
 import { defineEventHandler, getMethod, getRequestURL, proxyRequest } from 'h3'
 import { createTypo3ContextHeaders, prefixTypo3Path, resolveRequestSite } from '~/server/utils/site-context'
 import { fetchWithWatchedCache } from '~/server/utils/upstream-cache'
+import { isWorkspacePreviewRequest, proxyWorkspacePreview } from '~/server/utils/workspace-preview'
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '')
 const trimLeadingSlash = (value: string) => value.replace(/^\/+/, '')
@@ -94,6 +95,10 @@ export default defineEventHandler(async (event) => {
 
   if (getMethod(event) !== 'GET') {
     return proxyRequest(event, target, { headers: requestHeaders })
+  }
+
+  if (isWorkspacePreviewRequest(event)) {
+    return proxyWorkspacePreview(event, target, requestHeaders)
   }
 
   try {

@@ -12,10 +12,7 @@ type NavItem = {
 }
 
 const { initialData, pageData } = useT3Api()
-const requestUrl = useRequestURL()
-const { data: siteRootData } = useFetch<Record<string, unknown>>('/api/typo3', {
-  key: `site-root:${requestUrl.host}`
-})
+const { data: siteRootData } = useSiteRootData()
 
 const isMobileMenuOpen = ref(false)
 const openDesktopIndex = ref<number | null>(null)
@@ -56,16 +53,30 @@ const headerLogoAlt = computed(() => {
 })
 const homeLink = computed(() => (/^\/en(\/|$)/.test(route.path.toLowerCase()) ? '/en' : '/'))
 
+const firstNonEmptyNavigation = (...items: Array<unknown>): NavItem[] => {
+  for (const item of items) {
+    if (Array.isArray(item) && item.length) {
+      return item as NavItem[]
+    }
+  }
+
+  return []
+}
+
 const navItems = computed<NavItem[]>(
   () => {
+    // pageData only exists on the client before mount, so render from the SSR site root data until then.
     if (!isMounted.value) {
-      return (initialData.value?.headerNavigation as NavItem[] | undefined) ?? []
+      return firstNonEmptyNavigation(
+        initialData.value?.headerNavigation,
+        siteRootData.value?.headerNavigation
+      )
     }
 
-    return (
-      (pageData.value?.headerNavigation as NavItem[] | undefined) ??
-      (initialData.value?.headerNavigation as NavItem[] | undefined) ??
-      []
+    return firstNonEmptyNavigation(
+      pageData.value?.headerNavigation,
+      siteRootData.value?.headerNavigation,
+      initialData.value?.headerNavigation
     )
   }
 )
@@ -259,7 +270,7 @@ watch(
               loading="lazy"
               decoding="async"
               fetchpriority="low"
-              sizes="100vw lg:33vw"
+              sizes="xs:100vw sm:100vw md:100vw lg:33vw"
               format="avif,webp"
               legacy-format="jpeg"
               :quality="80"
