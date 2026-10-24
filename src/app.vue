@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import Lightbox from './components/basic/Lightbox.vue'
 
 type LocaleItem = {
   active?: number
@@ -38,6 +39,7 @@ const cookieLocale = computed<'de' | 'en'>(() => {
       <NuxtPage :key="route.fullPath" />
     </NuxtLayout>
     <CookieControl :locale="cookieLocale" />
+<Lightbox />
   </UApp>
 </template>
 
