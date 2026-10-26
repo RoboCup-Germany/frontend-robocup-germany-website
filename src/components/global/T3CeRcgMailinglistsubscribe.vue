@@ -82,7 +82,6 @@ const isEnglishPage = computed(() => {
 const labels = computed(() => {
   if (isEnglishPage.value) {
     return {
-      list: 'Mailing list',
       email: 'Email address',
       name: 'Name',
       optional: 'optional',
@@ -104,7 +103,6 @@ const labels = computed(() => {
   }
 
   return {
-    list: 'Mailingliste',
     email: 'E-Mail-Adresse',
     name: 'Name',
     optional: 'optional',
@@ -126,6 +124,7 @@ const labels = computed(() => {
 });
 
 const hasForm = computed(() => Boolean(props.mailinglist && props.form?.endpoint && props.form?.contentElement));
+const hasIntro = computed(() => Boolean(props.header || props.subheader || props.bodytext));
 const honeypotField = computed(() => props.form?.honeypotField || 'website');
 const submitLabel = computed(() => props.button_label?.trim() || labels.value.submit);
 const successHtml = computed(() => (props.success_text?.trim() ? props.success_text : labels.value.success));
@@ -255,160 +254,199 @@ const onPrivacyChange = () => {
 
 <template>
   <UContainer>
-    <div class="flex flex-col items-start">
-      <SectionHeader
-        :header="header"
-        :subheader="subheader"
-        subheader-class="mb-4 text-base italic uppercase tracking-wide text-black font-semibold"
-      />
+    <div class="rcg-mailinglist w-full rounded-2xl bg-primary p-6 text-white md:p-10 lg:p-12">
+      <div class="grid gap-8 lg:gap-12" :class="{ 'lg:grid-cols-2': hasIntro && hasForm }">
+        <div v-if="hasIntro" class="flex flex-col items-start">
+          <SectionHeader
+            :header="header"
+            :subheader="subheader"
+            subheader-class="mb-4 text-base italic uppercase tracking-wide text-white font-semibold"
+          />
 
-      <div v-if="bodytext" class="mb-4 w-full">
-        <T3HtmlParser class="rte-content" :content="bodytext" />
-      </div>
-
-      <div v-if="hasForm" class="mb-6 w-full max-w-2xl rounded-2xl border border-primary/20 bg-white p-4 lg:p-6">
-        <div v-if="mailinglist?.title || mailinglist?.description" class="mb-4">
-          <p v-if="mailinglist?.title" class="mb-1 text-xs font-semibold uppercase tracking-wide text-black/70">
-            {{ labels.list }}: {{ mailinglist.title }}
-          </p>
-          <p v-if="mailinglist?.description" class="mb-0 text-sm text-black/85">
-            {{ mailinglist.description }}
-          </p>
+          <div v-if="bodytext" class="mb-4 w-full">
+            <T3HtmlParser class="rte-content" :content="bodytext" />
+          </div>
         </div>
 
-        <div
-          v-if="isSuccess"
-          ref="successRef"
-          tabindex="-1"
-          role="status"
-          aria-live="polite"
-          class="rounded-lg border border-primary/30 bg-primary/5 p-4 text-black outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          <T3HtmlParser class="rte-content" :content="successHtml" />
-        </div>
-
-        <form
-          v-else
-          novalidate
-          class="flex flex-col gap-4"
-          :aria-busy="isSubmitting"
-          @submit.prevent="onSubmit"
-        >
+        <div v-if="hasForm" class="w-full">
           <div
-            ref="statusRef"
+            v-if="isSuccess"
+            ref="successRef"
             tabindex="-1"
+            role="status"
             aria-live="polite"
-            class="outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            class="rounded-lg border border-white/40 bg-white/10 p-4 text-white outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
-            <ul
-              v-if="hasErrors"
-              class="m-0 list-none rounded-lg border border-red-600/40 bg-red-50 px-3 py-2 text-sm text-red-800"
-            >
-              <li v-if="formError">{{ labels.errors[formError] }}</li>
-              <li v-if="emailError">{{ labels.errors[emailError] }}</li>
-              <li v-if="privacyError">{{ labels.errors[privacyError] }}</li>
-            </ul>
+            <T3HtmlParser class="rte-content" :content="successHtml" />
           </div>
 
-          <div>
-            <label :for="ids.email" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-black/70">
-              {{ labels.email }} <span aria-hidden="true">*</span>
-              <span class="sr-only">({{ labels.required }})</span>
-            </label>
-            <input
-              :id="ids.email"
-              v-model="email"
-              type="email"
-              name="email"
-              autocomplete="email"
-              inputmode="email"
-              required
-              :maxlength="MAX_EMAIL_LENGTH"
-              :disabled="isSubmitting"
-              :aria-invalid="emailError ? 'true' : undefined"
-              :aria-describedby="emailError ? ids.emailError : undefined"
-              class="w-full rounded-lg border bg-white px-3 py-2 text-base text-black outline-none focus:border-primary disabled:cursor-wait disabled:opacity-70"
-              :class="emailError ? 'border-red-600' : 'border-primary/30'"
-              @input="onEmailInput"
-            >
-            <p v-if="emailError" :id="ids.emailError" class="mt-1 mb-0 text-sm text-red-700">
-              {{ labels.errors[emailError] }}
-            </p>
-          </div>
-
-          <div>
-            <label :for="ids.name" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-black/70">
-              {{ labels.name }} <span class="font-normal normal-case">({{ labels.optional }})</span>
-            </label>
-            <input
-              :id="ids.name"
-              v-model="name"
-              type="text"
-              name="name"
-              autocomplete="name"
-              :maxlength="MAX_NAME_LENGTH"
-              :disabled="isSubmitting"
-              class="w-full rounded-lg border border-primary/30 bg-white px-3 py-2 text-base text-black outline-none focus:border-primary disabled:cursor-wait disabled:opacity-70"
-            >
-          </div>
-
-          <!-- Honeypot: invisible to people, bots tend to fill it. -->
-          <div class="sr-only" aria-hidden="true">
-            <label :for="ids.honeypot">{{ labels.honeypot }}</label>
-            <input
-              :id="ids.honeypot"
-              v-model="honeypotValue"
-              type="text"
-              :name="honeypotField"
+          <form
+            v-else
+            novalidate
+            class="flex flex-col gap-4"
+            :aria-busy="isSubmitting"
+            @submit.prevent="onSubmit"
+          >
+            <div
+              ref="statusRef"
               tabindex="-1"
-              autocomplete="off"
+              aria-live="polite"
+              class="outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-          </div>
-
-          <div>
-            <div class="flex items-start gap-3 text-sm text-black">
-              <input
-                :id="ids.privacy"
-                v-model="privacy"
-                type="checkbox"
-                name="privacy"
-                required
-                :disabled="isSubmitting"
-                :aria-invalid="privacyError ? 'true' : undefined"
-                :aria-describedby="privacyError ? ids.privacyError : undefined"
-                class="mt-0.5 h-4 w-4 shrink-0 accent-primary disabled:cursor-wait"
-                @change="onPrivacyChange"
+              <ul
+                v-if="hasErrors"
+                class="m-0 list-none rounded-lg border border-red-600/40 bg-red-50 px-3 py-2 text-sm text-red-800"
               >
-              <label :for="ids.privacy">
-                {{ labels.privacyBefore }}<a
-                  v-if="privacyHref"
-                  :href="privacyHref"
-                  :target="privacyTarget"
-                  :rel="privacyRel"
-                  class="text-primary underline"
-                >{{ labels.privacyLink }}</a><template v-else>{{ labels.privacyLink }}</template>{{ labels.privacyAfter }}
-                <span aria-hidden="true">*</span>
-              </label>
+                <li v-if="formError">{{ labels.errors[formError] }}</li>
+                <li v-if="emailError">{{ labels.errors[emailError] }}</li>
+                <li v-if="privacyError">{{ labels.errors[privacyError] }}</li>
+              </ul>
             </div>
-            <p v-if="privacyError" :id="ids.privacyError" class="mt-1 mb-0 text-sm text-red-700">
-              {{ labels.errors[privacyError] }}
-            </p>
-          </div>
 
-          <div>
-            <UButton
-              type="submit"
-              color="primary"
-              variant="solid"
-              size="md"
-              :loading="isSubmitting"
-              :disabled="isSubmitting"
-            >
-              {{ isSubmitting ? labels.sending : submitLabel }}
-            </UButton>
-          </div>
-        </form>
+            <div>
+              <label :for="ids.email" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-white/85">
+                {{ labels.email }} <span aria-hidden="true">*</span>
+                <span class="sr-only">({{ labels.required }})</span>
+              </label>
+              <input
+                :id="ids.email"
+                v-model="email"
+                type="email"
+                name="email"
+                autocomplete="email"
+                inputmode="email"
+                required
+                :maxlength="MAX_EMAIL_LENGTH"
+                :disabled="isSubmitting"
+                :aria-invalid="emailError ? 'true' : undefined"
+                :aria-describedby="emailError ? ids.emailError : undefined"
+                class="w-full rounded-lg border-2 bg-white px-3 py-2 text-base text-black outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-70"
+                :class="emailError ? 'border-red-600' : 'border-transparent'"
+                @input="onEmailInput"
+              >
+              <p v-if="emailError" :id="ids.emailError" class="rcg-mailinglist-field-error">
+                {{ labels.errors[emailError] }}
+              </p>
+            </div>
+
+            <div>
+              <label :for="ids.name" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-white/85">
+                {{ labels.name }} <span class="font-normal normal-case">({{ labels.optional }})</span>
+              </label>
+              <input
+                :id="ids.name"
+                v-model="name"
+                type="text"
+                name="name"
+                autocomplete="name"
+                :maxlength="MAX_NAME_LENGTH"
+                :disabled="isSubmitting"
+                class="w-full rounded-lg border-2 border-transparent bg-white px-3 py-2 text-base text-black outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-70"
+              >
+            </div>
+
+            <!-- Honeypot: invisible to people, bots tend to fill it. -->
+            <div class="sr-only" aria-hidden="true">
+              <label :for="ids.honeypot">{{ labels.honeypot }}</label>
+              <input
+                :id="ids.honeypot"
+                v-model="honeypotValue"
+                type="text"
+                :name="honeypotField"
+                tabindex="-1"
+                autocomplete="off"
+              >
+            </div>
+
+            <div>
+              <div class="flex items-start gap-3 text-sm text-white">
+                <input
+                  :id="ids.privacy"
+                  v-model="privacy"
+                  type="checkbox"
+                  name="privacy"
+                  required
+                  :disabled="isSubmitting"
+                  :aria-invalid="privacyError ? 'true' : undefined"
+                  :aria-describedby="privacyError ? ids.privacyError : undefined"
+                  class="mt-1 h-4 w-4 shrink-0 accent-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait"
+                  @change="onPrivacyChange"
+                >
+                <label :for="ids.privacy">
+                  {{ labels.privacyBefore }}<a
+                    v-if="privacyHref"
+                    :href="privacyHref"
+                    :target="privacyTarget"
+                    :rel="privacyRel"
+                    class="font-semibold text-white underline hover:no-underline"
+                  >{{ labels.privacyLink }}</a><template v-else>{{ labels.privacyLink }}</template>{{ labels.privacyAfter }}
+                  <span aria-hidden="true">*</span>
+                </label>
+              </div>
+              <p v-if="privacyError" :id="ids.privacyError" class="rcg-mailinglist-field-error">
+                {{ labels.errors[privacyError] }}
+              </p>
+            </div>
+
+            <div>
+              <UButton
+                type="submit"
+                color="primary"
+                variant="solid"
+                size="md"
+                class="bg-white text-primary hover:bg-white/85 disabled:bg-white/85 focus-visible:outline-white"
+                :loading="isSubmitting"
+                :disabled="isSubmitting"
+              >
+                {{ isSubmitting ? labels.sending : submitLabel }}
+              </UButton>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </UContainer>
 </template>
+
+<style scoped>
+/* Reverse color scheme: base styles color headings, links and list markers in primary. */
+.rcg-mailinglist :deep(h1),
+.rcg-mailinglist :deep(h2),
+.rcg-mailinglist :deep(h3),
+.rcg-mailinglist :deep(h4),
+.rcg-mailinglist :deep(h5),
+.rcg-mailinglist :deep(h6) {
+  color: var(--color-white);
+}
+
+.rcg-mailinglist :deep(.rte-content a) {
+  color: var(--color-white);
+  text-decoration: underline;
+}
+
+.rcg-mailinglist :deep(.rte-content a:hover) {
+  text-decoration: none;
+}
+
+.rcg-mailinglist :deep(.rte-content ul > li::before) {
+  filter: brightness(0) invert(1);
+}
+
+.rcg-mailinglist :deep(.rte-content ol > li::before) {
+  color: var(--color-white);
+}
+
+.rcg-mailinglist :deep(.rte-content p:last-child) {
+  margin-bottom: 0;
+}
+
+.rcg-mailinglist-field-error {
+  display: inline-block;
+  margin: 0.4rem 0 0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: var(--text-xs);
+}
+</style>
