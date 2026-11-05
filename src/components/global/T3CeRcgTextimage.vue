@@ -1,10 +1,16 @@
 <script setup lang="ts">
-import { NuxtImg } from '#components';
 import type {T3CeBaseProps} from '@t3headless/nuxt-typo3';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Button from '~/components/basic/Button.vue';
+import CarouselControls from '~/components/basic/CarouselControls.vue';
 import Headline from '~/components/basic/Headline.vue';
-import { pickFirstDisplayImage, toDisplayImage, type DisplayImage } from '~/utils/media-image';
+import TextImagePicture from '~/components/basic/TextImagePicture.vue';
+import {
+  collectDisplayImages,
+  toDisplayImage,
+  type DisplayImage
+} from '~/utils/media-image';
+import { resolveTextImageLayout, toTextImageViews, type TextImageView } from '~/utils/textimage';
 
 defineOptions({
   inheritAttrs: false
@@ -33,6 +39,7 @@ interface T3CeRcgTextimage extends T3CeBaseProps
   button_type?: ContentButton['button_type'];
   buttons?: ContentButton[];
   orientation?: 'left' | 'right';
+  layout_image?: string | null;
   image?: unknown;
   media?: unknown;
 }
@@ -48,6 +55,7 @@ const props = withDefaults(defineProps<T3CeRcgTextimage>(), {
   button_type: 'full',
   buttons: () => [],
   orientation: 'left',
+  layout_image: null,
   image: () => [] as MediaRef[],
   media: () => [] as MediaRef[]
 });
@@ -134,25 +142,130 @@ const normalizedButtons = computed(() => {
 
 const hasButtons = computed(() => normalizedButtons.value.length > 0);
 
-const displayImage = computed<DisplayImage | null>(() => {
-  const fromImageList = pickFirstDisplayImage(normalizedImageList.value);
-
-  if (normalizedMediaList.value.length > 0) {
-    return fromImageList || pickFirstDisplayImage(normalizedMediaList.value);
+const displayImages = computed<DisplayImage[]>(() => {
+  const fromImageList = collectDisplayImages(normalizedImageList.value);
+  if (fromImageList.length > 0) {
+    return fromImageList;
   }
 
-  if (fromImageList) {
-    return fromImageList;
+  const fromMediaList = collectDisplayImages(normalizedMediaList.value);
+  if (fromMediaList.length > 0) {
+    return fromMediaList;
   }
 
   if (normalizedMediaRecord.value) {
     const parsed = toDisplayImage(normalizedMediaRecord.value);
     if (parsed) {
-      return parsed;
+      return [parsed];
     }
   }
 
-  return null;
+  return [];
+});
+
+const layout = computed(() => resolveTextImageLayout(props.layout_image));
+
+const renderedImages = computed<TextImageView[]>(() => {
+  const images = toTextImageViews(displayImages.value);
+  return layout.value === 'single' ? images.slice(0, 1) : images;
+});
+
+const isSlideshow = computed(() => layout.value === 'slideshow' && renderedImages.value.length > 1);
+
+// With several stacked images the image column gets tall; keep the text at the top instead of
+// centering it next to the middle of the image stack.
+const verticalAlignClass = computed(() => {
+  return renderedImages.value.length > 1 && !isSlideshow.value ? 'xl:items-start' : 'xl:items-center';
+});
+
+// --- Slideshow ---
+interface EmblaLike {
+  emblaApi?: {
+    scrollTo: (index: number) => void;
+    scrollPrev?: () => void;
+    scrollNext?: () => void;
+    plugins?: () => Record<string, { stop?: () => void }>;
+  };
+}
+
+// Keep the carousel options referentially stable: UCarousel re-initialises Embla (and jumps back to
+// the first slide) whenever these props receive a new object.
+const SLIDESHOW_UI = { item: 'basis-full' };
+const SLIDESHOW_AUTOPLAY = { delay: 5000 };
+
+const carousel = ref<EmblaLike | null>(null);
+const activeIndex = ref(0);
+const navigationDirection = ref<1 | -1>(1);
+
+// All slides share the height of the tallest image (capped via max-height) to avoid jumping.
+const slideshowStyle = computed(() => {
+  const ratios = renderedImages.value
+    .map((image) => (image.width && image.height ? image.width / image.height : null))
+    .filter((ratio): ratio is number => ratio !== null);
+  const ratio = ratios.length > 0 ? Math.min(...ratios) : 3 / 2;
+  return { aspectRatio: String(ratio) };
+});
+
+const visibleDots = computed(() => {
+  const total = renderedImages.value.length;
+  if (total <= 1) return [];
+
+  const max = Math.min(5, total);
+  let start = activeIndex.value - Math.floor(max / 2);
+  start = Math.max(0, start);
+  start = Math.min(start, total - max);
+
+  return Array.from({ length: max }, (_, k) => start + k);
+});
+
+const dotTransitionName = computed(() => {
+  return navigationDirection.value === 1 ? 'dots-forward' : 'dots-backward';
+});
+
+const disableAutoplay = () => {
+  const plugins = carousel.value?.emblaApi?.plugins?.();
+  const autoplayPlugin = plugins?.autoplay ?? plugins?.Autoplay;
+  autoplayPlugin?.stop?.();
+};
+
+const onSlideSelect = (index: number) => {
+  const total = renderedImages.value.length;
+  if (index !== activeIndex.value) {
+    if (total > 1 && index === 0 && activeIndex.value === total - 1) {
+      navigationDirection.value = 1;
+    } else if (total > 1 && index === total - 1 && activeIndex.value === 0) {
+      navigationDirection.value = -1;
+    } else {
+      navigationDirection.value = index > activeIndex.value ? 1 : -1;
+    }
+  }
+  activeIndex.value = index;
+};
+
+const selectSlide = (index: number) => {
+  if (index === activeIndex.value) return;
+  disableAutoplay();
+  navigationDirection.value = index > activeIndex.value ? 1 : -1;
+  activeIndex.value = index;
+  carousel.value?.emblaApi?.scrollTo(index);
+};
+
+const prevSlide = () => {
+  disableAutoplay();
+  navigationDirection.value = -1;
+  carousel.value?.emblaApi?.scrollPrev?.();
+};
+
+const nextSlide = () => {
+  disableAutoplay();
+  navigationDirection.value = 1;
+  carousel.value?.emblaApi?.scrollNext?.();
+};
+
+watch(() => renderedImages.value.length, (total) => {
+  if (activeIndex.value >= total) {
+    activeIndex.value = Math.max(0, total - 1);
+  }
 });
 
 const imageColumnClass = computed(() => {
@@ -167,88 +280,53 @@ const textColumnClass = computed(() => {
     : 'xl:order-2 xl:pl-5';
 });
 
-const imageSrcDefault = computed(() => displayImage.value?.urlDefault || null);
-const imageSrcSmall = computed(() => displayImage.value?.urlSmall || null);
-const imageSrc = computed(() => imageSrcDefault.value || imageSrcSmall.value || null);
-const imageSrcsetDefault = computed(() => displayImage.value?.srcsetDefault || null);
-const imageSrcsetSmall = computed(() => displayImage.value?.srcsetSmall || null);
-
-const imageAlt = computed(() => displayImage.value?.alt ?? '');
-const imageTitle = computed(() => displayImage.value?.title ?? '');
-const imageWidth = computed<number | undefined>(() => {
-  const value = displayImage.value?.width;
-  return value && value > 0 ? value : undefined;
-});
-const imageHeight = computed<number | undefined>(() => {
-  const value = displayImage.value?.height;
-  return value && value > 0 ? value : undefined;
-});
-const imageCreator = computed(() => {
-  const value = displayImage.value?.creator ?? '';
-  return value.trim();
-});
-
 </script>
 
 <template>
   <section class="mb-2 lg:mb-10">
-    <UContainer class="grid grid-cols-1 gap-6 xl:grid-cols-12 xl:items-center xl:gap-10">
+    <UContainer :class="['grid grid-cols-1 gap-6 xl:grid-cols-12 xl:gap-10', verticalAlignClass]">
       <div :class="['xl:col-span-6', imageColumnClass]">
-        <div v-if="imageSrc" class="rcg-textimage-fixed relative group overflow-hidden">
-          <picture v-if="imageSrcsetDefault || imageSrcsetSmall" class="block">
-            <source
-              v-if="imageSrcsetSmall"
-              :srcset="imageSrcsetSmall"
-              media="(max-width: 767px)"
-            >
-            <source
-              v-if="imageSrcsetDefault"
-              :srcset="imageSrcsetDefault"
-              media="(min-width: 768px)"
-              sizes="50vw"
-            >
-            <img
-              :src="imageSrc"
-              :srcset="imageSrcsetDefault || undefined"
-              :alt="imageAlt"
-              :title="imageTitle"
-              class="block h-auto w-full"
-              :width="imageWidth"
-              :height="imageHeight"
-              loading="lazy"
-              decoding="async"
-              fetchpriority="low"
-              sizes="(max-width: 767px) 100vw, 50vw"
-            >
-          </picture>
-          <picture v-else class="block">
-            <source
-              v-if="imageSrcSmall"
-              :srcset="imageSrcSmall"
-              media="(max-width: 767px)"
-            >
-            <NuxtImg
-              provider="ipx"
-              :src="imageSrc"
-              :alt="imageAlt"
-              :title="imageTitle"
-              class="block h-auto w-full"
-              :width="imageWidth"
-              :height="imageHeight"
-              loading="lazy"
-              decoding="async"
-              fetchpriority="low"
-              sizes="xs:100vw sm:100vw md:50vw"
-              format="webp"
-              :quality="80"
-            />
-          </picture>
-          <div
-            v-if="imageCreator"
-            class="pointer-events-none absolute bottom-0 right-0 inline-flex items-center gap-1 rounded-tl-md bg-black/65 px-3 py-2 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        <div v-if="isSlideshow" class="mx-auto w-full max-w-[800px]">
+          <UCarousel
+            ref="carousel"
+            v-slot="{ item }"
+            :items="renderedImages"
+            :ui="SLIDESHOW_UI"
+            align="start"
+            loop
+            :autoplay="SLIDESHOW_AUTOPLAY"
+            @pointerdown="disableAutoplay"
+            @touchstart="disableAutoplay"
+            @select="onSlideSelect"
           >
-            <span class="text-xs leading-none">©</span>
-            <span>{{ imageCreator }}</span>
+            <div class="flex max-h-[520px] w-full items-center justify-center" :style="slideshowStyle">
+              <div :class="['h-full', item.slideClass]">
+                <TextImagePicture :image="item" fill/>
+              </div>
+            </div>
+          </UCarousel>
+          <CarouselControls
+            class="mt-4"
+            mode="inline"
+            :visible-dots="visibleDots"
+            :active-index="activeIndex"
+            :animate-dots="true"
+            :transition-name="dotTransitionName"
+            @prev="prevSlide"
+            @next="nextSlide"
+            @select="selectSlide"
+          />
+        </div>
+        <div
+          v-else-if="renderedImages.length > 0"
+          class="mx-auto grid w-full max-w-[800px] grid-cols-2 items-center gap-4 sm:grid-cols-6"
+        >
+          <div
+            v-for="(renderedImage, index) in renderedImages"
+            :key="`${renderedImage.src}-${index}`"
+            :class="['min-w-0', renderedImage.cellClass]"
+          >
+            <TextImagePicture :image="renderedImage"/>
           </div>
         </div>
       </div>
@@ -270,13 +348,3 @@ const imageCreator = computed(() => {
     </UContainer>
   </section>
 </template>
-
-<style scoped>
-.rcg-textimage-fixed :deep(img) {
-  max-height: 520px;
-  width: auto;
-  max-width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-}
-</style>
