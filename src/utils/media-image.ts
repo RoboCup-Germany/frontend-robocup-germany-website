@@ -1,3 +1,5 @@
+export type DisplayImageSize = 'small' | 'medium' | 'large';
+
 export type DisplayImage = {
   urlDefault?: string | null;
   urlSmall?: string | null;
@@ -9,6 +11,8 @@ export type DisplayImage = {
   description?: string | null;
   width?: number | null;
   height?: number | null;
+  /** Display size chosen by the editor (sys_file_reference.image_size); null when not set. */
+  imageSize?: DisplayImageSize | null;
 };
 
 type CropVariantLike = {
@@ -65,6 +69,7 @@ type MediaObjectLike = {
   height?: number | string | null;
   cropVariants?: CropVariantsLike | null;
   responsive?: ResponsiveLike | null;
+  imageSize?: string | null;
   properties?: {
     title?: string | null;
     alternative?: string | null;
@@ -84,6 +89,10 @@ const toTextOrNull = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+};
+
+const toDisplayImageSizeOrNull = (value: unknown): DisplayImageSize | null => {
+  return value === 'small' || value === 'medium' || value === 'large' ? value : null;
 };
 
 const variantUrl = (variant: CropVariantLike | null | undefined): string | null => {
@@ -208,7 +217,8 @@ const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | n
     creator: toTextOrNull(media.creator) || null,
     description: description || null,
     width,
-    height
+    height,
+    imageSize: toDisplayImageSizeOrNull(media.imageSize)
   };
 };
 
@@ -234,6 +244,14 @@ export const pickFirstDisplayImage = (items: unknown[] | null | undefined): Disp
   }
 
   return null;
+};
+
+export const collectDisplayImages = (items: unknown[] | null | undefined): DisplayImage[] => {
+  if (!items || items.length === 0) return [];
+
+  return items
+    .map((item) => toDisplayImage(item))
+    .filter((image): image is DisplayImage => Boolean(image));
 };
 
 export const parseMaybeJson = (value: unknown): unknown => {
