@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { NuxtImg } from '#components';
 import type {T3CeBaseProps} from '@t3headless/nuxt-typo3';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Button from '~/components/basic/Button.vue';
+import CarouselControls from '~/components/basic/CarouselControls.vue';
 import Headline from '~/components/basic/Headline.vue';
+import TextImagePicture from '~/components/basic/TextImagePicture.vue';
 import {
   collectDisplayImages,
   toDisplayImage,
-  type DisplayImage,
-  type DisplayImageSize
+  type DisplayImage
 } from '~/utils/media-image';
+import { resolveTextImageLayout, toTextImageViews, type TextImageView } from '~/utils/textimage';
 
 defineOptions({
   inheritAttrs: false
@@ -38,6 +39,7 @@ interface T3CeRcgTextimage extends T3CeBaseProps
   button_type?: ContentButton['button_type'];
   buttons?: ContentButton[];
   orientation?: 'left' | 'right';
+  layout_image?: string | null;
   image?: unknown;
   media?: unknown;
 }
@@ -53,6 +55,7 @@ const props = withDefaults(defineProps<T3CeRcgTextimage>(), {
   button_type: 'full',
   buttons: () => [],
   orientation: 'left',
+  layout_image: null,
   image: () => [] as MediaRef[],
   media: () => [] as MediaRef[]
 });
@@ -160,69 +163,109 @@ const displayImages = computed<DisplayImage[]>(() => {
   return [];
 });
 
-type ImageSizeLayout = {
-  cellClass: string;
-  imageClass: string;
-  sizes: string;
-  nuxtSizes: string;
+const layout = computed(() => resolveTextImageLayout(props.layout_image));
+
+const renderedImages = computed<TextImageView[]>(() => {
+  const images = toTextImageViews(displayImages.value);
+  return layout.value === 'single' ? images.slice(0, 1) : images;
+});
+
+const isSlideshow = computed(() => layout.value === 'slideshow' && renderedImages.value.length > 1);
+
+// With several stacked images the image column gets tall; keep the text at the top instead of
+// centering it next to the middle of the image stack.
+const verticalAlignClass = computed(() => {
+  return renderedImages.value.length > 1 && !isSlideshow.value ? 'xl:items-start' : 'xl:items-center';
+});
+
+// --- Slideshow ---
+interface EmblaLike {
+  emblaApi?: {
+    scrollTo: (index: number) => void;
+    scrollPrev?: () => void;
+    scrollNext?: () => void;
+    plugins?: () => Record<string, { stop?: () => void }>;
+  };
+}
+
+// Keep the carousel options referentially stable: UCarousel re-initialises Embla (and jumps back to
+// the first slide) whenever these props receive a new object.
+const SLIDESHOW_UI = { item: 'basis-full' };
+const SLIDESHOW_AUTOPLAY = { delay: 5000 };
+
+const carousel = ref<EmblaLike | null>(null);
+const activeIndex = ref(0);
+const navigationDirection = ref<1 | -1>(1);
+
+// All slides share the height of the tallest image (capped via max-height) to avoid jumping.
+const slideshowStyle = computed(() => {
+  const ratios = renderedImages.value
+    .map((image) => (image.width && image.height ? image.width / image.height : null))
+    .filter((ratio): ratio is number => ratio !== null);
+  const ratio = ratios.length > 0 ? Math.min(...ratios) : 3 / 2;
+  return { aspectRatio: String(ratio) };
+});
+
+const visibleDots = computed(() => {
+  const total = renderedImages.value.length;
+  if (total <= 1) return [];
+
+  const max = Math.min(5, total);
+  let start = activeIndex.value - Math.floor(max / 2);
+  start = Math.max(0, start);
+  start = Math.min(start, total - max);
+
+  return Array.from({ length: max }, (_, k) => start + k);
+});
+
+const dotTransitionName = computed(() => {
+  return navigationDirection.value === 1 ? 'dots-forward' : 'dots-backward';
+});
+
+const disableAutoplay = () => {
+  const plugins = carousel.value?.emblaApi?.plugins?.();
+  const autoplayPlugin = plugins?.autoplay ?? plugins?.Autoplay;
+  autoplayPlugin?.stop?.();
 };
 
-// The image area is at most 800px wide (one column of the 12-column grid from xl on, ~600px).
-// Within it, a 6-column grid places the images: large = full width, medium = 1/2, small = 1/3.
-// Below sm the grid has 2 columns: large and medium take the full width, small takes half.
-// The backend caps the delivered resolution per size accordingly (2x of the largest slot).
-const IMAGE_SIZE_LAYOUTS: Record<DisplayImageSize, ImageSizeLayout> = {
-  large: {
-    cellClass: 'col-span-2 sm:col-span-6',
-    imageClass: 'max-h-[520px]',
-    sizes: '(min-width: 1280px) 600px, (min-width: 864px) 800px, 100vw',
-    nuxtSizes: 'xs:100vw md:800px xl:600px'
-  },
-  medium: {
-    cellClass: 'col-span-2 sm:col-span-3',
-    imageClass: 'max-h-[360px]',
-    sizes: '(min-width: 1280px) 300px, (min-width: 864px) 400px, (min-width: 640px) 50vw, 100vw',
-    nuxtSizes: 'xs:100vw sm:50vw md:400px xl:300px'
-  },
-  small: {
-    cellClass: 'col-span-1 sm:col-span-2',
-    imageClass: 'max-h-[240px]',
-    sizes: '(min-width: 1280px) 200px, (min-width: 864px) 270px, (min-width: 640px) 33vw, 50vw',
-    nuxtSizes: 'xs:50vw sm:33vw md:270px xl:200px'
+const onSlideSelect = (index: number) => {
+  const total = renderedImages.value.length;
+  if (index !== activeIndex.value) {
+    if (total > 1 && index === 0 && activeIndex.value === total - 1) {
+      navigationDirection.value = 1;
+    } else if (total > 1 && index === total - 1 && activeIndex.value === 0) {
+      navigationDirection.value = -1;
+    } else {
+      navigationDirection.value = index > activeIndex.value ? 1 : -1;
+    }
   }
+  activeIndex.value = index;
 };
 
-const toPositiveOrUndefined = (value?: number | null): number | undefined => {
-  return value && value > 0 ? value : undefined;
+const selectSlide = (index: number) => {
+  if (index === activeIndex.value) return;
+  disableAutoplay();
+  navigationDirection.value = index > activeIndex.value ? 1 : -1;
+  activeIndex.value = index;
+  carousel.value?.emblaApi?.scrollTo(index);
 };
 
-const renderedImages = computed(() => {
-  return displayImages.value
-    .map((image) => {
-      const srcDefault = image.urlDefault || null;
-      const srcSmall = image.urlSmall || null;
-      const src = srcDefault || srcSmall;
+const prevSlide = () => {
+  disableAutoplay();
+  navigationDirection.value = -1;
+  carousel.value?.emblaApi?.scrollPrev?.();
+};
 
-      if (!src) {
-        return null;
-      }
+const nextSlide = () => {
+  disableAutoplay();
+  navigationDirection.value = 1;
+  carousel.value?.emblaApi?.scrollNext?.();
+};
 
-      const layout = IMAGE_SIZE_LAYOUTS[image.imageSize ?? 'large'];
-
-      return {
-        src,
-        srcSmall,
-        srcsetDefault: image.srcsetDefault || null,
-        srcsetSmall: image.srcsetSmall || null,
-        alt: image.alt ?? '',
-        title: image.title ?? '',
-        creator: (image.creator ?? '').trim(),
-        width: toPositiveOrUndefined(image.width),
-        height: toPositiveOrUndefined(image.height),
-        ...layout
-      };
-    })
-    .filter((image): image is NonNullable<typeof image> => Boolean(image));
+watch(() => renderedImages.value.length, (total) => {
+  if (activeIndex.value >= total) {
+    activeIndex.value = Math.max(0, total - 1);
+  }
 });
 
 const imageColumnClass = computed(() => {
@@ -241,10 +284,41 @@ const textColumnClass = computed(() => {
 
 <template>
   <section class="mb-2 lg:mb-10">
-    <UContainer class="grid grid-cols-1 gap-6 xl:grid-cols-12 xl:items-center xl:gap-10">
+    <UContainer :class="['grid grid-cols-1 gap-6 xl:grid-cols-12 xl:gap-10', verticalAlignClass]">
       <div :class="['xl:col-span-6', imageColumnClass]">
+        <div v-if="isSlideshow" class="mx-auto w-full max-w-[800px]">
+          <UCarousel
+            ref="carousel"
+            v-slot="{ item }"
+            :items="renderedImages"
+            :ui="SLIDESHOW_UI"
+            align="start"
+            loop
+            :autoplay="SLIDESHOW_AUTOPLAY"
+            @pointerdown="disableAutoplay"
+            @touchstart="disableAutoplay"
+            @select="onSlideSelect"
+          >
+            <div class="flex max-h-[520px] w-full items-center justify-center" :style="slideshowStyle">
+              <div :class="['h-full', item.slideClass]">
+                <TextImagePicture :image="item" fill/>
+              </div>
+            </div>
+          </UCarousel>
+          <CarouselControls
+            class="mt-4"
+            mode="inline"
+            :visible-dots="visibleDots"
+            :active-index="activeIndex"
+            :animate-dots="true"
+            :transition-name="dotTransitionName"
+            @prev="prevSlide"
+            @next="nextSlide"
+            @select="selectSlide"
+          />
+        </div>
         <div
-          v-if="renderedImages.length > 0"
+          v-else-if="renderedImages.length > 0"
           class="mx-auto grid w-full max-w-[800px] grid-cols-2 items-center gap-4 sm:grid-cols-6"
         >
           <div
@@ -252,64 +326,7 @@ const textColumnClass = computed(() => {
             :key="`${renderedImage.src}-${index}`"
             :class="['min-w-0', renderedImage.cellClass]"
           >
-            <div class="group relative w-full overflow-hidden">
-              <picture v-if="renderedImage.srcsetDefault || renderedImage.srcsetSmall" class="block">
-                <source
-                  v-if="renderedImage.srcsetSmall"
-                  :srcset="renderedImage.srcsetSmall"
-                  media="(max-width: 767px)"
-                  :sizes="renderedImage.sizes"
-                >
-                <source
-                  v-if="renderedImage.srcsetDefault"
-                  :srcset="renderedImage.srcsetDefault"
-                  media="(min-width: 768px)"
-                  :sizes="renderedImage.sizes"
-                >
-                <img
-                  :src="renderedImage.src"
-                  :srcset="renderedImage.srcsetDefault || undefined"
-                  :alt="renderedImage.alt"
-                  :title="renderedImage.title"
-                  :class="['rcg-textimage-image block h-auto w-full object-contain', renderedImage.imageClass]"
-                  :width="renderedImage.width"
-                  :height="renderedImage.height"
-                  loading="lazy"
-                  decoding="async"
-                  fetchpriority="low"
-                  :sizes="renderedImage.sizes"
-                >
-              </picture>
-              <picture v-else class="block">
-                <source
-                  v-if="renderedImage.srcSmall"
-                  :srcset="renderedImage.srcSmall"
-                  media="(max-width: 767px)"
-                >
-                <NuxtImg
-                  provider="ipx"
-                  :src="renderedImage.src"
-                  :alt="renderedImage.alt"
-                  :title="renderedImage.title"
-                  :class="['rcg-textimage-image block h-auto w-full object-contain', renderedImage.imageClass]"
-                  :width="renderedImage.width"
-                  :height="renderedImage.height"
-                  loading="lazy"
-                  decoding="async"
-                  fetchpriority="low"
-                  :sizes="renderedImage.nuxtSizes"
-                  format="webp"
-                  :quality="80"
-                />
-              </picture>
-              <div
-                v-if="renderedImage.creator"
-                class="pointer-events-none absolute bottom-0 right-0 inline-flex items-center gap-1 rounded-tl-md bg-black/65 px-3 py-2 text-xs text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-              >
-                <span class="text-xs leading-none">©</span>
-                <span>{{ renderedImage.creator }}</span>
-              </div>
-            </div>
+            <TextImagePicture :image="renderedImage"/>
           </div>
         </div>
       </div>
