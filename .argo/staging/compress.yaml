@@ -1,0 +1,16 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: compress
+  namespace: staging-website
+spec:
+  compress:
+    # Already compressed media gains nothing from gzip, so keep it out of the compression path.
+    excludedContentTypes:
+      - image/avif
+      - image/jpeg
+      - image/png
+      - image/webp
+      - video/mp4
+      - video/webm
+      - font/woff2

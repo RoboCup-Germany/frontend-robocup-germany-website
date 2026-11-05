@@ -140,17 +140,24 @@ const hasContent = computed(() => Boolean(props.announcement?.title || props.ann
       width="1080"
       height="401"
     />
-    <img
-      src="/assets/RCgermany_element3-optimized.webp"
-      alt=""
-      aria-hidden="true"
-      class="pointer-events-none absolute right-0 top-1/2 z-0 hidden h-auto w-auto max-w-none -translate-y-1/2 object-contain object-right md:block"
-      loading="eager"
-      decoding="async"
-      fetchpriority="high"
-      width="1081"
-      height="401"
-    />
+    <!-- Desktop-only decoration and desktop LCP: the picture source keeps mobile from downloading it at all. -->
+    <picture>
+      <source
+        media="(min-width: 768px)"
+        srcset="/assets/RCgermany_element3-optimized.webp"
+      >
+      <img
+        src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+        alt=""
+        aria-hidden="true"
+        class="pointer-events-none absolute right-0 top-1/2 z-0 hidden h-auto w-auto max-w-none -translate-y-1/2 object-contain object-right md:block"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+        width="1081"
+        height="401"
+      >
+    </picture>
 
     <UContainer class="relative z-10">
       <div class="py-6 lg:py-8">

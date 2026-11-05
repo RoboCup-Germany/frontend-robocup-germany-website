@@ -290,7 +290,7 @@ const socialLinks = computed(() => {
           loading="eager"
           decoding="async"
           fetchpriority="high"
-          sizes="100vw"
+          sizes="xs:100vw sm:100vw md:100vw lg:100vw xl:1320px"
           format="avif,webp"
           legacy-format="jpeg"
           :quality="80"

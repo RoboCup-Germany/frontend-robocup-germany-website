@@ -32,10 +32,7 @@ type LocaleItem = {
 }
 
 const { initialData, pageData } = useT3Api()
-const requestUrl = useRequestURL()
-const { data: siteRootData } = useFetch<Record<string, unknown>>('/api/typo3', {
-  key: `site-root:${requestUrl.host}`
-})
+const { data: siteRootData } = useSiteRootData()
 const route = useRoute()
 const isMounted = ref(false)
 const siteGlobalConfig = useState<GlobalConfig | null>('site-global-config', () => null)
@@ -72,7 +69,8 @@ const globalConfig = computed<GlobalConfig | undefined>(() => {
 const footerSections = computed<FooterNavItem[]>(() => {
   if (!isMounted.value) {
     return firstNonEmptyNavigation(
-      initialData.value?.footerNavigation
+      initialData.value?.footerNavigation,
+      siteRootData.value?.footerNavigation
     )
   }
 
