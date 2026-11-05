@@ -3,6 +3,7 @@ import { NuxtImg } from '#components';
 import type {T3CeBaseProps} from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
 import { pickFirstDisplayImage } from '~/utils/media-image';
+import { vLightbox } from '~/directives/lightbox';
 
 defineOptions({
   inheritAttrs: false
@@ -78,6 +79,7 @@ const imageCreator = computed(() => {
             decoding="async"
             fetchpriority="low"
             sizes="100vw"
+            v-lightbox="{ src: imageSrc, alt: imageAlt, width: imageWidth, height: imageHeight }"
           >
         </picture>
         <picture v-else class="block">
