@@ -2,6 +2,7 @@
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
 import { computed, nextTick, onMounted, onUnmounted, ref, type Ref, useAttrs, watch } from 'vue'
 import CarouselControls from '~/components/basic/CarouselControls.vue'
+import SectionHeader from '~/components/basic/SectionHeader.vue'
 import { extractArrayFromUnknown, findImageLikeDeep, parseMaybeJson, toDisplayImage, type DisplayImage } from '~/utils/media-image'
 
 defineOptions({ inheritAttrs: false })
@@ -28,6 +29,8 @@ interface ThemeGalleryBlock {
 }
 
 interface T3CeRcgGallery extends T3CeBaseProps {
+  header?: string | null
+  subheader?: string | null
   images?: MediaRef[] | string | null
   gallery?: MediaRef[] | string | null
   media?: MediaRef[] | string | null
@@ -49,7 +52,10 @@ interface GalleryImageView {
   height?: number
 }
 
-const props = withDefaults(defineProps<T3CeRcgGallery>(), {})
+const props = withDefaults(defineProps<T3CeRcgGallery>(), {
+  header: '',
+  subheader: ''
+})
 const attrs = useAttrs()
 
 // Extract block (if provided as object or JSON string)
@@ -168,9 +174,12 @@ const galleryType = computed(() => {
     ?? b?.appearance?.galleryType
   return toPositiveInt(value, 0)
 })
+// Backend values: gallery_type 0 = Bilder, 1 = Logos; gallery_layout 0 = Diashow, 1 = Galerie.
+// Note: "isLogoGallery" historically refers to type 0 (Bilder), "isSpaciousGallery" to type 1 (Logos).
 const isLogoGallery = computed(() => galleryType.value === 0)
 const isSpaciousGallery = computed(() => galleryType.value === 1)
 const isFlickrLikeGridLayout = computed(() => galleryLayout.value === 1 && isLogoGallery.value)
+const isLogoGridLayout = computed(() => galleryLayout.value === 1 && isSpaciousGallery.value)
 const isLogoStandardCarouselLayout = computed(() => galleryLayout.value === 0 && isLogoGallery.value)
 const isChunkedCarouselLayout = computed(() => galleryLayout.value === 0 && isSpaciousGallery.value)
 const galleryImageSizes = computed(() => (
@@ -181,17 +190,25 @@ const galleryImageSizes = computed(() => (
 const gridWrapperClass = computed(() => (
   isFlickrLikeGridLayout.value
     ? 'w-full rounded-md bg-neutral-100 p-4 columns-1 md:columns-2 lg:columns-3'
-    : isSpaciousGallery.value
-    ? 'w-full columns-1 gap-10 px-2 py-4 md:columns-2 lg:columns-3'
+    : isLogoGridLayout.value
+    ? 'grid w-full grid-cols-1 gap-6 px-2 py-4 md:grid-cols-2 lg:grid-cols-4 lg:gap-8'
     : 'w-full columns-1 gap-4 px-2 py-4 md:columns-2 lg:columns-3'
 ))
 const gridItemClass = computed(() => (
   isFlickrLikeGridLayout.value
     ? 'group mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white'
-    : isSpaciousGallery.value
-    ? 'mb-10 w-full break-inside-avoid overflow-hidden rounded bg-white'
+    : isLogoGridLayout.value
+    ? 'relative aspect-[4/3] w-full overflow-hidden rounded bg-white'
     : 'mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white'
 ))
+const gridPictureClass = computed(() => (
+  isLogoGridLayout.value ? 'absolute inset-0 block' : 'block h-full w-full'
+))
+const gridImageClass = computed(() => {
+  if (isLogoGridLayout.value) return 'rcg-image block h-full w-full object-contain p-4'
+  if (isLogoGallery.value && !isFlickrLikeGridLayout.value) return 'rcg-image block h-full w-full object-contain p-4'
+  return 'rcg-image block h-auto w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]'
+})
 
 
 // --- Carousel control / active index (für Custom-Dots) ---
@@ -516,6 +533,13 @@ const sectionClasses = computed(() => {
 <template>
   <section :class="sectionClasses">
     <UContainer>
+      <SectionHeader
+        :header="header || ''"
+        :subheader="subheader || ''"
+        container-class="mb-7 lg:mb-9"
+        subheader-class="mb-0 text-base text-black/80"
+      />
+
       <div v-if="isGridLayout" :class="gridWrapperClass">
         <div
           v-for="image in galleryImages"
@@ -523,7 +547,7 @@ const sectionClasses = computed(() => {
           :class="gridItemClass"
           :style="[galleryHeightStyle, logoBoxStyle]"
         >
-          <picture class="block h-full w-full">
+          <picture :class="gridPictureClass">
             <source
               v-if="image.srcsetMobile"
               :srcset="image.srcsetMobile"
@@ -542,9 +566,7 @@ const sectionClasses = computed(() => {
               :title="image.title"
               :width="image.width"
               :height="image.height"
-              :class="isLogoGallery && !isFlickrLikeGridLayout
-                ? 'rcg-image block h-full w-full object-contain p-4'
-                : 'rcg-image block h-auto w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.03]'"
+              :class="gridImageClass"
               loading="lazy"
               decoding="async"
               fetchpriority="low"
@@ -609,9 +631,9 @@ const sectionClasses = computed(() => {
             <li
               v-for="image in chunk"
               :key="image.id"
-              class="overflow-hidden rounded bg-white"
+              class="relative aspect-[4/3] w-full overflow-hidden rounded bg-white"
             >
-              <picture class="block aspect-[4/3] w-full">
+              <picture class="absolute inset-0 block">
                 <source
                   v-if="image.srcsetMobile"
                   :srcset="image.srcsetMobile"
