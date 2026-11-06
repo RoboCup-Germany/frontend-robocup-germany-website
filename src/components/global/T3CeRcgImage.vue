@@ -11,7 +11,8 @@ defineOptions({
 interface T3CeRcgImage extends T3CeBaseProps
 {
   header_layout?: number | string;
-  customimage_desktop?: unknown;
+  // `{}` statt `unknown`, damit withDefaults den null-Default akzeptiert (Laufzeit-Prop bleibt `type: null`).
+  customimage_desktop?: NonNullable<unknown> | null;
 }
 
 const _props = withDefaults(defineProps<T3CeRcgImage>(), {

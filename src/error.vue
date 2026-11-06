@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watchEffect } from 'vue'
 import type { H3Error } from 'h3'
+import type { T3InitialData, T3Page } from '@t3headless/nuxt-typo3'
 import Button from '~/components/basic/Button.vue'
 
 interface ErrorPageRef {
@@ -98,9 +99,9 @@ const pageDataFallback = computed(() => {
 
   try {
     if (typeof errorData === 'string') {
-      return JSON.parse(errorData) as { appearance?: { backendLayout?: string }, content?: unknown }
+      return JSON.parse(errorData) as { appearance?: { backendLayout?: string }, content?: T3Page['content'] }
     }
-    return errorData as { appearance?: { backendLayout?: string }, content?: unknown }
+    return errorData as { appearance?: { backendLayout?: string }, content?: T3Page['content'] }
   }
   catch {
     return null
@@ -116,7 +117,8 @@ watchEffect(() => {
 
   // Make TYPO3 error payload available to SiteHeader/SiteFooter that read useT3Api state.
   if (!pageData.value) {
-    pageData.value = fallback
+    // Fehler-Payload von TYPO3: gleiche Struktur wie eine Seite, aber ungeprüft.
+    pageData.value = fallback as unknown as T3Page
   }
 
   const currentInitial = (initialData.value ?? {}) as Record<string, unknown>
@@ -127,7 +129,7 @@ watchEffect(() => {
     footerNavigation: currentInitial.footerNavigation ?? fallback.footerNavigation,
     i18n: currentInitial.i18n ?? fallback.i18n
   }
-  initialData.value = mergedInitial
+  initialData.value = mergedInitial as unknown as T3InitialData
 })
 </script>
 
