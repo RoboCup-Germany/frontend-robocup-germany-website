@@ -121,7 +121,7 @@ const normalizedImages = computed<DisplayImage[]>(() => parsedImages.value
   .filter((v): v is DisplayImage => !!v))
 
 const galleryImages = computed<GalleryImageView[]>(() => normalizedImages.value
-  .map((item, index) => {
+  .map((item, index): GalleryImageView | null => {
     const srcDesktop = item.urlDefault || item.urlSmall || ''
     const srcMobile = item.urlSmall || item.urlDefault || ''
     if (!srcDesktop && !srcMobile) return null
@@ -135,7 +135,7 @@ const galleryImages = computed<GalleryImageView[]>(() => normalizedImages.value
       title: item.title || '',
       width: item.width || undefined,
       height: item.height || undefined
-    } satisfies GalleryImageView
+    }
   })
   .filter((item): item is GalleryImageView => Boolean(item)))
 
@@ -405,7 +405,7 @@ const isMobileViewport = computed(() => {
   return viewportWidth.value < MOBILE_BREAKPOINT
 })
 
-const logoBoxStyle = computed<Record<string, string>>(() => {
+const logoBoxStyle = computed((): Record<string, string> => {
   if (!isLogoGallery.value || isFlickrLikeGridLayout.value) return {}
 
   let height = isMobileViewport.value ? LOGO_BOX_HEIGHT_MOBILE : LOGO_BOX_HEIGHT_DESKTOP
@@ -423,7 +423,7 @@ const logoBoxStyle = computed<Record<string, string>>(() => {
   }
 })
 
-const galleryHeightStyle = computed<Record<string, string>>(() => {
+const galleryHeightStyle = computed((): Record<string, string> => {
   if (isLogoGallery.value && !isFlickrLikeGridLayout.value) return {}
   if (isGridLayout.value) return {}
   if (isChunkedCarouselLayout.value) return {}
