@@ -29,8 +29,8 @@ interface ThemeGalleryBlock {
 }
 
 interface T3CeRcgGallery extends T3CeBaseProps {
-  header?: string | null
-  subheader?: string | null
+  header?: string
+  subheader?: string
   images?: MediaRef[] | string | null
   gallery?: MediaRef[] | string | null
   media?: MediaRef[] | string | null
@@ -121,7 +121,7 @@ const normalizedImages = computed<DisplayImage[]>(() => parsedImages.value
   .filter((v): v is DisplayImage => !!v))
 
 const galleryImages = computed<GalleryImageView[]>(() => normalizedImages.value
-  .map((item, index) => {
+  .map((item, index): GalleryImageView | null => {
     const srcDesktop = item.urlDefault || item.urlSmall || ''
     const srcMobile = item.urlSmall || item.urlDefault || ''
     if (!srcDesktop && !srcMobile) return null
@@ -135,7 +135,7 @@ const galleryImages = computed<GalleryImageView[]>(() => normalizedImages.value
       title: item.title || '',
       width: item.width || undefined,
       height: item.height || undefined
-    } satisfies GalleryImageView
+    }
   })
   .filter((item): item is GalleryImageView => Boolean(item)))
 
@@ -182,17 +182,32 @@ const isFlickrLikeGridLayout = computed(() => galleryLayout.value === 1 && isLog
 const isLogoGridLayout = computed(() => galleryLayout.value === 1 && isSpaciousGallery.value)
 const isLogoStandardCarouselLayout = computed(() => galleryLayout.value === 0 && isLogoGallery.value)
 const isChunkedCarouselLayout = computed(() => galleryLayout.value === 0 && isSpaciousGallery.value)
-const galleryImageSizes = computed(() => (
-  isGridLayout.value || isChunkedCarouselLayout.value
-    ? '(max-width: 767px) 100vw, 360px'
-    : '(max-width: 767px) 100vw, 720px'
-))
+// Fewer images than the default column count → fewer, larger columns instead of empty slots.
+const imageCount = computed(() => galleryImages.value.length)
+const maxDesktopColumns = computed(() => (isLogoGridLayout.value || isChunkedCarouselLayout.value ? 4 : 3))
+const desktopColumns = computed(() => Math.max(1, Math.min(maxDesktopColumns.value, imageCount.value)))
+const galleryImageSizes = computed(() => {
+  if (!isGridLayout.value && !isChunkedCarouselLayout.value) return '(max-width: 767px) 100vw, 720px'
+  const desktopWidth = Math.max(360, Math.ceil(1280 / desktopColumns.value))
+  return `(max-width: 767px) 100vw, ${desktopWidth}px`
+})
+const masonryColumnsClass = computed(() => {
+  if (desktopColumns.value <= 1) return 'columns-1'
+  if (desktopColumns.value === 2) return 'columns-1 md:columns-2'
+  return 'columns-1 md:columns-2 lg:columns-3'
+})
+const logoGridColumnsClass = computed(() => {
+  if (desktopColumns.value <= 1) return 'grid-cols-1'
+  if (desktopColumns.value === 2) return 'grid-cols-1 md:grid-cols-2'
+  if (desktopColumns.value === 3) return 'grid-cols-1 md:grid-cols-3'
+  return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+})
 const gridWrapperClass = computed(() => (
   isFlickrLikeGridLayout.value
-    ? 'w-full rounded-md bg-neutral-100 p-4 columns-1 md:columns-2 lg:columns-3'
+    ? `w-full rounded-md bg-neutral-100 p-4 ${masonryColumnsClass.value}`
     : isLogoGridLayout.value
-    ? 'grid w-full grid-cols-1 gap-6 px-2 py-4 md:grid-cols-2 lg:grid-cols-4 lg:gap-8'
-    : 'w-full columns-1 gap-4 px-2 py-4 md:columns-2 lg:columns-3'
+    ? `grid w-full gap-6 px-2 py-4 lg:gap-8 ${logoGridColumnsClass.value}`
+    : `w-full gap-4 px-2 py-4 ${masonryColumnsClass.value}`
 ))
 const gridItemClass = computed(() => (
   isFlickrLikeGridLayout.value
@@ -273,10 +288,15 @@ const canScrollChunkPrev = ref(false)
 const canScrollChunkNext = ref(false)
 const cardsPerView = computed(() => {
   if (!isChunkedCarouselLayout.value) return 1
-  if (viewportWidth.value >= DESKTOP_BREAKPOINT) return 4
-  if (viewportWidth.value >= MOBILE_BREAKPOINT) return 2
-  return 1
+  let perView = 1
+  if (viewportWidth.value >= DESKTOP_BREAKPOINT) perView = 4
+  else if (viewportWidth.value >= MOBILE_BREAKPOINT) perView = 2
+  return Math.max(1, Math.min(perView, imageCount.value))
 })
+const chunkGridStyle = computed(() => ({
+  gridTemplateColumns: `repeat(${cardsPerView.value}, minmax(0, 1fr))`
+}))
+const hasMultipleChunks = computed(() => galleryImageChunks.value.length > 1)
 const galleryImageChunks = computed<GalleryImageView[][]>(() => {
   if (!isChunkedCarouselLayout.value) return []
   const size = cardsPerView.value
@@ -385,7 +405,7 @@ const isMobileViewport = computed(() => {
   return viewportWidth.value < MOBILE_BREAKPOINT
 })
 
-const logoBoxStyle = computed<Record<string, string>>(() => {
+const logoBoxStyle = computed((): Record<string, string> => {
   if (!isLogoGallery.value || isFlickrLikeGridLayout.value) return {}
 
   let height = isMobileViewport.value ? LOGO_BOX_HEIGHT_MOBILE : LOGO_BOX_HEIGHT_DESKTOP
@@ -403,7 +423,7 @@ const logoBoxStyle = computed<Record<string, string>>(() => {
   }
 })
 
-const galleryHeightStyle = computed<Record<string, string>>(() => {
+const galleryHeightStyle = computed((): Record<string, string> => {
   if (isLogoGallery.value && !isFlickrLikeGridLayout.value) return {}
   if (isGridLayout.value) return {}
   if (isChunkedCarouselLayout.value) return {}
@@ -578,6 +598,7 @@ const sectionClasses = computed(() => {
 
       <div v-else-if="isChunkedCarouselLayout" class="relative w-full px-2 py-4 md:px-0">
         <button
+          v-if="hasMultipleChunks"
           type="button"
           class="absolute top-1/2 left-2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-[0_10px_28px_rgba(0,96,255,0.2)] transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40 md:left-0 md:-translate-x-1/2"
           aria-label="Vorherige Bilder"
@@ -596,6 +617,7 @@ const sectionClasses = computed(() => {
         </button>
 
         <button
+          v-if="hasMultipleChunks"
           type="button"
           class="absolute top-1/2 right-2 z-20 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-primary/20 bg-white text-primary shadow-[0_10px_28px_rgba(0,96,255,0.2)] transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40 md:right-0 md:translate-x-1/2"
           aria-label="Nächste Bilder"
@@ -627,7 +649,7 @@ const sectionClasses = computed(() => {
           @touchstart="disableAutoplay"
           @select="onChunkSelect"
         >
-          <ul class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+          <ul class="grid gap-6 lg:gap-8" :style="chunkGridStyle">
             <li
               v-for="image in chunk"
               :key="image.id"
