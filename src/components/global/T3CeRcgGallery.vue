@@ -3,6 +3,7 @@ import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
 import { computed, nextTick, onMounted, onUnmounted, ref, type Ref, useAttrs, watch } from 'vue'
 import CarouselControls from '~/components/basic/CarouselControls.vue'
 import { extractArrayFromUnknown, findImageLikeDeep, parseMaybeJson, toDisplayImage, type DisplayImage } from '~/utils/media-image'
+import { vLightbox } from '~/directives/lightbox';
 
 defineOptions({ inheritAttrs: false })
 
@@ -549,6 +550,7 @@ const sectionClasses = computed(() => {
               decoding="async"
               fetchpriority="low"
               draggable="false"
+              v-lightbox="{ src: image.srcDesktop || image.srcMobile, alt: image.alt, width: image.width, height: image.height }"
             >
           </picture>
         </div>
@@ -635,6 +637,7 @@ const sectionClasses = computed(() => {
                   decoding="async"
                   fetchpriority="low"
                   draggable="false"
+                  v-lightbox="{ src: image.srcDesktop || image.srcMobile, alt: image.alt, width: image.width, height: image.height }"
                 >
               </picture>
             </li>
@@ -683,6 +686,7 @@ const sectionClasses = computed(() => {
                 decoding="async"
                 fetchpriority="low"
                 draggable="false"
+                v-lightbox="{ src: item.srcDesktop || item.srcMobile, alt: item.alt, width: item.width, height: item.height }"
               >
             </picture>
           </div>
