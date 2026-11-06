@@ -13,6 +13,8 @@ export type DisplayImage = {
   height?: number | null;
   /** Display size chosen by the editor (sys_file_reference.image_size); null when not set. */
   imageSize?: DisplayImageSize | null;
+  /** Link target set by the editor on the file reference (sys_file_reference.link); null when not set. */
+  link?: string | null;
 };
 
 type CropVariantLike = {
@@ -70,6 +72,7 @@ type MediaObjectLike = {
   cropVariants?: CropVariantsLike | null;
   responsive?: ResponsiveLike | null;
   imageSize?: string | null;
+  link?: unknown;
   properties?: {
     title?: string | null;
     alternative?: string | null;
@@ -77,6 +80,7 @@ type MediaObjectLike = {
     originalUrl?: string | null;
     width?: number | string | null;
     height?: number | string | null;
+    link?: unknown;
   } | null;
   content?: unknown;
 };
@@ -93,6 +97,18 @@ const toTextOrNull = (value: unknown): string | null => {
 
 const toDisplayImageSizeOrNull = (value: unknown): DisplayImageSize | null => {
   return value === 'small' || value === 'medium' || value === 'large' ? value : null;
+};
+
+/**
+ * The headless backend resolves the file reference link to a plain URL. When a link result
+ * object is delivered instead (EXT:headless "linkResult"), use its URL.
+ */
+const toLinkOrNull = (value: unknown): string | null => {
+  if (isRecord(value)) {
+    return toTextOrNull(value.url) || toTextOrNull(value.href) || null;
+  }
+
+  return toTextOrNull(value);
 };
 
 const variantUrl = (variant: CropVariantLike | null | undefined): string | null => {
@@ -218,7 +234,8 @@ const normalizeObjectToDisplayImage = (media: MediaObjectLike): DisplayImage | n
     description: description || null,
     width,
     height,
-    imageSize: toDisplayImageSizeOrNull(media.imageSize)
+    imageSize: toDisplayImageSizeOrNull(media.imageSize),
+    link: toLinkOrNull(media.link) || toLinkOrNull(media.properties?.link)
   };
 };
 
