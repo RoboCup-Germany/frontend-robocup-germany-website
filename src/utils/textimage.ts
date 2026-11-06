@@ -10,6 +10,8 @@ export type TextImageView = {
   alt: string;
   title: string;
   creator: string;
+  /** Link target of the image; null when the image is not linked. */
+  link: string | null;
   width?: number;
   height?: number;
   /** Grid cell in the "multi" layout (6 columns from sm on, 2 columns below). */
@@ -82,6 +84,7 @@ export const toTextImageViews = (images: DisplayImage[]): TextImageView[] => {
         alt: image.alt ?? '',
         title: image.title ?? '',
         creator: (image.creator ?? '').trim(),
+        link: image.link || null,
         width: toPositiveOrUndefined(image.width),
         height: toPositiveOrUndefined(image.height),
         ...IMAGE_SIZE_LAYOUTS[image.imageSize ?? 'large']
