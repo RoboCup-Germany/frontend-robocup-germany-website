@@ -29,8 +29,8 @@ interface ThemeGalleryBlock {
 }
 
 interface T3CeRcgGallery extends T3CeBaseProps {
-  header?: string | null
-  subheader?: string | null
+  header?: string
+  subheader?: string
   images?: MediaRef[] | string | null
   gallery?: MediaRef[] | string | null
   media?: MediaRef[] | string | null
