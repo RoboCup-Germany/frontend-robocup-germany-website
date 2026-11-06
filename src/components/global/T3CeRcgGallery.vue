@@ -2,6 +2,7 @@
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3'
 import { computed, nextTick, onMounted, onUnmounted, ref, type Ref, useAttrs, watch } from 'vue'
 import CarouselControls from '~/components/basic/CarouselControls.vue'
+import ImageLinkOverlay from '~/components/basic/ImageLinkOverlay.vue'
 import SectionHeader from '~/components/basic/SectionHeader.vue'
 import { extractArrayFromUnknown, findImageLikeDeep, parseMaybeJson, toDisplayImage, type DisplayImage } from '~/utils/media-image'
 
@@ -48,6 +49,7 @@ interface GalleryImageView {
   srcsetDesktop: string
   alt: string
   title: string
+  link: string | null
   width?: number
   height?: number
 }
@@ -133,6 +135,7 @@ const galleryImages = computed<GalleryImageView[]>(() => normalizedImages.value
       srcsetDesktop: item.srcsetDefault || '',
       alt: item.alt || '',
       title: item.title || '',
+      link: item.link || null,
       width: item.width || undefined,
       height: item.height || undefined
     }
@@ -211,10 +214,10 @@ const gridWrapperClass = computed(() => (
 ))
 const gridItemClass = computed(() => (
   isFlickrLikeGridLayout.value
-    ? 'group mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white'
+    ? 'group relative mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white'
     : isLogoGridLayout.value
     ? 'relative aspect-[4/3] w-full overflow-hidden rounded bg-white'
-    : 'mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white'
+    : 'relative mb-4 w-full break-inside-avoid overflow-hidden rounded bg-white'
 ))
 const gridPictureClass = computed(() => (
   isLogoGridLayout.value ? 'absolute inset-0 block' : 'block h-full w-full'
@@ -593,6 +596,7 @@ const sectionClasses = computed(() => {
               draggable="false"
             >
           </picture>
+          <ImageLinkOverlay :href="image.link" :label="image.alt || image.title" />
         </div>
       </div>
 
@@ -681,6 +685,7 @@ const sectionClasses = computed(() => {
                   draggable="false"
                 >
               </picture>
+              <ImageLinkOverlay :href="image.link" :label="image.alt || image.title" />
             </li>
           </ul>
         </UCarousel>
@@ -700,7 +705,7 @@ const sectionClasses = computed(() => {
           @touchstart="disableAutoplay"
           @select="onSelect"
         >
-          <div class="rcg-slide-media flex w-full items-center justify-center overflow-hidden bg-white" :style="[galleryHeightStyle, logoBoxStyle]">
+          <div class="rcg-slide-media relative flex w-full items-center justify-center overflow-hidden bg-white" :style="[galleryHeightStyle, logoBoxStyle]">
             <picture :class="isLogoGallery ? 'block h-full w-full' : 'block h-full w-full md:w-auto'">
               <source
                 v-if="item.srcsetMobile"
@@ -729,6 +734,7 @@ const sectionClasses = computed(() => {
                 draggable="false"
               >
             </picture>
+            <ImageLinkOverlay :href="item.link" :label="item.alt || item.title" />
           </div>
         </UCarousel>
 

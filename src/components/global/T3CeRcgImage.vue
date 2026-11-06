@@ -2,6 +2,7 @@
 import { NuxtImg } from '#components';
 import type {T3CeBaseProps} from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
+import ImageLinkOverlay from '~/components/basic/ImageLinkOverlay.vue';
 import { pickFirstDisplayImage } from '~/utils/media-image';
 
 defineOptions({
@@ -50,6 +51,7 @@ const imageHeight = computed<number | undefined>(() => {
   const value = displayImage.value?.height;
   return value && value > 0 ? value : undefined;
 });
+const imageLink = computed(() => displayImage.value?.link || null);
 const imageCreator = computed(() => {
   const value = displayImage.value?.creator ?? '';
   return value.trim();
@@ -109,6 +111,7 @@ const imageCreator = computed(() => {
           <span class="text-xs leading-none">©</span>
           <span>{{ imageCreator }}</span>
         </div>
+        <ImageLinkOverlay :href="imageLink" :label="imageAlt || imageTitle" />
       </div>
       <p v-if="imageDescription" class="text-sm leading-relaxed text-gray-700 italic">
         {{ imageDescription }}
