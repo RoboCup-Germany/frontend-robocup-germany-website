@@ -41,7 +41,8 @@ interface MediaItem {
 interface Props {
   title?: string;
   subtitle?: string;
-  media?: unknown;
+  // `{}` statt `unknown`, damit withDefaults den null-Default akzeptiert (Laufzeit-Prop bleibt `type: null`).
+  media?: NonNullable<unknown> | null;
   mediaButtonText?: string;
   mediaButtonLink?: LinkRef | null;
 }
