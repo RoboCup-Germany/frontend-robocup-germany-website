@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { NuxtPicture } from '#components'
 type NavItem = {
+  uid?: number
+  targetUid?: number | null
   title?: string
   link?: string
   target?: string
@@ -63,6 +65,17 @@ const firstNonEmptyNavigation = (...items: Array<unknown>): NavItem[] => {
   return []
 }
 
+// Page uids from the site root to the current page (current page last), delivered by TYPO3 in the page response.
+// T3Page does not declare the project-specific fields, so read them from a plain record.
+const pageRecord = computed(() => pageData.value as Record<string, unknown> | null | undefined)
+const rootline = computed<number[]>(() => {
+  const value = pageRecord.value?.rootline
+  return Array.isArray(value)
+    ? value.map(Number).filter(uid => Number.isInteger(uid) && uid > 0)
+    : []
+})
+const hasRootline = computed(() => isMounted.value && rootline.value.length > 0)
+
 const navItems = computed<NavItem[]>(
   () => {
     // pageData only exists on the client before mount, so render from the SSR site root data until then.
@@ -73,6 +86,16 @@ const navItems = computed<NavItem[]>(
       )
     }
 
+    // With the rootline the menu state is computed here, so the site-wide navigation can be used on every page.
+    if (hasRootline.value) {
+      return firstNonEmptyNavigation(
+        siteRootData.value?.headerNavigation,
+        pageRecord.value?.headerNavigation,
+        initialData.value?.headerNavigation
+      )
+    }
+
+    // Backends without rootline: only the page's own navigation carries the right current/active state.
     return firstNonEmptyNavigation(
       pageData.value?.headerNavigation,
       siteRootData.value?.headerNavigation,
@@ -81,8 +104,18 @@ const navItems = computed<NavItem[]>(
   }
 )
 
+// Same rules as TYPO3 (AbstractMenuContentObject::isCurrent()): the item or its shortcut target is the current page.
+const isCurrentItem = (item: NavItem) => {
+  const ids = [item.uid, item.targetUid].filter((uid): uid is number => typeof uid === 'number' && uid > 0)
+  if (hasRootline.value && ids.length) {
+    return ids.includes(rootline.value[rootline.value.length - 1] as number)
+  }
+
+  return item.current === 1
+}
+
 const currentDesktopIndex = computed(() => {
-  return navItems.value.findIndex(item => item.current === 1)
+  return navItems.value.findIndex(item => isCurrentItem(item))
 })
 
 const desktopHighlightedIndex = computed(() => {
@@ -219,7 +252,7 @@ watch(
                   <span class="relative z-10">{{ item.title }}</span>
                   <span
                     class="pointer-events-none absolute bottom-0 left-0 h-[3px] w-full origin-left scale-x-0 bg-primary transition-transform duration-300"
-                    :class="item.current === 1 && openDesktopIndex === null ? 'scale-x-100' : 'group-hover:scale-x-100'"
+                    :class="isCurrentItem(item) && openDesktopIndex === null ? 'scale-x-100' : 'group-hover:scale-x-100'"
                     aria-hidden="true"
                   />
                 </NuxtLink>

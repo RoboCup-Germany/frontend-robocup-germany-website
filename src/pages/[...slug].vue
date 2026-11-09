@@ -67,6 +67,8 @@ const { headData, pageData, backendLayout } = await useT3Page({
   fetchOnInit: true
 })
 const { initialData } = useT3Api()
+// Navigation and global config of the site language (site layout endpoint); pages may no longer contain them.
+const { data: siteRootData } = useSiteRootData()
 const { normalize } = useCmsLink();
 
 const activeSite = useState<ResolvedSiteConfig | null>('active-site', () => null);
@@ -277,7 +279,7 @@ watchEffect(() => {
 });
 
 watchEffect(() => {
-  const globalConfig = pageData.value?.globalConfig ?? initialData.value?.globalConfig;
+  const globalConfig = pageData.value?.globalConfig ?? siteRootData.value?.globalConfig ?? initialData.value?.globalConfig;
   if (globalConfig) {
     siteGlobalConfig.value = globalConfig as GlobalConfig;
     siteHeaderLogo.value = resolvePayloadLogo((globalConfig as GlobalConfig).siteConfig?.headerLogo);
@@ -493,6 +495,11 @@ const announcementBars = computed<AnnouncementBar[]>(() => {
 
   if (Array.isArray(sourceMetaGlobalConfig?.announcementBars)) {
     return sourceMetaGlobalConfig.announcementBars as AnnouncementBar[];
+  }
+
+  const siteLayoutGlobalConfig = asRecord(siteRootData.value?.globalConfig);
+  if (Array.isArray(siteLayoutGlobalConfig?.announcementBars)) {
+    return siteLayoutGlobalConfig.announcementBars as AnnouncementBar[];
   }
 
   return [];
