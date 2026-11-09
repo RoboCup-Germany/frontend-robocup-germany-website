@@ -164,11 +164,122 @@ const megaMenuPreview = computed(() => {
 })
 
 const hasChildren = (item?: NavItem) => !!item?.children?.length
+
+// Entries without own children are stacked in a column of at most PAGES_PER_COLUMN entries; further ones continue
+// in the next column. Consecutive entries are grouped so the CMS order is kept. Entries with children stay categories.
+type SubmenuGroup =
+  | { kind: 'category', key: string, item: NavItem }
+  | { kind: 'pages', key: string, items: NavItem[] }
+
+const PAGES_PER_COLUMN = 3
+const submenuGroups = computed<SubmenuGroup[]>(() => {
+  const groups: SubmenuGroup[] = []
+  for (const [index, child] of (desktopOpenItem.value?.children ?? []).entries()) {
+    if (hasChildren(child)) {
+      groups.push({ kind: 'category', key: `category-${index}-${child.title}`, item: child })
+      continue
+    }
+
+    const last = groups[groups.length - 1]
+    if (last?.kind === 'pages' && last.items.length < PAGES_PER_COLUMN) {
+      last.items.push(child)
+    } else {
+      groups.push({ kind: 'pages', key: `pages-${index}-${child.title}`, items: [child] })
+    }
+  }
+
+  return groups
+})
+
 const { normalize, isExternal } = useCmsLink()
 
-const closeDesktopMenu = () => {
-  openDesktopIndex.value = null
+// Hover intent: short delays avoid flicker when the pointer only passes over the navigation.
+const HOVER_OPEN_DELAY = 120
+const HOVER_CLOSE_DELAY = 200
+let hoverTimer: ReturnType<typeof setTimeout> | null = null
+// Set when a menu was opened by hovering, so the click that usually follows does not close it again.
+const openedByHover = ref(false)
+
+const clearHoverTimer = () => {
+  if (hoverTimer) {
+    clearTimeout(hoverTimer)
+    hoverTimer = null
+  }
 }
+
+const closeDesktopMenu = () => {
+  clearHoverTimer()
+  openDesktopIndex.value = null
+  openedByHover.value = false
+}
+
+const onNavItemPointerEnter = (event: PointerEvent, index: number) => {
+  // Touch and pen keep the click behaviour; hover only applies to a real mouse.
+  if (event.pointerType !== 'mouse') return
+  clearHoverTimer()
+  const item = navItems.value[index]
+  const delay = openDesktopIndex.value === null ? HOVER_OPEN_DELAY : 0
+  hoverTimer = setTimeout(() => {
+    hoverTimer = null
+    if (hasChildren(item)) {
+      if (openDesktopIndex.value !== index) openedByHover.value = true
+      openDesktopIndex.value = index
+    } else {
+      openDesktopIndex.value = null
+      openedByHover.value = false
+    }
+  }, delay)
+}
+
+const onHeaderPointerEnter = (event: PointerEvent) => {
+  if (event.pointerType !== 'mouse') return
+  clearHoverTimer()
+}
+
+const onHeaderPointerLeave = (event: PointerEvent) => {
+  if (event.pointerType !== 'mouse') return
+  clearHoverTimer()
+  hoverTimer = setTimeout(closeDesktopMenu, HOVER_CLOSE_DELAY)
+}
+
+const onNavItemClick = (index: number) => {
+  clearHoverTimer()
+  if (openDesktopIndex.value === index && openedByHover.value) {
+    openedByHover.value = false
+    return
+  }
+  openedByHover.value = false
+  openDesktopIndex.value = openDesktopIndex.value === index ? null : index
+}
+
+// The arrow points down while a submenu is open and only turns up while it fades out on closing.
+const ARROW_CLOSE_DURATION = 450
+const closingArrowIndex = ref<number | null>(null)
+let closingArrowTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(openDesktopIndex, (_current, previous) => {
+  if (closingArrowTimer) clearTimeout(closingArrowTimer)
+  closingArrowIndex.value = previous ?? null
+  closingArrowTimer = setTimeout(() => {
+    closingArrowIndex.value = null
+    closingArrowTimer = null
+  }, ARROW_CLOSE_DURATION)
+})
+
+const arrowClass = (index: number) => {
+  if (openDesktopIndex.value === index) {
+    return 'translate-y-0.5 rotate-0 opacity-100'
+  }
+  if (closingArrowIndex.value === index) {
+    return 'translate-y-0.5 rotate-180 opacity-0 [transition:rotate_300ms_ease-in-out,opacity_250ms_ease-in_200ms]'
+  }
+  return '-translate-y-1 rotate-0 opacity-0 group-hover:translate-y-0.5 group-hover:opacity-100'
+}
+
+onBeforeUnmount(() => {
+  clearHoverTimer()
+  if (closingArrowTimer) clearTimeout(closingArrowTimer)
+})
 
 watch(
   () => route.fullPath,
@@ -180,7 +291,7 @@ watch(
 </script>
 
 <template>
-  <header class="relative z-[100] overflow-visible border-b-2 border-primary bg-white" @keydown.esc="closeDesktopMenu" @mouseleave="closeDesktopMenu">
+  <header class="relative z-[100] overflow-visible border-b-2 border-primary bg-white" @keydown.esc="closeDesktopMenu" @pointerenter="onHeaderPointerEnter" @pointerleave="onHeaderPointerLeave">
     <UContainer>
       <div class="flex items-center justify-between gap-6 py-4 lg:items-end lg:py-5">
         <NuxtLink
@@ -209,6 +320,7 @@ watch(
                 v-for="(item, index) in navItems"
                 :key="`${item.title}-${item.link}`"
                 class="relative shrink-0"
+                @pointerenter="onNavItemPointerEnter($event, index)"
               >
                 <template v-if="hasChildren(item)">
                   <button
@@ -216,7 +328,7 @@ watch(
                     class="group relative inline-flex items-center whitespace-nowrap px-2 py-3 text-sm font-semibold text-black no-underline transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     :aria-expanded="openDesktopIndex === index"
                     :aria-controls="`desktop-submenu-${index}`"
-                    @click="openDesktopIndex = openDesktopIndex === index ? null : index"
+                    @click="onNavItemClick(index)"
                   >
                     <span class="relative z-10">{{ item.title }}</span>
                     <span
@@ -226,8 +338,8 @@ watch(
                     />
                     <svg
                       viewBox="0 0 1080 1080"
-                      class="pointer-events-none absolute left-1/2 top-full z-10 h-4 w-4 -translate-x-1/2 text-primary transition-all duration-200"
-                      :class="openDesktopIndex === index ? 'translate-y-0 opacity-0' : '-translate-y-1 opacity-0 group-hover:translate-y-0.5 group-hover:opacity-100'"
+                      class="pointer-events-none absolute left-1/2 top-full z-10 h-4 w-4 -translate-x-1/2 text-primary transition-all duration-300 ease-out"
+                      :class="arrowClass(index)"
                       fill="none"
                       aria-hidden="true"
                     >
@@ -287,82 +399,110 @@ watch(
     </UContainer>
 
     <div class="absolute left-0 top-full right-0 z-50 hidden h-0 lg:block">
-      <div
-        v-if="desktopOpenItem && hasChildren(desktopOpenItem)"
-        :id="`desktop-submenu-${openDesktopIndex}`"
-        class="pointer-events-auto border-t border-black/10 bg-white/90 shadow-[0_18px_36px_-20px_rgba(0,0,0,0.45)] backdrop-blur-sm"
+      <!-- Only opening and closing animate; switching between items keeps the panel and swaps its content. -->
+      <Transition
+        enter-active-class="transition-[opacity,translate] duration-250 ease-out motion-reduce:transition-none"
+        enter-from-class="-translate-y-2 opacity-0"
+        enter-to-class="translate-y-0 opacity-100"
+        leave-active-class="transition-opacity duration-150 ease-in motion-reduce:transition-none"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
       >
-        <UContainer class="py-8 lg:grid lg:grid-cols-12 lg:gap-8">
-          <div class="border-r-4 border-primary pr-6 lg:col-span-4">
-            <NuxtPicture
-              v-if="megaMenuPreview"
-              provider="ipx"
-              :src="megaMenuPreview.src"
-              :alt="megaMenuPreview.alt"
-              class="block h-48 w-full"
-              loading="lazy"
-              decoding="async"
-              fetchpriority="low"
-              sizes="xs:100vw sm:100vw md:100vw lg:33vw"
-              format="avif,webp"
-              legacy-format="jpeg"
-              :quality="80"
-              :img-attrs="{ class: 'h-48 w-full rounded-sm object-cover shadow-sm' }"
-            />
-            <p v-if="megaMenuPreview?.subtitle" class="mt-4 text-base italic tracking-wide text-black font-semibold">
-              {{ megaMenuPreview.subtitle }}
-            </p>
-            <p v-else class="text-lg font-semibold leading-tight text-black">
-              {{ desktopOpenItem.title }}
-            </p>
-            <p v-if="!megaMenuPreview" class="mt-3 text-sm text-black/80">
-              Wähle einen Bereich aus der Navigation.
-            </p>
-          </div>
+        <div
+          v-if="desktopOpenItem && hasChildren(desktopOpenItem)"
+          :id="`desktop-submenu-${openDesktopIndex}`"
+          class="pointer-events-auto border-t border-black/10 bg-white/90 shadow-[0_18px_36px_-20px_rgba(0,0,0,0.45)] backdrop-blur-sm"
+        >
+          <UContainer class="py-8 lg:grid lg:grid-cols-12 lg:gap-8">
+            <div class="border-r-4 border-primary pr-6 lg:col-span-4">
+              <NuxtPicture
+                v-if="megaMenuPreview"
+                provider="ipx"
+                :src="megaMenuPreview.src"
+                :alt="megaMenuPreview.alt"
+                class="block h-48 w-full"
+                loading="lazy"
+                decoding="async"
+                fetchpriority="low"
+                sizes="xs:100vw sm:100vw md:100vw lg:33vw"
+                format="avif,webp"
+                legacy-format="jpeg"
+                :quality="80"
+                :img-attrs="{ class: 'h-48 w-full rounded-sm object-cover shadow-sm' }"
+              />
+              <p v-if="megaMenuPreview?.subtitle" class="mt-4 text-base italic tracking-wide text-black font-semibold">
+                {{ megaMenuPreview.subtitle }}
+              </p>
+              <p v-else class="text-lg font-semibold leading-tight text-black">
+                {{ desktopOpenItem.title }}
+              </p>
+              <p v-if="!megaMenuPreview" class="mt-3 text-sm text-black/80">
+                Wähle einen Bereich aus der Navigation.
+              </p>
+            </div>
 
-          <div class="mt-8 grid gap-8 md:grid-cols-2 lg:col-span-8 lg:mt-0 xl:grid-cols-3">
-            <div
-              v-for="child in desktopOpenItem.children ?? []"
-              :key="`${desktopOpenItem.title}-${child.title}`"
-              class="min-w-0"
-            >
-              <NuxtLink
-                v-if="child.link"
-                :to="normalize(child.link)"
-                :target="child.target || undefined"
-                :external="isExternal(child.link)"
-                class="text-base font-semibold text-primary no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                @click="closeDesktopMenu"
+            <div class="mt-8 grid gap-8 md:grid-cols-2 lg:col-span-8 lg:mt-0 xl:grid-cols-3">
+              <div
+                v-for="group in submenuGroups"
+                :key="`${desktopOpenItem.title}-${group.key}`"
+                class="min-w-0"
               >
-                {{ child.title }}
-              </NuxtLink>
-              <p v-else class="text-base font-semibold text-primary">{{ child.title }}</p>
+                <ul v-if="group.kind === 'pages'" class="grid list-none gap-4 p-0">
+                  <li
+                    v-for="page in group.items"
+                    :key="`${group.key}-${page.title}`"
+                  >
+                    <NuxtLink
+                      v-if="page.link"
+                      :to="normalize(page.link)"
+                      :target="page.target || undefined"
+                      :external="isExternal(page.link)"
+                      class="text-base font-semibold text-primary no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      @click="closeDesktopMenu"
+                    >
+                      {{ page.title }}
+                    </NuxtLink>
+                    <span v-else class="text-base font-semibold text-primary">{{ page.title }}</span>
+                  </li>
+                </ul>
 
-              <ul
-                v-if="child.children?.length"
-                class="mt-3 grid list-none gap-2 p-0"
-              >
-                <li
-                  v-for="grandChild in child.children"
-                  :key="`${child.title}-${grandChild.title}`"
-                >
+                <template v-else>
                   <NuxtLink
-                    v-if="grandChild.link"
-                    :to="normalize(grandChild.link)"
-                    :target="grandChild.target || undefined"
-                    :external="isExternal(grandChild.link)"
-                    class="text-sm text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    v-if="group.item.link"
+                    :to="normalize(group.item.link)"
+                    :target="group.item.target || undefined"
+                    :external="isExternal(group.item.link)"
+                    class="text-base font-semibold text-primary no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                     @click="closeDesktopMenu"
                   >
-                    {{ grandChild.title }}
+                    {{ group.item.title }}
                   </NuxtLink>
-                  <span v-else class="text-sm text-black">{{ grandChild.title }}</span>
-                </li>
-              </ul>
+                  <p v-else class="text-base font-semibold text-primary">{{ group.item.title }}</p>
+
+                  <ul class="mt-3 grid list-none gap-2 p-0">
+                    <li
+                      v-for="grandChild in group.item.children ?? []"
+                      :key="`${group.key}-${grandChild.title}`"
+                    >
+                      <NuxtLink
+                        v-if="grandChild.link"
+                        :to="normalize(grandChild.link)"
+                        :target="grandChild.target || undefined"
+                        :external="isExternal(grandChild.link)"
+                        class="text-sm text-black no-underline hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        @click="closeDesktopMenu"
+                      >
+                        {{ grandChild.title }}
+                      </NuxtLink>
+                      <span v-else class="text-sm text-black">{{ grandChild.title }}</span>
+                    </li>
+                  </ul>
+                </template>
+              </div>
             </div>
-          </div>
-        </UContainer>
-      </div>
+          </UContainer>
+        </div>
+      </Transition>
     </div>
 
     <Transition
