@@ -22,6 +22,8 @@ const requestUrl = useRequestURL()
 const route = useRoute()
 const safePath = `${requestUrl.pathname}${requestUrl.search || ''}` || '/'
 const { initialData, pageData } = useT3Api(safePath)
+// Navigation and global config of the site language; the error payload may no longer contain them.
+const { data: siteRootData } = useSiteRootData()
 const nuxtError = useError()
 
 const extractT3PageUid = (value?: string): number | null => {
@@ -50,7 +52,7 @@ const parseUid = (value: unknown): number | null => {
 }
 
 const configuredNotFoundUid = computed(() => {
-  const globalConfig = initialData.value?.globalConfig as InitialDataGlobalConfig | undefined
+  const globalConfig = (initialData.value?.globalConfig ?? siteRootData.value?.globalConfig) as InitialDataGlobalConfig | undefined
   const notFoundPage = globalConfig?.errorHandling?.notFoundPage
   if (!notFoundPage) return null
 
