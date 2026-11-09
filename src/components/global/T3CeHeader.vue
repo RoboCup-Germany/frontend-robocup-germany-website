@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
+import type { T3CeBaseProps, T3Link as T3LinkData } from '@t3headless/nuxt-typo3';
 
 defineOptions({
   inheritAttrs: false
 });
 
-interface T3CeHeaderProps extends T3CeBaseProps {
+interface T3CeHeaderProps extends Omit<T3CeBaseProps, 'headerLink'> {
   header?: string;
   headerLayout?: number;
   headerPosition?: string;
@@ -28,7 +28,7 @@ const props = withDefaults(defineProps<T3CeHeaderProps>(), {
     class="t3-ce-header"
   >
     <h2 :class="headerPosition">
-      <T3Link v-if="headerLink" :link="headerLink">
+      <T3Link v-if="headerLink" :link="(headerLink as T3LinkData | string)">
         {{ header }}
       </T3Link>
       <template v-else>

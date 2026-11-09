@@ -1,4 +1,4 @@
-import { getQuery, parseCookies, proxyRequest, removeResponseHeader, type H3Event } from 'h3'
+import { getQuery, parseCookies, proxyRequest, removeResponseHeader, type H3Event, type RequestHeaders } from 'h3'
 
 // TYPO3 workspace preview keyword. The TYPO3 workspace module embeds draft pages with `?ADMCMD_prev=<keyword>`.
 export const WORKSPACE_PREVIEW_PARAM = 'ADMCMD_prev'
@@ -11,7 +11,7 @@ export const isWorkspacePreviewRequest = (event: H3Event): boolean => {
 export const proxyWorkspacePreview = (
   event: H3Event,
   target: string,
-  headers: Record<string, string | string[] | undefined>
+  headers: RequestHeaders
 ) => {
   return proxyRequest(event, target, {
     headers,

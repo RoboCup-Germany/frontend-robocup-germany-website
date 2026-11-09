@@ -1,4 +1,4 @@
-import { defineEventHandler, getMethod, getRequestURL, proxyRequest } from 'h3'
+import { defineEventHandler, getMethod, getRequestURL, proxyRequest, type RequestHeaders } from 'h3'
 import { createTypo3ContextHeaders, prefixTypo3Path, resolveRequestSite, stripSitePathPrefix } from '~/server/utils/site-context'
 import { fetchWithWatchedCache } from '~/server/utils/upstream-cache'
 import { isWorkspacePreviewRequest, proxyWorkspacePreview } from '~/server/utils/workspace-preview'
@@ -54,7 +54,7 @@ const toErrorMeta = (error: unknown) => {
 const proxyWithFallbackLog = async (
   event: Parameters<typeof proxyRequest>[0],
   target: string,
-  headers: Record<string, string | string[] | undefined>,
+  headers: RequestHeaders,
   error: unknown
 ) => {
   try {
