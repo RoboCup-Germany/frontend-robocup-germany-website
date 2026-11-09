@@ -5,6 +5,7 @@ import CarouselControls from '~/components/basic/CarouselControls.vue'
 import ImageLinkOverlay from '~/components/basic/ImageLinkOverlay.vue'
 import SectionHeader from '~/components/basic/SectionHeader.vue'
 import { extractArrayFromUnknown, findImageLikeDeep, parseMaybeJson, toDisplayImage, type DisplayImage } from '~/utils/media-image'
+import { vLightbox } from '~/directives/lightbox';
 
 defineOptions({ inheritAttrs: false })
 
@@ -594,6 +595,7 @@ const sectionClasses = computed(() => {
               decoding="async"
               fetchpriority="low"
               draggable="false"
+              v-lightbox="{ src: image.srcDesktop || image.srcMobile, alt: image.alt, width: image.width, height: image.height }"
             >
           </picture>
           <ImageLinkOverlay :href="image.link" :label="image.alt || image.title" />
@@ -683,6 +685,7 @@ const sectionClasses = computed(() => {
                   decoding="async"
                   fetchpriority="low"
                   draggable="false"
+                  v-lightbox="{ src: image.srcDesktop || image.srcMobile, alt: image.alt, width: image.width, height: image.height }"
                 >
               </picture>
               <ImageLinkOverlay :href="image.link" :label="image.alt || image.title" />
@@ -732,6 +735,7 @@ const sectionClasses = computed(() => {
                 decoding="async"
                 fetchpriority="low"
                 draggable="false"
+                v-lightbox="{ src: item.srcDesktop || item.srcMobile, alt: item.alt, width: item.width, height: item.height }"
               >
             </picture>
             <ImageLinkOverlay :href="item.link" :label="item.alt || item.title" />
