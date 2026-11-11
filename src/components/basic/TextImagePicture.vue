@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { NuxtImg } from '#components';
 import { computed } from 'vue';
+import ImageLinkOverlay from '~/components/basic/ImageLinkOverlay.vue';
 import type { TextImageView } from '~/utils/textimage';
 
 const props = withDefaults(defineProps<{
@@ -77,5 +78,6 @@ const imgClass = computed(() => props.fill
       <span class="text-xs leading-none">©</span>
       <span>{{ image.creator }}</span>
     </div>
+    <ImageLinkOverlay :href="image.link" :label="image.alt || image.title" />
   </div>
 </template>
