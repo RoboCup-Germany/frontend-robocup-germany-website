@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { h, nextTick, onBeforeUnmount, onMounted, ref, watch, type ComponentPublicInstance } from 'vue';
 
 type T3ContentElement = {
   id: number | string;
@@ -40,7 +40,7 @@ const isScheduleType = (type?: string) => String(type || '').toLowerCase().inclu
 
 const isVisible = (index: number, type?: string) => !revealEnhanced.value || props.disableReveal || isScheduleType(type) || visibleIndexes.value.has(index);
 
-const setItemRef = (el: Element | null, index: number) => {
+const setItemRef = (el: Element | ComponentPublicInstance | null, index: number) => {
   if (el instanceof HTMLElement) {
     itemRefs.value[index] = el;
     el.dataset.revealIndex = String(index);
@@ -65,7 +65,7 @@ const renderComponent = (element: T3ContentElement, index: number) => {
     },
     id: appearance?.frameClass === 'none' ? `c${id}` : null,
     ...(content ?? {})
-  });
+  } as Record<string, unknown>);
 };
 
 const renderFrame = (element: T3ContentElement, index: number) => {

@@ -92,3 +92,25 @@ declare global
     
     interface FooterItem { label: string; url?: string }
 }
+
+/**
+ * Projekt-eigene Felder, die das TYPO3-Backend zusätzlich zum Standard-Payload
+ * von @t3headless/nuxt-typo3 ausliefert. Die Werte sind bewusst `unknown`:
+ * Die Konsumenten (SiteHeader, SiteFooter, ...) prüfen bzw. casten sie selbst.
+ */
+declare module '@t3headless/nuxt-typo3'
+{
+    interface T3Page
+    {
+        globalConfig?: unknown;
+        headerNavigation?: unknown;
+        footerNavigation?: unknown;
+    }
+
+    interface T3InitialData
+    {
+        globalConfig?: unknown;
+        headerNavigation?: unknown;
+        footerNavigation?: unknown;
+    }
+}

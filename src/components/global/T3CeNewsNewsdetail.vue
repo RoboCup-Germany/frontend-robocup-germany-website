@@ -3,6 +3,9 @@ import { NuxtPicture } from '#components';
 import type { T3CeBaseProps } from '@t3headless/nuxt-typo3';
 import { computed } from 'vue';
 import { toDisplayImage } from '~/utils/media-image';
+import type T3RendererComponent from '~/components/T3Renderer.vue';
+
+type RendererContent = NonNullable<InstanceType<typeof T3RendererComponent>['$props']['content']>;
 
 defineOptions({
   inheritAttrs: false
@@ -122,19 +125,19 @@ const resolvedDetail = computed<NewsDetail | null>(() => {
   return null;
 });
 
-const nestedContentElements = computed(() => {
+const nestedContentElements = computed((): RendererContent => {
   if (Array.isArray(props.contentElements) && props.contentElements.length > 0) {
-    return props.contentElements;
+    return props.contentElements as RendererContent;
   }
 
   if (Array.isArray(props.data?.contentElements)) {
-    return props.data.contentElements;
+    return props.data.contentElements as RendererContent;
   }
 
   return [];
 });
 
-const firstMedia = computed<NewsMediaItem>(() => {
+const firstMedia = computed<NewsMediaItem | null | undefined>(() => {
   const media = resolvedDetail.value?.media;
   return Array.isArray(media) && media.length > 0 ? media[0] : null;
 });

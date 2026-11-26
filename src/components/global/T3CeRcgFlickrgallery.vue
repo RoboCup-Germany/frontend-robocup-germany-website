@@ -19,7 +19,7 @@ interface FlickrGalleryContent {
   layout?: number | string | null
 }
 
-interface T3CeRcgFlickrgallery extends T3CeBaseProps {
+interface T3CeRcgFlickrgallery extends Omit<T3CeBaseProps, 'header' | 'subheader'> {
   content?: FlickrGalleryContent | string | null
   album_id?: string | null
   album_name?: string | null
@@ -91,8 +91,8 @@ const shuffleSlides = (items: FlickrSlide[]): FlickrSlide[] => {
   const out = [...items]
   for (let i = out.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1))
-    const temp = out[i]
-    out[i] = out[j]
+    const temp = out[i] as FlickrSlide
+    out[i] = out[j] as FlickrSlide
     out[j] = temp
   }
   return out

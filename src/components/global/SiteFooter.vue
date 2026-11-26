@@ -89,7 +89,8 @@ const footerSectionsWithCookieSettings = computed<FooterNavItem[]>(() => {
 
   if (!sections.length) return sections
 
-  const lastSection = sections[sections.length - 1]
+  // Durch die Längenprüfung oben garantiert vorhanden.
+  const lastSection = sections[sections.length - 1] as FooterNavItem
   lastSection.children = [
     ...(lastSection.children ?? []),
     {

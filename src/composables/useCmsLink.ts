@@ -7,7 +7,8 @@ export const useCmsLink = () => {
   } | null>('active-site', () => null)
 
   const knownInternalHosts = new Set<string>()
-  const configuredInternalHosts = runtimeConfig.public?.typo3?.api?.internalHosts
+  // Kann per Env auch als kommagetrennter String ankommen, daher bewusst `unknown`.
+  const configuredInternalHosts: unknown = runtimeConfig.public?.typo3?.api?.internalHosts
 
   const apiBaseUrl = runtimeConfig.public?.typo3?.api?.baseUrl
   if (typeof apiBaseUrl === 'string' && apiBaseUrl.length > 0) {

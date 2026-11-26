@@ -19,7 +19,7 @@ interface SponsorImage {
   } | null;
 }
 
-interface T3CeRcgSponsorsProps extends T3CeBaseProps {
+interface T3CeRcgSponsorsProps extends Omit<T3CeBaseProps, 'header' | 'subheader'> {
   header?: string | null;
   subheader?: string | null;
   main?: SponsorImage[] | string | null;

@@ -2,6 +2,13 @@ import { createResolver } from 'nuxt/kit'
 import { access, mkdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve as resolvePath } from 'node:path'
 
+// @nuxt/fonts kommt nur transitiv über @nuxt/ui; seine Hook-Typen sind beim Typecheck dieser Datei nicht sichtbar.
+declare module '@nuxt/schema' {
+    interface NuxtHooks {
+        'fonts:providers': (providers: Record<string, unknown>) => void | Promise<void>
+    }
+}
+
 const { resolve } = createResolver(import.meta.url)
 const normalizePublicProxyBaseUrl = (value: string | undefined): string => {
     const fallback = '/api/typo3'

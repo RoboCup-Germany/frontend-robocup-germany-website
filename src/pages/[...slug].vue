@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, unref, watchEffect } from 'vue';
+import type { LocationQuery } from 'vue-router';
 import { resolveThemeFromTypo3SitePayload, type ResolvedSiteConfig } from '~/utils/site-config';
 
 const requestUrl = useRequestURL();
@@ -28,7 +29,7 @@ const isDownloadView = computed(() => queryFlagEnabled(route.query.download));
 const shouldAutoPrint = computed(() => queryFlagEnabled(route.query.print));
 
 const cmsQuery = computed(() => {
-  const query = { ...(route.query || {}) } as Record<string, unknown>;
+  const query = { ...(route.query || {}) } as LocationQuery;
   delete query.download;
   delete query.print;
   return query;
@@ -250,7 +251,7 @@ const normalizedHeadData = computed(() => {
   };
 });
 
-useHead(normalizedHeadData);
+useHead(normalizedHeadData as Parameters<typeof useHead>[0]);
 
 const resolvePayloadLogo = (value: unknown): { src: string; alt?: string } | null => {
   const file = asRecord(value);
